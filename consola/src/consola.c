@@ -1,17 +1,17 @@
-/*
- ============================================================================
- Name        : consola.c
- Author      : 
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
- ============================================================================
- */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <shared.h>
 
 int main(void) {
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
+
+	t_log* logger;
+	if((logger = log_create("tp0.log","TP0",1,LOG_LEVEL_INFO)) == NULL) {
+		printf("no pude crear el logger \n");
+		exit(1);
+	}
+	log_info(logger, "test de log de consola");
+	int server_fd = iniciar_servidor();
+	log_info(logger, "Iniciada la conexión de servidor de consola: %d",server_fd);
 	return EXIT_SUCCESS;
 }
