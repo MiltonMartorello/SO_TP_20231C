@@ -9,4 +9,6 @@
 #define PATH_CONFIG "consola.config"
 #define PATH_LOG "consola.log"
 
+void terminar_programa(int, t_log*, t_config*);
+
 #endif /* CONSOLA_H_ */
