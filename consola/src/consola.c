@@ -25,6 +25,7 @@ int main(void) {
 	return EXIT_SUCCESS;
 }
 
+//TODO GENERALIZAR ESTA FUNCION EN LAS SHARED
 void terminar_programa(int conexion, t_log* logger, t_config* config)
 {
 	if(logger != NULL) {
