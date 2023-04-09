@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/config.h>
+#include <commons/txt.h>
 #include <pthread.h>
 #include <shared.h>
+#include "estructuras.h"
 
 #define PATH_CONFIG "file_system.config"
 

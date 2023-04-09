@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <shared.h>
+#include <commons/config.h>
+#include <commons/txt.h>
+#include "estructuras.h"
 
 typedef struct {
 	int socket;

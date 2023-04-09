@@ -1,14 +1,4 @@
-/*
- ============================================================================
- Name        : memoria.c
- Author      : 
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
- ============================================================================
- */
-
-#include <memoria.h>
+#include "memoria.h"
 
 int main(void) {
 

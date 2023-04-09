@@ -177,11 +177,8 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 	int bytes = paquete->buffer->size + 2*sizeof(int);
 
 	void* a_enviar = serializar_paquete(paquete, bytes);
-	log_info(logger, "paquete serializado!");
 	send(socket_cliente, a_enviar, bytes, 0);
-	log_info(logger, "paquete enviado!");
 	free(a_enviar);
-	log_info(logger, "paquete liberado!");
 	eliminar_paquete(paquete);
 }
 

@@ -1,16 +1,4 @@
-/*
- ============================================================================
- Name        : kernel.c
- Author      : 
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
- ============================================================================
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <shared.h>
+#include "kernel.h"
 
 void conexion_con_memoria(char* ip,char* puerto,t_log* logger);
 
@@ -34,8 +22,9 @@ int main(void) {
 	conexion_con_memoria(ip,puerto_memoria,logger);
 
 	log_info(logger, "test de log de kernel");
-	int server_fd = iniciar_servidor();
-	log_info(logger, "Iniciada la conexión de servidor de kernel: %d",server_fd);
+	int socket_memoria = iniciar_servidor(puerto_memoria);
+	log_info(logger, "Iniciada la conexión de servidor de kernel: %d",socket_memoria);
+
 	return EXIT_SUCCESS;
 }
 

@@ -1,13 +1,3 @@
-/*
- ============================================================================
- Name        : cpu.c
- Author      : 
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
- ============================================================================
- */
-
 #include "cpu.h"
 
 void conexion_a_memoria(char* ip,char* puerto,t_log* logger);
@@ -34,11 +24,14 @@ int main(void) {
 
 	conexion_a_memoria(ip,puerto_memoria,logger);
 
-	//int server_fd = iniciar_servidor();
-	//log_info(logger, "Iniciada la conexión de servidor de cpu: %d",server_fd);
+	int socket_cpu = iniciar_servidor(puerto_memoria);
+	log_info(logger, "Iniciada la conexión de servidor de cpu: %d",socket_cpu);
 
+	int socket_kernel = esperar_cliente(socket_cpu, logger);
+	log_info(logger, "Kernel Conectado.");
+
+	liberar_conexion(socket_cpu);
 	return EXIT_SUCCESS;
-
 }
 
 void conexion_a_memoria(char* ip,char* puerto,t_log* logger){

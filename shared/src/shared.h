@@ -15,29 +15,6 @@
 #include<assert.h>
 #include<signal.h>
 
-
-typedef enum
-{
-	MENSAJE,
-	PAQUETE,
-	KERNEL,
-	CPU,
-	FILESYSTEM
-} op_code;
-
-typedef struct
-{
-	int size;
-	void* stream;
-} t_buffer;
-
-typedef struct
-{
-	op_code codigo_operacion;
-	t_buffer* buffer;
-} t_paquete;
-
-
 extern t_log* logger;
 
 /*

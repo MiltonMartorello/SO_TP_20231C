@@ -9,8 +9,11 @@
 typedef enum
 {
 	MENSAJE,
-	PAQUETE
-}op_code;
+	PAQUETE,
+	KERNEL,
+	CPU,
+	FILESYSTEM
+} op_code;
 
 typedef struct
 {
