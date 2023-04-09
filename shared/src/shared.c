@@ -177,7 +177,6 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 	eliminar_paquete(paquete);
 }
 
-
 void crear_buffer(t_paquete* paquete)
 {
 	paquete->buffer = malloc(sizeof(t_buffer));
@@ -234,8 +233,6 @@ t_config* iniciar_config(char* path)
 	}
 	return nuevo_config;
 }
-
-
 
 /*
  * GENERAL
