@@ -1,19 +1,19 @@
 #ifndef SHARED_H_
 #define SHARED_H_
 
+#include "estructuras.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<sys/socket.h>
 #include<unistd.h>
 #include<netdb.h>
 #include<commons/log.h>
-#include <commons/config.h>
+#include<commons/config.h>
 #include<commons/string.h>
 #include<commons/collections/list.h>
 #include<string.h>
 #include<assert.h>
 #include<signal.h>
-
 
 
 typedef enum
@@ -23,7 +23,7 @@ typedef enum
 	KERNEL,
 	CPU,
 	FILESYSTEM
-}op_code;
+} op_code;
 
 typedef struct
 {
