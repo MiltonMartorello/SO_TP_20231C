@@ -6,7 +6,7 @@ int main(void) {
 	char* puerto_memoria;
 	char* puerto_file_system;
 	int socket_kernel;
-	int socket_memoria;
+
 	int socket_file_system;
 	pthread_t * thread_servidor;
 
@@ -23,11 +23,10 @@ int main(void) {
 	log_info(logger, "Puerto de conexión FILESYSTEM-MEMORIA: %s", puerto_memoria);
 	log_info(logger, "Puerto de conexión KERNEL-FILESYSTEM: %s", puerto_file_system);
 
-	socket_memoria = crear_conexion(ip, puerto_memoria);
-	enviar_mensaje("Hola Memoria desde el File System", socket_memoria, logger);
-
 	socket_file_system = iniciar_servidor(puerto_file_system);
 	log_info(logger, "Iniciada la conexión de servidor de file system: %d", socket_file_system);
+
+	conexion_con_memoria(ip, puerto_memoria,logger);
 
 	socket_kernel = pthread_create(&thread_servidor, NULL, esperar_cliente_hilo,  (void *) &socket_file_system);
 	int cod = pthread_join(thread_servidor, NULL);
@@ -36,6 +35,16 @@ int main(void) {
 	liberar_conexion(socket_file_system);
 	return EXIT_SUCCESS;
 }
+
+void conexion_con_memoria(char* ip,char* puerto,t_log* logger){
+	int socket_memoria = crear_conexion(ip, puerto);
+	//enviar_mensaje("Hola Memoria desde el File System", socket_memoria, logger);
+
+	enviar_handshake(socket_memoria,FILESYSTEM);
+	recibir_operacion(socket_memoria);
+	recibir_mensaje(socket_memoria,logger);
+}
+
 
 void terminar_programa(int conexion, t_log* logger, t_config* config)
 {
@@ -53,7 +62,7 @@ void terminar_programa(int conexion, t_log* logger, t_config* config)
 void* esperar_cliente_hilo (void *arg){
 	int socket_file_system = *(int *)arg;
 	printf("hola soy un hilo en el socket %d", socket_file_system);
-	int socket_kernel = esperar_cliente(socket_file_system);
+	int socket_kernel = esperar_cliente(socket_file_system,logger);
 	log_info(logger, "El Kernel se conectó con el socket %d",socket_kernel);
 	return (void*) socket_kernel;
 
