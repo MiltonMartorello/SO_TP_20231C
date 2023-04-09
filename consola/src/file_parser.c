@@ -4,36 +4,25 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 
 	if (access(archivo, F_OK) != 0) {
 	    // El archivo no existe
-	    printf("Error: El archivo %s no existe.\n", archivo);
+	    log_error(logger,"Error: El archivo %s no existe.\n", archivo);
 	    return NULL;
 	}
 
 	// r => modo READ
-	FILE *file = fopen(archivo, "r");
-
+	FILE* file = fopen(archivo, "r");
 	if (file == NULL) {
-		printf("No se puede abrir el archvivo. error:[%d]", errno);
+		log_error(logger,"No se puede abrir el archvivo. error:[%d]", errno);
 		return NULL;
 	}
 
 	t_programa* programa = crear_programa();
 
-	char* linea = NULL;
-	size_t length = 0;
-
-	bool error = false;
-	while(getline(&linea, &length, file) != -1) {
-		if (length > 0) {
-			error = (parsear_instrucciones(linea, programa->instrucciones, logger) != 0);
-			if (error) break;
-		}
-	}
+	bool error = parsear(programa, file , logger);
 
 	fclose(file);
-	free(linea);
 
 	if (error) {
-		printf("error de parseo de archivo de pseudocodigo\n");
+		log_error(logger, "Error de parseo en archivo de pseudocodigo");
 		programa_destroy(programa);
 		return NULL;
 	}
@@ -61,25 +50,46 @@ void programa_destroy(t_programa* programa) {
 	free(programa);
 }
 
+bool parsear(t_programa* programa, FILE* file, t_log* logger) {
+	bool error = false;
+	char* linea = NULL;
+	size_t length = 0;
+
+	// GETLINE TOMA LA LINEA DEL TXT HASTA EL PROXIMO SALTO DE LINEA \n
+	// Deposita el texto-resultado en el puntero a linea y el largo de la cadena en el puntero a length
+	while(getline(&linea, &length, file) != -1) {
+		if (length > 0) {
+			error = (parsear_instrucciones(linea, programa->instrucciones, logger) != 0);
+			if (error) break;
+		}
+	}
+	free(linea);
+	return error;
+}
+
+void loggear_instrucciones(char **parametros, t_log *logger) {
+	char *v;
+	int i = 1;
+	log_info(logger, "Detectada la funcion %s", parametros[0]);
+	while ((v = parametros[i]) != NULL) {
+		log_info(logger, "con parámetro nro %d = %s", i, v);
+		i++;
+	}
+	if (i == 1) {
+		log_info(logger, "sin parámetros");
+	}
+}
 
 int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 	int resultado = EXIT_SUCCESS;
 	t_instruccion* instruccion;
+
 	linea = string_replace(linea, "\n", "");
-	log_info(logger, "Parseando la linea %s", linea);
+
 	char** parametros = string_split(linea, " ");
 	char* funcion = parametros[0];
-	log_info(logger, "Detectada la funcion %s", funcion);
-	char* v;
-	int i = 1;
-	while ((v = parametros[i]) != NULL) {
-		log_info(logger, "con parámetro nro %d = %s",i,v);
-		i++;
-	}
-	if (i == 1){
-		log_info(logger, "sin parámetros");
-	}
 
+	//loggear_instrucciones(parametros, logger);
 
 	if (strcmp(funcion, "SET") == 0) {
 		instruccion = crear_instruccion(ci_SET, false);
@@ -88,7 +98,7 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		list_add(instrucciones, instruccion);
 	}
 	else if (strcmp(funcion, "I/O") == 0) {
-		//TODO
+
 	}
 	else if (strcmp(funcion, "WAIT") == 0) {
 		instruccion = crear_instruccion(ci_WAIT, false);
@@ -168,7 +178,7 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		list_add(instrucciones, instruccion);
 	}
 	else {
-		printf("Tipo de instruccion desconocida:[%s]\n", funcion);
+		log_error(logger, "Tipo de instruccion desconocida:[%s]\n", funcion);
 		resultado = EXIT_FAILURE;
 	}
 
