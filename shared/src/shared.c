@@ -6,7 +6,7 @@ t_log* logger;
  * SERVIDOR
  * */
 
-int iniciar_servidor(void)
+int iniciar_servidor(char* puerto)
 {
 	int socket_servidor;
 	struct addrinfo hints, *servinfo, *p;
@@ -17,7 +17,7 @@ int iniciar_servidor(void)
 	hints.ai_flags = AI_PASSIVE;
 
 	//TODO REFACTORIZAR PUERTO PARA QUE SALGA DE UN ARCHIVO
-	getaddrinfo(NULL, PUERTO, &hints, &servinfo);
+	getaddrinfo(NULL, puerto, &hints, &servinfo);
 
 	// Creamos el socket de escucha del servidor
 	socket_servidor = socket(
