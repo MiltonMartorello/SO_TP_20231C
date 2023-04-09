@@ -177,7 +177,6 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 	eliminar_paquete(paquete);
 }
 
-
 void crear_buffer(t_paquete* paquete)
 {
 	paquete->buffer = malloc(sizeof(t_buffer));
@@ -233,4 +232,22 @@ t_config* iniciar_config(char* path)
 		exit(1);
 	}
 	return nuevo_config;
+}
+
+
+/*
+ * GENERAL
+ * */
+
+t_log* iniciar_logger(char* path)
+{
+
+	t_log* nuevo_logger;
+	char * nombre_log = string_replace(path, ".log", "");
+	if((nuevo_logger = log_create(path, nombre_log, 1, LOG_LEVEL_INFO)) == NULL) {
+		printf("No pude crear el logger \n");
+		exit(1);
+	}
+
+	return nuevo_logger;
 }

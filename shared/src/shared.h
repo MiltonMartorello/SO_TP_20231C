@@ -61,4 +61,10 @@ void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 t_config* iniciar_config(char*);
 
+/*
+ * GENERAL
+ * */
+
+t_log* iniciar_logger(char*);
+
 #endif /* SHARED_H_ */
