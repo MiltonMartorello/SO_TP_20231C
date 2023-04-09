@@ -11,4 +11,6 @@
 
 void terminar_programa(int conexion, t_log* logger, t_config* config);
 void* esperar_cliente_hilo (void *arg);
+
+void conexion_con_memoria(char* ip,char* puerto,t_log* logger);
 #endif /* FILESYSTEM_H_ */

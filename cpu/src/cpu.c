@@ -10,6 +10,8 @@
 
 #include "cpu.h"
 
+void conexion_a_memoria(char* ip,char* puerto,t_log* logger);
+
 int main(void) {
 
 	t_log* logger;
@@ -30,14 +32,21 @@ int main(void) {
 	ip = config_get_string_value(config,"IP_MEMORIA");
 	puerto_memoria = config_get_string_value(config,"PUERTO_MEMORIA");
 
+	conexion_a_memoria(ip,puerto_memoria,logger);
 
-	log_info(logger,"El módulo CPU se conectará con el ip %s y puerto: %s  ",ip,puerto_memoria);
-	int server_fd = iniciar_servidor();
-	log_info(logger, "Iniciada la conexión de servidor de cpu: %d",server_fd);
+	//int server_fd = iniciar_servidor();
+	//log_info(logger, "Iniciada la conexión de servidor de cpu: %d",server_fd);
+
 	return EXIT_SUCCESS;
-
-
 
 }
 
+void conexion_a_memoria(char* ip,char* puerto,t_log* logger){
+	int conexion_memoria = crear_conexion(ip,puerto);
+	enviar_handshake(conexion_memoria,CPU);
+
+	log_info(logger,"El módulo CPU se conectará con el ip %s y puerto: %s  ",ip,puerto);
+	recibir_operacion(conexion_memoria);
+	recibir_mensaje(conexion_memoria, logger);
+}
 

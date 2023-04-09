@@ -37,13 +37,21 @@ int iniciar_servidor(char* puerto)
 	return socket_servidor;
 }
 
-int esperar_cliente(int socket_servidor)
+int esperar_cliente(int socket_servidor, t_log* logger)
 {
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor,NULL,NULL);
 	log_info(logger, "Se conecto un cliente!");
 
 	return socket_cliente;
+}
+
+void enviar_handshake(int socket,int operacion ) {
+    void *buffer = malloc(sizeof(int));
+    memcpy(buffer, &operacion, sizeof(int));
+    send(socket, buffer, sizeof(int), 0);
+
+    free(buffer);
 }
 
 int recibir_operacion(int socket_cliente)
@@ -69,7 +77,7 @@ void* recibir_buffer(int* size, int socket_cliente)
 	return buffer;
 }
 
-void recibir_mensaje(int socket_cliente)
+void recibir_mensaje(int socket_cliente,t_log* logger)
 {
 	int size;
 	char* buffer = recibir_buffer(&size, socket_cliente);
