@@ -225,3 +225,12 @@ void liberar_conexion(int socket_cliente)
 	close(socket_cliente);
 }
 
+t_config* iniciar_config(char* path)
+{
+	t_config* nuevo_config;
+	if((nuevo_config = config_create(path)) == NULL) {
+		printf("no pude cargar la config \n");
+		exit(1);
+	}
+	return nuevo_config;
+}
