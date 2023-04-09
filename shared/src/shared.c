@@ -234,7 +234,6 @@ t_config* iniciar_config(char* path)
 	return nuevo_config;
 }
 
-
 /*
  * GENERAL
  * */
