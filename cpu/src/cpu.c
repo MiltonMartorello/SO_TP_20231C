@@ -8,11 +8,9 @@ int main(void) {
 	t_config* config;
 	char* ip;
 	char* puerto_memoria;
-	uint32_t socket_cpu;
-	uint32_t socket_memoria;
-	uint32_t socket_kernel;
-
-
+	int socket_cpu;
+	int socket_memoria;
+	int socket_kernel;
 
 	if((logger = log_create("cpu.log","CPU",1,LOG_LEVEL_INFO)) == NULL) {
 		printf("no pude crear el logger \n");
@@ -29,10 +27,10 @@ int main(void) {
 
 	conexion_a_memoria(ip,puerto_memoria,logger);
 
-	int socket_cpu = iniciar_servidor(puerto_memoria);
+	socket_cpu = iniciar_servidor(puerto_memoria);
 	log_info(logger, "Iniciada la conexión de servidor de cpu: %d",socket_cpu);
 
-	int socket_kernel = esperar_cliente(socket_cpu, logger);
+	socket_kernel = esperar_cliente(socket_cpu, logger);
 	log_info(logger, "Kernel Conectado.");
 
 	liberar_conexion(socket_cpu);

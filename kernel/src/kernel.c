@@ -1,4 +1,4 @@
-#include "kernel.h"
+#include "../include/kernel.h"
 
 void conexion_con_memoria(char* ip,char* puerto,t_log* logger);
 
@@ -63,6 +63,7 @@ int conectar_con_cpu(){
     }
 
     return conexion;
+}
 
 void conexion_con_memoria(char* ip,char* puerto,t_log* logger){
 	int conexion_memoria = crear_conexion(ip,puerto);
@@ -71,5 +72,3 @@ void conexion_con_memoria(char* ip,char* puerto,t_log* logger){
 	recibir_operacion(conexion_memoria);
 	recibir_mensaje(conexion_memoria,logger);
 }
-
-
