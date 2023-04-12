@@ -7,4 +7,6 @@
 #include <commons/txt.h>
 #include "estructuras.h"
 
+void terminar_programa(int , t_log* , t_config* ) ;
+
 #endif /* CPU_H_ */

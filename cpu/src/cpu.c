@@ -8,29 +8,29 @@ int main(void) {
 	t_config* config;
 	char* ip;
 	char* puerto_memoria;
+	int socket_cpu;
+	int socket_kernel;
 
 
-	if((logger = log_create("tp0.log","TP0",1,LOG_LEVEL_INFO)) == NULL) {
-		printf("no pude crear el logger \n");
-		exit(1);
-	}
-
-	log_info(logger, "test de log de cpu");
+	logger = iniciar_logger("cpu.log");
 
 	config = iniciar_config("./cpu.config");
 
 	ip = config_get_string_value(config,"IP_MEMORIA");
 	puerto_memoria = config_get_string_value(config,"PUERTO_MEMORIA");
+	log_info(logger,"El módulo CPU se conectará con el ip: %s y puerto: %s  ",ip,puerto_memoria);
 
 	conexion_a_memoria(ip,puerto_memoria,logger);
 
-	int socket_cpu = iniciar_servidor(puerto_memoria);
+	socket_cpu = iniciar_servidor(puerto_memoria);
 	log_info(logger, "Iniciada la conexión de servidor de cpu: %d",socket_cpu);
 
-	int socket_kernel = esperar_cliente(socket_cpu, logger);
+	socket_kernel = esperar_cliente(socket_cpu, logger);
 	log_info(logger, "Kernel Conectado.");
 
-	liberar_conexion(socket_cpu);
+	terminar_programa(socket_cpu,logger,config);
+
+	liberar_conexion(socket_kernel);
 	return EXIT_SUCCESS;
 }
 
@@ -42,4 +42,21 @@ void conexion_a_memoria(char* ip,char* puerto,t_log* logger){
 	recibir_operacion(conexion_memoria);
 	recibir_mensaje(conexion_memoria, logger);
 }
+
+void terminar_programa(int conexion, t_log* logger, t_config* config)
+{
+
+	if(logger != NULL){
+		log_destroy(logger);
+	}
+
+	if(config != NULL){
+		config_destroy(config);
+	}
+
+	liberar_conexion(conexion);
+}
+
+
+
 
