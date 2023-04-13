@@ -31,7 +31,7 @@ int main(void) {
 		int modulo = recibir_operacion(socket_consola);
 
 			switch (modulo) {
-				case 5: /* TODO CAMBIAR POR ENUM CONSOLA */
+				case CONSOLA:
 					enviar_mensaje("Hola Consola! Soy tu amigo el Kernel", socket_consola, logger);
 					break;
 
