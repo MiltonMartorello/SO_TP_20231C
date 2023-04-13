@@ -4,9 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <shared.h>
+#include <commons/log.h>
 #include <commons/config.h>
 #include <commons/txt.h>
-#include "estructuras.h"
+#include <estructuras.h>
 
 /* -- ESTRUCTURAS -- */
 typedef struct
@@ -22,15 +23,25 @@ typedef struct
     int ESTIMACION_INICIAL;
     int HRRN_ALFA;
     int GRADO_MAX_MULTIPROGRAMACION;
+    char** RECURSOS;
+    char** INSTANCIAS_RECURSOS;
+
 } t_kernel_config;
 
-t_kernel_config* config_kernel;
+t_kernel_config* kernel_config;
 
 /* -- VARIABLES -- */
-int conexion;
+int socket_cpu;
+int socket_filesystem;
+int socket_memoria;
+int socket_kernel;
+int socket_consola;
 
 /* -- FUNCIONES -- */
 int conectar_con_cpu();
+int conectar_con_memoria();
+int conectar_con_filesystem();
 void cargar_config_kernel();
+void finalizar_kernel(int socket_servidor, t_log* logger, t_config* config);
 
 #endif
