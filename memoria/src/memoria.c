@@ -1,4 +1,4 @@
-#include "memoria.h"
+#include "../Include/memoria.h"
 
 int main(void) {
 
