@@ -33,6 +33,7 @@ int main(void) {
 	log_info(logger, "Kernel Conectado.");
 
 	liberar_conexion(socket_cpu);
+	terminar_programa(socket_kernel, logger, config);
 	return EXIT_SUCCESS;
 }
 
