@@ -1,4 +1,4 @@
-#include "consola.h"
+#include "../Include/consola.h"
 
 void correr_consola(char* archivo_config, char* archivo_programa) {
 
@@ -47,5 +47,3 @@ void conexion_a_kernel(char* ip, char* puerto,t_log* logger) {
 	recibir_operacion(socket_kernel);
 	recibir_mensaje(socket_kernel, logger);
 }
-
-
