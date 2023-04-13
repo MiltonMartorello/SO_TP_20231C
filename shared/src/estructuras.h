@@ -12,7 +12,8 @@ typedef enum
 	PAQUETE,
 	KERNEL,
 	CPU,
-	FILESYSTEM
+	FILESYSTEM,
+	CONSOLA
 } op_code;
 
 typedef struct

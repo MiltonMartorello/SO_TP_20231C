@@ -12,5 +12,6 @@
 
 void correr_consola(char*, char*);
 void terminar_programa(int, t_log*, t_config*);
+void conexion_a_kernel(char*, char*, t_log*);
 
 #endif /* CONSOLA_H_ */
