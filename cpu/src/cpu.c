@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "../Include/cpu.h"
 
 void conexion_a_memoria(char* ip,char* puerto,t_log* logger);
 
