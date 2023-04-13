@@ -9,7 +9,6 @@ int main(void) {
 	char* ip;
 	char* puerto_memoria;
 	int socket_cpu;
-	int socket_memoria;
 	int socket_kernel;
 
 	if((logger = log_create("cpu.log","CPU",1,LOG_LEVEL_INFO)) == NULL) {
