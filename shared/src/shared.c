@@ -16,7 +16,6 @@ int iniciar_servidor(char* puerto)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	//TODO REFACTORIZAR PUERTO PARA QUE SALGA DE UN ARCHIVO
 	getaddrinfo(NULL, puerto, &hints, &servinfo);
 
 	// Creamos el socket de escucha del servidor
@@ -254,4 +253,17 @@ t_log* iniciar_logger(char* path)
 	}
 
 	return nuevo_logger;
+}
+
+void terminar_programa(int conexion, t_log* logger, t_config* config)
+{
+	if(logger != NULL) {
+		log_destroy(logger);
+	}
+
+	if(config != NULL) {
+		config_destroy(config);
+	}
+
+	liberar_conexion(conexion);
 }

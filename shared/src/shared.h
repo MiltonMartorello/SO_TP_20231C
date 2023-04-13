@@ -48,5 +48,6 @@ t_config* iniciar_config(char*);
  * */
 
 t_log* iniciar_logger(char*);
+void terminar_programa(int, t_log*, t_config*);
 
 #endif /* SHARED_H_ */

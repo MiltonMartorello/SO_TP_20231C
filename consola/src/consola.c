@@ -38,18 +38,6 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 
 
 //TODO GENERALIZAR ESTA FUNCION EN LAS SHARED
-void terminar_programa(int conexion, t_log* logger, t_config* config)
-{
-	if(logger != NULL) {
-		log_destroy(logger);
-	}
-
-	if(config != NULL) {
-		config_destroy(config);
-	}
-
-	liberar_conexion(conexion);
-}
 
 void conexion_a_kernel(char* ip, char* puerto,t_log* logger) {
 	int socket_kernel = crear_conexion(ip, puerto);

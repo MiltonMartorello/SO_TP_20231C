@@ -46,7 +46,7 @@ void programa_destroy(t_programa* programa) {
 
 	if (programa->instrucciones != NULL)
 		list_destroy(programa->instrucciones);
-	//TODO MALLOC DEL programa->size?
+	//TODO free DEL programa->size?
 	free(programa);
 }
 
