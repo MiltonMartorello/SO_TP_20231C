@@ -12,6 +12,18 @@
 void correr_consola(char*, char*);
 void terminar_programa(int, t_log*, t_config*);
 int conexion_a_kernel(char*, char*, t_log*);
-t_buffer* serializar_programa(t_programa*);
-t_buffer* serializar_instrucciones(t_list*);
+
+/*
+ *	Tipo de datos			Tamaño			Descripcion
+ *	int 					4 bytes			Cantidad de instrucciones
+ *		int					4 bytes			Codigo de instruccion
+ *		int					4 bytes			Cantidad de parametros
+ *			int				4 bytes			Longitud del parametro - incluye al centinela de fin de cadena "\n"
+ *			char*			variable		Valor del parametro - 1 byte por caracter + centinela
+ */
+
+t_buffer* serializar_programa(t_programa*, t_log*);
+
+
+t_buffer* serializar_instrucciones(t_list*, t_log*);
 #endif /* CONSOLA_H_ */

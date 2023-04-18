@@ -15,10 +15,10 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 		return NULL;
 	}
 
-	t_programa* programa = crear_programa();
-
+	t_programa* programa = crear_programa(list_create());
+	printf("Size del programa %d\n" ,programa->size);
 	bool error = parsear(programa, file , logger);
-
+	printf("Size del programa %d\n" ,programa->size);
 	fclose(file);
 
 	if (error) {
@@ -27,18 +27,19 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 		return NULL;
 	}
 	else {
+		log_info(logger, "retornando programa parseado");
+		printf("Size del programa %d\n" ,programa->size);
 		return programa;
 	}
 
 }
 
 
-t_programa* crear_programa(void){
-	t_list* instrucciones = list_create();
+t_programa* crear_programa(t_list* instrucciones){
 	t_programa* programa = malloc(sizeof(t_programa));
-	programa->size = sizeof(t_programa);
+	programa->size = 0;
 	programa->instrucciones = instrucciones;
-
+	printf("Size del programa %d\n" ,programa->size);
 	return programa;
 }
 
@@ -53,7 +54,7 @@ void programa_destroy(t_programa* programa) {
 bool parsear(t_programa* programa, FILE* file, t_log* logger) {
 	bool error = false;
 	char* linea = NULL;
-	size_t length = 0;
+	int length = 0;
 
 	// GETLINE TOMA LA LINEA DEL TXT HASTA EL PROXIMO SALTO DE LINEA \n
 	// Deposita el texto-resultado en el puntero a linea y el largo de la cadena en el puntero a length
@@ -182,7 +183,7 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		resultado = EXIT_FAILURE;
 	}
 
-	liberar_memoria_parseo(parametros, funcion);
+	//liberar_memoria_parseo(parametros, funcion);
 	return resultado;
 }
 

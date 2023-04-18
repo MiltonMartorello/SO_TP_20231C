@@ -181,11 +181,12 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 	eliminar_paquete(paquete);
 }
 
-void crear_buffer(t_paquete* paquete)
+t_buffer* crear_buffer()
 {
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = 0;
-	paquete->buffer->stream = NULL;
+	t_buffer*buffer = malloc(sizeof(t_buffer));
+	buffer->size = 0;
+	buffer->stream = NULL;
+	return buffer;
 }
 
 t_paquete* crear_paquete(void)
