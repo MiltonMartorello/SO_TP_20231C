@@ -15,10 +15,8 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 		return NULL;
 	}
 
-	t_programa* programa = crear_programa();
-
+	t_programa* programa = crear_programa(list_create());
 	bool error = parsear(programa, file , logger);
-
 	fclose(file);
 
 	if (error) {
@@ -27,18 +25,18 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 		return NULL;
 	}
 	else {
+		log_info(logger, "retornando programa parseado");
 		return programa;
 	}
 
 }
 
 
-t_programa* crear_programa(void){
-	t_list* instrucciones = list_create();
+t_programa* crear_programa(t_list* instrucciones){
 	t_programa* programa = malloc(sizeof(t_programa));
-	programa->size = sizeof(t_programa);
+	programa->size = 0;
 	programa->instrucciones = instrucciones;
-
+	printf("Size del programa %d\n" ,programa->size);
 	return programa;
 }
 
@@ -83,9 +81,7 @@ void loggear_instrucciones(char **parametros, t_log *logger) {
 int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 	int resultado = EXIT_SUCCESS;
 	t_instruccion* instruccion;
-
 	linea = string_replace(linea, "\n", "");
-
 	char** parametros = string_split(linea, " ");
 	char* funcion = parametros[0];
 
@@ -98,7 +94,9 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		list_add(instrucciones, instruccion);
 	}
 	else if (strcmp(funcion, "I/O") == 0) {
-
+		instruccion = crear_instruccion(ci_IO, false);
+		list_add(instruccion->parametros, strdup(parametros[1]));
+		list_add(instrucciones, instruccion);
 	}
 	else if (strcmp(funcion, "WAIT") == 0) {
 		instruccion = crear_instruccion(ci_WAIT, false);
@@ -181,7 +179,6 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		log_error(logger, "Tipo de instruccion desconocida:[%s]\n", funcion);
 		resultado = EXIT_FAILURE;
 	}
-
 	liberar_memoria_parseo(parametros, funcion);
 	return resultado;
 }
@@ -191,7 +188,7 @@ t_instruccion* crear_instruccion(t_codigo_instruccion codigo, bool empty) {
 	instruccion->codigo = codigo;
 
 	if (empty)
-		instruccion->parametros = NULL;
+		instruccion->parametros = list_create();
 	else
 		instruccion->parametros = list_create();
 

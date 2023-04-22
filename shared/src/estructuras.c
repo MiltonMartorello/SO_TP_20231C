@@ -13,3 +13,9 @@ t_instruccion* crear_instruccion(t_codigo_instruccion codigo, bool empty) {
 
 	return instruccion;
 }
+
+
+void buffer_destroy(t_buffer* buffer) {
+	free(buffer->stream);
+	free(buffer);
+}
