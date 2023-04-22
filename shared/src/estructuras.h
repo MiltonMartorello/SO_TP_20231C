@@ -13,7 +13,9 @@ typedef enum
 	KERNEL,
 	CPU,
 	FILESYSTEM,
-	CONSOLA
+	CONSOLA,
+	PROGRAMA,
+	PROGRAMA_FINALIZADO
 } op_code;
 
 typedef struct
@@ -67,6 +69,6 @@ typedef struct {
 
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
-
+void buffer_destroy(t_buffer*);
 
 #endif /* SRC_ESTRUCTURAS_H_ */

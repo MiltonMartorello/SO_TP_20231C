@@ -12,7 +12,6 @@
 void correr_consola(char*, char*);
 void terminar_programa(int, t_log*, t_config*);
 int conexion_a_kernel(char*, char*, t_log*);
-
 /*
  *	Tipo de datos			Tamaño			Descripcion
  *	int 					4 bytes			Cantidad de instrucciones
@@ -23,7 +22,6 @@ int conexion_a_kernel(char*, char*, t_log*);
  */
 
 t_buffer* serializar_programa(t_programa*, t_log*);
-
-
 t_buffer* serializar_instrucciones(t_list*, t_log*);
+int enviar_programa(t_buffer*, int, int, t_log*);
 #endif /* CONSOLA_H_ */

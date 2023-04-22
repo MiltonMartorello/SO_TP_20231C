@@ -16,9 +16,7 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 	}
 
 	t_programa* programa = crear_programa(list_create());
-	printf("Size del programa %d\n" ,programa->size);
 	bool error = parsear(programa, file , logger);
-	printf("Size del programa %d\n" ,programa->size);
 	fclose(file);
 
 	if (error) {
@@ -28,7 +26,6 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 	}
 	else {
 		log_info(logger, "retornando programa parseado");
-		printf("Size del programa %d\n" ,programa->size);
 		return programa;
 	}
 
@@ -54,7 +51,7 @@ void programa_destroy(t_programa* programa) {
 bool parsear(t_programa* programa, FILE* file, t_log* logger) {
 	bool error = false;
 	char* linea = NULL;
-	int length = 0;
+	size_t length = 0;
 
 	// GETLINE TOMA LA LINEA DEL TXT HASTA EL PROXIMO SALTO DE LINEA \n
 	// Deposita el texto-resultado en el puntero a linea y el largo de la cadena en el puntero a length
@@ -84,9 +81,7 @@ void loggear_instrucciones(char **parametros, t_log *logger) {
 int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 	int resultado = EXIT_SUCCESS;
 	t_instruccion* instruccion;
-
 	linea = string_replace(linea, "\n", "");
-
 	char** parametros = string_split(linea, " ");
 	char* funcion = parametros[0];
 
@@ -99,7 +94,9 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		list_add(instrucciones, instruccion);
 	}
 	else if (strcmp(funcion, "I/O") == 0) {
-
+		instruccion = crear_instruccion(ci_IO, false);
+		list_add(instruccion->parametros, strdup(parametros[1]));
+		list_add(instrucciones, instruccion);
 	}
 	else if (strcmp(funcion, "WAIT") == 0) {
 		instruccion = crear_instruccion(ci_WAIT, false);
@@ -182,8 +179,7 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 		log_error(logger, "Tipo de instruccion desconocida:[%s]\n", funcion);
 		resultado = EXIT_FAILURE;
 	}
-
-	//liberar_memoria_parseo(parametros, funcion);
+	liberar_memoria_parseo(parametros, funcion);
 	return resultado;
 }
 
@@ -192,7 +188,7 @@ t_instruccion* crear_instruccion(t_codigo_instruccion codigo, bool empty) {
 	instruccion->codigo = codigo;
 
 	if (empty)
-		instruccion->parametros = NULL;
+		instruccion->parametros = list_create();
 	else
 		instruccion->parametros = list_create();
 

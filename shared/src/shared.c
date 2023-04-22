@@ -150,14 +150,6 @@ int crear_conexion(char *ip, char* puerto)
 				server_info->ai_addrlen) == -1)
 		printf("error");
 
-
-/*
- * // Asociamos el socket a un puerto
-	bind(socket_cliente,server_info->ai_addr,server_info->ai_addrlen);
-
-	// Escuchamos las conexiones entrantes
-	listen(socket_cliente,SOMAXCONN);
-*/
 	freeaddrinfo(server_info);
 
 	return socket_cliente;
@@ -183,17 +175,17 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 
 t_buffer* crear_buffer()
 {
-	t_buffer*buffer = malloc(sizeof(t_buffer));
+	t_buffer* buffer = malloc(sizeof(t_buffer));
 	buffer->size = 0;
 	buffer->stream = NULL;
 	return buffer;
 }
 
-t_paquete* crear_paquete(void)
+t_paquete* crear_paquete(int tipo)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
-	paquete->codigo_operacion = PAQUETE;
-	crear_buffer(paquete);
+	paquete->codigo_operacion = tipo;
+	paquete->buffer = crear_buffer(paquete);
 	return paquete;
 }
 
@@ -211,6 +203,20 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente)
 {
 	int bytes = paquete->buffer->size + 2*sizeof(int);
 	void* a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket_cliente, a_enviar, bytes, 0);
+
+	free(a_enviar);
+}
+
+void enviar_programa(t_buffer* buffer, int socket_cliente)
+{
+	// llega 2 ints además del size del buffer
+	// Esto esta asi por la necesidad de enviar instrucciones de la consola a kernel. Si no aplica en general, particularizamos en varias funciones.
+	// 1x4 -> Código de operación
+	// 1x4 -> Cantidad de instrucciones
+	int bytes = buffer->size + 2*sizeof(int);
+	void* a_enviar = serializar_programa(buffer, bytes);
 
 	send(socket_cliente, a_enviar, bytes, 0);
 
