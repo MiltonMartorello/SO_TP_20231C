@@ -1,7 +1,8 @@
 #ifndef SRC_ESTRUCTURAS_H_
 #define SRC_ESTRUCTURAS_H_
 #include <commons/collections/list.h>
-
+#include <commons/temporal.h>
+#include <commons/bitarray.h>
 /*
  * GENERAL
  * */
@@ -57,16 +58,48 @@ typedef enum {
 
 
 typedef struct {
-	t_codigo_instruccion	codigo;
-	t_list*					parametros;
+	t_codigo_instruccion codigo;
+	t_list* parametros;
 } t_instruccion;
 
 
 typedef struct {
-	int			size;
-	t_list*		instrucciones;
+	int size;
+	t_list* instrucciones;
 } t_programa;
 
+
+/*
+ * PLANIFICACION
+ * */
+
+// REGISTROS CPU
+typedef union {
+    char* AX;
+    char*  BX;
+    char*  CX;
+    char*  DX;
+    char*  EAX;
+    char*  EBX;
+    char*  ECX;
+    char*  EDX;
+    char* * RAX;
+    char* * RBX;
+    char* * RCX;
+    char* * RDX;
+} t_registro;
+
+// PCB
+typedef struct {
+	int pid;
+	t_list* MOCK_instrucciones;
+	int program_counter;
+	t_registro* registros;
+	t_list MOCK_tabla_segmento;
+	int estimado_rafaga;
+	t_temporal* tiempo_llegada;
+	t_list* MOCK_tabla_archivos_abiertos;
+} t_pcb;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);
