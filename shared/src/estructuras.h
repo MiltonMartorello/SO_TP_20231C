@@ -3,6 +3,7 @@
 #include <commons/collections/list.h>
 #include <commons/temporal.h>
 #include <commons/bitarray.h>
+#include <commons/log.h>
 /*
  * GENERAL
  * */
@@ -31,6 +32,11 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+
+typedef struct {
+	int socket;
+	t_log *log;
+} t_args_hilo_cliente;
 
 /*
  * PROGRAMA E INSTRUCCIONES

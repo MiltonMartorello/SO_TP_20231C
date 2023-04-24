@@ -38,10 +38,10 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 	//buffer_destroy(buffer);
 
 	if (response_code_kernel > 0) {
-		t_paquete* paquete = recibir_paquete(socket_kernel);
+		t_list* respuesta = recibir_paquete(socket_kernel);
 
-		if (paquete->codigo_operacion != PROGRAMA_FINALIZADO) {
-			log_error(logger, "Error al finalizar programa. Se esperaba código %d, y se recibió %d", PROGRAMA_FINALIZADO, paquete->codigo_operacion);
+		if (list_get(respuesta,0) != PROGRAMA_FINALIZADO) {
+			log_error(logger, "Error al finalizar programa. Se esperaba código %d, y se recibió %d", PROGRAMA_FINALIZADO, list_get(respuesta,0));
 		}
 		else {
 			log_info(logger, "Programa ha finalizado correctamente");

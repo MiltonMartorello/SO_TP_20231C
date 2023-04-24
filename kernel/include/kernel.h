@@ -43,5 +43,6 @@ int conectar_con_memoria();
 int conectar_con_filesystem();
 void cargar_config_kernel();
 void finalizar_kernel(int socket_servidor, t_log* logger, t_config* config);
+int procesar_consola(void *args_hilo);
 
 #endif

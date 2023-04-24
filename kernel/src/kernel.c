@@ -1,4 +1,5 @@
 #include "../include/kernel.h"
+#include "../include/i_console.h"
 
 int main(void) {
 
@@ -26,13 +27,26 @@ int main(void) {
 
         log_info(logger, "Esperando un cliente nuevo de la consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
-        log_info(logger, "Entro una consola con els socket: %d", socket_consola);
+        log_info(logger, "Entro una consola con el socket: %d", socket_consola);
 
 		int modulo = recibir_operacion(socket_consola);
 
 			switch (modulo) {
 				case CONSOLA:
 					enviar_mensaje("Hola Consola! Soy tu amigo el Kernel", socket_consola, logger);
+					pthread_t* hilo;
+
+					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
+
+					args->socket = socket_kernel;
+					args->log = logger;
+
+					int hilo_return = pthread_create(hilo, NULL, (void*) procesar_consola, (void*) args);
+					if (hilo_return != 0) {
+						return -1;
+					}
+					pthread_detach(hilo);
+					free(args);
 					break;
 
 				default:
@@ -46,6 +60,8 @@ int main(void) {
 
 	return EXIT_SUCCESS;
 }
+
+
 
 void cargar_config_kernel(t_config* config){
 
