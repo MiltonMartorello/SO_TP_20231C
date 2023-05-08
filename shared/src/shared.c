@@ -209,19 +209,19 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente)
 	free(a_enviar);
 }
 
-void enviar_programa(t_buffer* buffer, int socket_cliente)
-{
-	// llega 2 ints además del size del buffer
-	// Esto esta asi por la necesidad de enviar instrucciones de la consola a kernel. Si no aplica en general, particularizamos en varias funciones.
-	// 1x4 -> Código de operación
-	// 1x4 -> Cantidad de instrucciones
-	int bytes = buffer->size + 2*sizeof(int);
-	void* a_enviar = serializar_programa(buffer, bytes);
-
-	send(socket_cliente, a_enviar, bytes, 0);
-
-	free(a_enviar);
-}
+//void enviar_programa(t_buffer* buffer, int socket_cliente)
+//{
+//	// llega 2 ints además del size del buffer
+//	// Esto esta asi por la necesidad de enviar instrucciones de la consola a kernel. Si no aplica en general, particularizamos en varias funciones.
+//	// 1x4 -> Código de operación
+//	// 1x4 -> Cantidad de instrucciones
+//	int bytes = buffer->size + 2*sizeof(int);
+//	void* a_enviar = serializar_programa(buffer, bytes);
+//
+//	send(socket_cliente, a_enviar, bytes, 0);
+//
+//	free(a_enviar);
+//}
 
 void eliminar_paquete(t_paquete* paquete)
 {

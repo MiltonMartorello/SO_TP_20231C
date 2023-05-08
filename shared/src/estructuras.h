@@ -19,6 +19,11 @@ typedef enum
 	PROGRAMA_FINALIZADO
 } op_code;
 
+typedef enum{
+	PROCESO_DESALOJADO_POR_YIELD,
+	PROCESO_FINALIZADO
+} cod_proceso;
+
 typedef struct
 {
 	int size;
@@ -74,19 +79,34 @@ typedef struct {
  * */
 
 // REGISTROS CPU
+//typedef union {
+//    char* AX;
+//    char*  BX;
+//    char*  CX;
+//    char*  DX;
+//    char*  EAX;
+//    char*  EBX;
+//    char*  ECX;
+//    char*  EDX;
+//    char* * RAX;
+//    char* * RBX;
+//    char* * RCX;
+//    char* * RDX;
+//} t_registro;
+
 typedef union {
-    char* AX;
-    char*  BX;
-    char*  CX;
-    char*  DX;
-    char*  EAX;
-    char*  EBX;
-    char*  ECX;
-    char*  EDX;
-    char* * RAX;
-    char* * RBX;
-    char* * RCX;
-    char* * RDX;
+    char AX[4];
+    char BX[4];
+    char CX[4];
+    char DX[4];
+    char EAX[8];
+    char EBX[8];
+    char ECX[8];
+    char EDX[8];
+    char RAX[16];
+    char RBX[16];
+    char RCX[16];
+    char RDX[16];
 } t_registro;
 
 // PCB
@@ -95,10 +115,10 @@ typedef struct {
 	t_list* MOCK_instrucciones;
 	int program_counter;
 	t_registro* registros;
-	t_list MOCK_tabla_segmento;
+	//t_list MOCK_tabla_segmento;
 	int estimado_rafaga;
-	t_temporal* tiempo_llegada;
-	t_list* MOCK_tabla_archivos_abiertos;
+	//t_temporal* tiempo_llegada;
+	//t_list* MOCK_tabla_archivos_abiertos;
 } t_pcb;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
