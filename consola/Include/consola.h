@@ -6,6 +6,7 @@
 #include <shared.h>
 #include <commons/config.h>
 #include <commons/txt.h>
+#include <commons/collections/queue.h>
 
 #define PATH_LOG "consola.log"
 

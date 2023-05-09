@@ -11,41 +11,46 @@ int main(void) {
 	cargar_config_kernel(config_kernel);
 
 	/* -- CONEXIÓN CON CPU -- */
-	socket_cpu = conectar_con_cpu();
+	//socket_cpu = conectar_con_cpu();
 
     /* -- CONEXIÓN CON MEMORIA -- */
-	socket_memoria = conectar_con_memoria();
+	//socket_memoria = conectar_con_memoria();
 
     /* -- CONEXIÓN CON FILESYSTEM -- */
-	socket_memoria = conectar_con_filesystem();
+	//socket_filesystem = conectar_con_filesystem();
 
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
 	log_info(logger, "Iniciada la conexión de Kernel como servidor: %d",socket_kernel);
 
-    while(1) {
+  //  while(1) {
 
         log_info(logger, "Esperando un cliente nuevo de la consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
-        log_info(logger, "Entro una consola con el socket: %d", socket_consola);
-
+        log_info(logger, "Entró una consola con el socket: %d", socket_consola);
+        int estado_socket = validar_conexion(socket_consola);
 		int modulo = recibir_operacion(socket_consola);
-
+		log_info(logger, "Recibida op code: %d", modulo);
 			switch (modulo) {
 				case CONSOLA:
-					enviar_mensaje("Hola Consola! Soy tu amigo el Kernel", socket_consola, logger);
+
+					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
 					pthread_t* hilo;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
 
-					args->socket = socket_kernel;
+					args->socket = socket_consola;
 					args->log = logger;
+					procesar_consola(args);
 
-					int hilo_return = pthread_create(hilo, NULL, (void*) procesar_consola, (void*) args);
+					/*int hilo_return = pthread_create(hilo, NULL, (void*) procesar_consola, (void*) args);
 					if (hilo_return != 0) {
+						log_info(logger, "Terminando proceso con exit code de hilo: %d", hilo_return);
 						return -1;
 					}
-					pthread_detach(hilo);
+					log_info(logger, "Centinela");
+					pthread_join(hilo);
+					*/
 					free(args);
 					break;
 
@@ -53,7 +58,7 @@ int main(void) {
 					log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO.");
 					break;
 			}
-    }
+   // }
 
 	/* -- FINALIZAR PROGRAMA -- */
 	finalizar_kernel(socket_kernel, logger, config_kernel);

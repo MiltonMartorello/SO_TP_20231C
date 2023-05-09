@@ -67,7 +67,6 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 	linea = string_replace(linea, "\n", "");
 	char** parametros = string_split(linea, " ");
 	char* funcion = parametros[0];
-
 	//loggear_instrucciones(parametros, logger);
 
 	if (strcmp(funcion, "SET") == 0) {
