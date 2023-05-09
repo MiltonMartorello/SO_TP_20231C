@@ -80,31 +80,41 @@ typedef struct {
  * */
 
 // REGISTROS CPU
+// TODO REFACTORIZAR LOS REGISTROS A 4-8-16 BYTES
 typedef union {
     char* AX;
-    char*  BX;
-    char*  CX;
-    char*  DX;
-    char*  EAX;
-    char*  EBX;
-    char*  ECX;
-    char*  EDX;
-    char* * RAX;
-    char* * RBX;
-    char* * RCX;
-    char* * RDX;
+    char* BX;
+    char* CX;
+    char* DX;
+    char* EAX;
+    char* EBX;
+    char* ECX;
+    char* EDX;
+    char* RAX;
+    char* RBX;
+    char* RCX;
+    char* RDX;
 } t_registro;
+
+typedef enum{
+	NEW,
+	READY,
+	EXEC,
+	BLOCK,
+	EXIT
+} t_estado;
 
 // PCB
 typedef struct {
 	int pid;
-	t_list* MOCK_instrucciones;
+	t_list* instrucciones;
 	int program_counter;
 	t_registro* registros;
-	t_list MOCK_tabla_segmento;
 	int estimado_rafaga;
 	t_temporal* tiempo_llegada;
-	t_list* MOCK_tabla_archivos_abiertos;
+	t_estado estado;
+	t_list* tabla_archivos_abiertos;
+	t_list* tabla_segmento;
 } t_pcb;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);

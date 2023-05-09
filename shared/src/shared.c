@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <errno.h>
 
 t_log* logger;
 
@@ -41,7 +42,6 @@ int esperar_cliente(int socket_servidor, t_log* logger)
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor,NULL,NULL);
 	//log_info(logger, "Se conecto un cliente!");
-
 	return socket_cliente;
 }
 
@@ -53,26 +53,31 @@ void enviar_handshake(int socket,int operacion ) {
     free(buffer);
 }
 
-int recibir_operacion(int socket_cliente)
-{
+int recibir_operacion(int socket_cliente){
 	int cod_op;
-	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
-		return cod_op;
-	else
-	{
+	if( recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) < 0) {
 		close(socket_cliente);
-		return -1;
+	    fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+		return errno;
 	}
+	return cod_op;
 }
 
 void* recibir_buffer(int* size, int socket_cliente)
 {
 	void * buffer;
-
-	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	if (recv(socket_cliente, size, sizeof(int), MSG_WAITALL) < 0) {
+		close(socket_cliente);
+		fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+		return errno;
+	}
 	buffer = malloc(*size);
-	recv(socket_cliente, buffer, *size, MSG_WAITALL);
-
+	if (recv(socket_cliente, buffer, *size, MSG_WAITALL) < 0) {
+		close(socket_cliente);
+	    fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+		return errno;
+	}
+	//printf("Recibido un buffer de %d bytes \n", *size);
 	return buffer;
 }
 
@@ -84,15 +89,16 @@ void recibir_mensaje(int socket_cliente,t_log* logger)
 	free(buffer);
 }
 
-t_list* recibir_paquete(int socket_cliente)
+t_list* recibir_paquete(int socket_cliente, t_log* logger)
 {
-	int size;
+	int size = 0;;
 	int desplazamiento = 0;
 	void * buffer;
 	t_list* valores = list_create();
 	int tamanio;
 
 	buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "El buffer recibido tiene un tamaño de %d \n", size);
 	while(desplazamiento < size)
 	{
 		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
@@ -173,7 +179,7 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 	eliminar_paquete(paquete);
 }
 
-t_buffer* crear_buffer()
+t_buffer* crear_buffer(void)
 {
 	t_buffer* buffer = malloc(sizeof(t_buffer));
 	buffer->size = 0;
@@ -185,7 +191,7 @@ t_paquete* crear_paquete(int tipo)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = tipo;
-	paquete->buffer = crear_buffer(paquete);
+	paquete->buffer = NULL;
 	return paquete;
 }
 
@@ -275,4 +281,80 @@ void programa_destroy(t_programa* programa) {
 	if (programa->instrucciones != NULL)
 		list_destroy(programa->instrucciones);
 	free(programa);
+}
+
+int validar_conexion(int socket) {
+	int optval;
+	socklen_t optlen = sizeof(optval);
+	int err = getsockopt(socket, SOL_SOCKET, SO_ERROR, &optval, &optlen);
+	if (err == 0) {
+	    if (optval != 0) {
+	        // hay un error de conexión pendiente
+	        fprintf(stderr, "Error de conexión pendiente: %s\n", strerror(optval));
+	        return -1;
+	    }
+	} else {
+	    // hubo un error al obtener el estado de la conexión
+	    fprintf(stderr, "Error al obtener el estado de la conexión: %s\n", strerror(errno));
+	    return -1;
+	}
+	printf("Socket OK\n");
+	return 1;
+}
+
+char* nombre_de_instruccion(int cod_op) {
+	switch(cod_op) {
+		case 1:
+			return "SET";
+			break;
+		case 2:
+			return "WAIT";
+			break;
+		case 3:
+			return "SIGNAL";
+			break;
+		case 4:
+			return "YIELD";
+			break;
+		case 5:
+			return "I/O";
+			break;
+		case 6:
+			return "F_OPEN";
+			break;
+		case 7:
+			return "F_READ";
+			break;
+		case 8:
+			return "F_WRITE";
+			break;
+		case 9:
+			return "F_TRUNCATE";
+			break;
+		case 10:
+			return "F_SEEK";
+			break;
+		case 11:
+			return "F_CLOSE";
+			break;
+		case 12:
+			return "CREATE_SEGMENT";
+			break;
+		case 13:
+			return "DELETE_SEGMENT";
+			break;
+		case 14:
+			return "MOV_IN";
+			break;
+		case 15:
+			return "MOV_OUT";
+			break;
+		case 16:
+			return "EXIT";
+			break;
+		default:
+			printf("Error: Operación de instrucción desconocida");
+			EXIT_FAILURE;
+	}
+	return NULL;
 }

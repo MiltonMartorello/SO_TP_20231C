@@ -26,7 +26,7 @@ void enviar_handshake(int,int);
 int recibir_operacion(int);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
-t_list* recibir_paquete(int);
+t_list* recibir_paquete(int, t_log*);
 
 
 /*
@@ -51,4 +51,5 @@ t_log* iniciar_logger(char*);
 void terminar_programa(int, t_log*, t_config*);
 t_programa* crear_programa(t_list*);
 void programa_destroy(t_programa*);
+char* nombre_de_instruccion(int cod_op);
 #endif /* SHARED_H_ */
