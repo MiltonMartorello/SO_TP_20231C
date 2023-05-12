@@ -272,7 +272,7 @@ t_programa* crear_programa(t_list* instrucciones) {
 	t_programa* programa = malloc(sizeof(t_programa));
 	programa->size = 0;
 	programa->instrucciones = instrucciones;
-	printf("Size del programa %d\n" ,programa->size);
+//	printf("Size del programa %d\n" ,programa->size);
 	return programa;
 }
 

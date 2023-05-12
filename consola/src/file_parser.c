@@ -25,7 +25,7 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 		return NULL;
 	}
 	else {
-		log_info(logger, "retornando programa parseado");
+//		log_info(logger, "retornando programa parseado");
 		return programa;
 	}
 
