@@ -52,6 +52,7 @@ t_programa* crear_programa(t_list*);
 void programa_destroy(t_programa*);
 char* nombre_de_instruccion(int cod_op);
 t_pcb* crear_pcb(t_programa*, int );
+void destroy_pcb(t_pcb*);
 t_registro crear_registro(void);
 
 

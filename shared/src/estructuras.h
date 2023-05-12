@@ -122,7 +122,7 @@ typedef struct {
 	t_registro registros;
 	int estimado_rafaga;
 	t_temporal* tiempo_llegada;
-	t_estado estado;
+	t_estado estado_actual;
 	t_list* tabla_archivos_abiertos;
 	t_list* tabla_segmento;
 } t_pcb;
