@@ -1,7 +1,10 @@
 #ifndef SRC_ESTRUCTURAS_H_
 #define SRC_ESTRUCTURAS_H_
 #include <commons/collections/list.h>
-
+#include <commons/temporal.h>
+#include <commons/bitarray.h>
+#include <commons/log.h>
+#include <commons/collections/queue.h>
 /*
  * GENERAL
  * */
@@ -13,7 +16,9 @@ typedef enum
 	KERNEL,
 	CPU,
 	FILESYSTEM,
-	CONSOLA
+	CONSOLA,
+	PROGRAMA,
+	PROGRAMA_FINALIZADO
 } op_code;
 
 typedef struct
@@ -28,6 +33,12 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+
+typedef struct {
+	int socket;
+	t_log *log;
+	pthread_mutex_t* mutex;
+} t_args_hilo_cliente;
 
 /*
  * PROGRAMA E INSTRUCCIONES
@@ -55,18 +66,68 @@ typedef enum {
 
 
 typedef struct {
-	t_codigo_instruccion	codigo;
-	t_list*					parametros;
+	t_codigo_instruccion codigo;
+	t_list* parametros;
 } t_instruccion;
 
 
 typedef struct {
-	int			size;
-	t_list*		instrucciones;
+	int size;
+	t_list* instrucciones;
 } t_programa;
 
 
-t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
+/*
+ * PLANIFICACION
+ * */
 
+// REGISTROS CPU
+// TODO REFACTORIZAR LOS REGISTROS A 4-8-16 BYTES
+typedef union {
+    char* AX;
+    char* BX;
+    char* CX;
+    char* DX;
+    char* EAX;
+    char* EBX;
+    char* ECX;
+    char* EDX;
+    char* RAX;
+    char* RBX;
+    char* RCX;
+    char* RDX;
+} t_registro;
+
+typedef enum{
+	NEW,
+	READY,
+	EXEC,
+	BLOCK,
+	EXIT
+} t_estado;
+
+typedef struct {
+	t_queue* cola_ready;
+	t_queue* cola_new;
+	t_queue* cola_exec;
+	t_queue* cola_block;
+	t_queue* cola_exit;
+} t_colas;
+
+// PCB
+typedef struct {
+	int pid;
+	t_list* instrucciones;
+	int program_counter;
+	t_registro registros;
+	int estimado_rafaga;
+	t_temporal* tiempo_llegada;
+	t_estado estado_actual;
+	t_list* tabla_archivos_abiertos;
+	t_list* tabla_segmento;
+} t_pcb;
+
+t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
+void buffer_destroy(t_buffer*);
 
 #endif /* SRC_ESTRUCTURAS_H_ */

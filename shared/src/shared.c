@@ -1,4 +1,5 @@
 #include "shared.h"
+#include <errno.h>
 
 t_log* logger;
 
@@ -40,8 +41,7 @@ int esperar_cliente(int socket_servidor, t_log* logger)
 {
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor,NULL,NULL);
-	log_info(logger, "Se conecto un cliente!");
-
+	//log_info(logger, "Se conecto un cliente!");
 	return socket_cliente;
 }
 
@@ -53,26 +53,31 @@ void enviar_handshake(int socket,int operacion ) {
     free(buffer);
 }
 
-int recibir_operacion(int socket_cliente)
-{
+int recibir_operacion(int socket_cliente){
 	int cod_op;
-	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
-		return cod_op;
-	else
-	{
+	if( recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) < 0) {
 		close(socket_cliente);
-		return -1;
+	    fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+		return errno;
 	}
+	return cod_op;
 }
 
 void* recibir_buffer(int* size, int socket_cliente)
 {
 	void * buffer;
-
-	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	if (recv(socket_cliente, size, sizeof(int), MSG_WAITALL) < 0) {
+		close(socket_cliente);
+		fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+		return errno;
+	}
 	buffer = malloc(*size);
-	recv(socket_cliente, buffer, *size, MSG_WAITALL);
-
+	if (recv(socket_cliente, buffer, *size, MSG_WAITALL) < 0) {
+		close(socket_cliente);
+	    fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
+		return errno;
+	}
+	//printf("Recibido un buffer de %d bytes \n", *size);
 	return buffer;
 }
 
@@ -84,15 +89,16 @@ void recibir_mensaje(int socket_cliente,t_log* logger)
 	free(buffer);
 }
 
-t_list* recibir_paquete(int socket_cliente)
+t_list* recibir_paquete(int socket_cliente, t_log* logger)
 {
-	int size;
+	int size = 0;;
 	int desplazamiento = 0;
 	void * buffer;
 	t_list* valores = list_create();
 	int tamanio;
 
 	buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "El buffer recibido tiene un tamaño de %d \n", size);
 	while(desplazamiento < size)
 	{
 		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
@@ -150,14 +156,6 @@ int crear_conexion(char *ip, char* puerto)
 				server_info->ai_addrlen) == -1)
 		printf("error");
 
-
-/*
- * // Asociamos el socket a un puerto
-	bind(socket_cliente,server_info->ai_addr,server_info->ai_addrlen);
-
-	// Escuchamos las conexiones entrantes
-	listen(socket_cliente,SOMAXCONN);
-*/
 	freeaddrinfo(server_info);
 
 	return socket_cliente;
@@ -181,18 +179,19 @@ void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
 	eliminar_paquete(paquete);
 }
 
-void crear_buffer(t_paquete* paquete)
+t_buffer* crear_buffer(void)
 {
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = 0;
-	paquete->buffer->stream = NULL;
+	t_buffer* buffer = malloc(sizeof(t_buffer));
+	buffer->size = 0;
+	buffer->stream = NULL;
+	return buffer;
 }
 
-t_paquete* crear_paquete(void)
+t_paquete* crear_paquete(int tipo)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
-	paquete->codigo_operacion = PAQUETE;
-	crear_buffer(paquete);
+	paquete->codigo_operacion = tipo;
+	paquete->buffer = NULL;
 	return paquete;
 }
 
@@ -215,6 +214,7 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente)
 
 	free(a_enviar);
 }
+
 
 void eliminar_paquete(t_paquete* paquete)
 {
@@ -266,4 +266,128 @@ void terminar_programa(int conexion, t_log* logger, t_config* config)
 	}
 
 	liberar_conexion(conexion);
+}
+
+t_programa* crear_programa(t_list* instrucciones) {
+	t_programa* programa = malloc(sizeof(t_programa));
+	programa->size = 0;
+	programa->instrucciones = instrucciones;
+//	printf("Size del programa %d\n" ,programa->size);
+	return programa;
+}
+
+void programa_destroy(t_programa* programa) {
+
+	if (programa->instrucciones != NULL)
+		list_destroy(programa->instrucciones);
+	free(programa);
+}
+
+int validar_conexion(int socket) {
+	int optval;
+	socklen_t optlen = sizeof(optval);
+	int err = getsockopt(socket, SOL_SOCKET, SO_ERROR, &optval, &optlen);
+	if (err == 0) {
+	    if (optval != 0) {
+	        // hay un error de conexión pendiente
+	        fprintf(stderr, "Error de conexión pendiente: %s\n", strerror(optval));
+	        return -1;
+	    }
+	} else {
+	    // hubo un error al obtener el estado de la conexión
+	    fprintf(stderr, "Error al obtener el estado de la conexión: %s\n", strerror(errno));
+	    return -1;
+	}
+	return 1;
+}
+
+char* nombre_de_instruccion(int cod_op) {
+	switch(cod_op) {
+		case 1:
+			return "SET";
+			break;
+		case 2:
+			return "WAIT";
+			break;
+		case 3:
+			return "SIGNAL";
+			break;
+		case 4:
+			return "YIELD";
+			break;
+		case 5:
+			return "I/O";
+			break;
+		case 6:
+			return "F_OPEN";
+			break;
+		case 7:
+			return "F_READ";
+			break;
+		case 8:
+			return "F_WRITE";
+			break;
+		case 9:
+			return "F_TRUNCATE";
+			break;
+		case 10:
+			return "F_SEEK";
+			break;
+		case 11:
+			return "F_CLOSE";
+			break;
+		case 12:
+			return "CREATE_SEGMENT";
+			break;
+		case 13:
+			return "DELETE_SEGMENT";
+			break;
+		case 14:
+			return "MOV_IN";
+			break;
+		case 15:
+			return "MOV_OUT";
+			break;
+		case 16:
+			return "EXIT";
+			break;
+		default:
+			printf("Error: Operación de instrucción desconocida");
+			EXIT_FAILURE;
+	}
+	return NULL;
+}
+
+t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
+	t_pcb* pcb = malloc(sizeof(t_pcb));
+	pcb->instrucciones = programa->instrucciones;
+	pcb->estado_actual = NEW;
+	pcb->estimado_rafaga = 0;
+	pcb->pid = pid_asignado;
+	pcb->program_counter = 0;
+	pcb->registros = crear_registro();
+	pcb->tabla_archivos_abiertos = list_create();
+	pcb->tabla_segmento = list_create();
+	pcb->tiempo_llegada = temporal_create();
+
+	return pcb;
+}
+
+void destroy_pcb(t_pcb* pcb) {
+	list_destroy(pcb->instrucciones);
+	list_destroy(pcb->tabla_archivos_abiertos);
+	list_destroy(pcb->tabla_segmento);
+	temporal_destroy(pcb->tiempo_llegada);
+	free(pcb);
+}
+
+//TODO revisar
+t_registro crear_registro(void) {
+
+	t_registro registro;
+	return registro;
+}
+
+void iniciar_colas(void) {
+
 }

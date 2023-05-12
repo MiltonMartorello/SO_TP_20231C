@@ -8,12 +8,6 @@
 #include <commons/txt.h>
 #include "estructuras.h"
 
-typedef struct {
-	int socket;
-	t_log *log;
-} t_args_hilo_cliente;
-
-
 typedef struct{
 	char* puerto_escucha;
 	uint32_t tam_memoria;
