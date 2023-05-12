@@ -31,23 +31,6 @@ t_programa* parsear_programa(char * archivo, t_log * logger){
 
 }
 
-
-t_programa* crear_programa(t_list* instrucciones){
-	t_programa* programa = malloc(sizeof(t_programa));
-	programa->size = 0;
-	programa->instrucciones = instrucciones;
-	printf("Size del programa %d\n" ,programa->size);
-	return programa;
-}
-
-void programa_destroy(t_programa* programa) {
-
-	if (programa->instrucciones != NULL)
-		list_destroy(programa->instrucciones);
-	//TODO free DEL programa->size?
-	free(programa);
-}
-
 bool parsear(t_programa* programa, FILE* file, t_log* logger) {
 	bool error = false;
 	char* linea = NULL;
@@ -84,7 +67,6 @@ int parsear_instrucciones(char* linea, t_list* instrucciones, t_log* logger){
 	linea = string_replace(linea, "\n", "");
 	char** parametros = string_split(linea, " ");
 	char* funcion = parametros[0];
-
 	//loggear_instrucciones(parametros, logger);
 
 	if (strcmp(funcion, "SET") == 0) {

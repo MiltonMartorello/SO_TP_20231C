@@ -16,18 +16,16 @@
 #include<signal.h>
 
 extern t_log* logger;
-
 /*
  * SERVIDOR
  * */
-void* recibir_buffer(int*, int);
-
 int iniciar_servidor(char*);
 int esperar_cliente(int,t_log*);
-t_list* recibir_paquete(int);
-void recibir_mensaje(int,t_log*);
 void enviar_handshake(int,int);
 int recibir_operacion(int);
+void* recibir_buffer(int*, int);
+void recibir_mensaje(int,t_log*); // DEPRECADO?
+t_list* recibir_paquete(int, t_log*);
 
 
 /*
@@ -50,5 +48,11 @@ t_config* iniciar_config(char*);
 
 t_log* iniciar_logger(char*);
 void terminar_programa(int, t_log*, t_config*);
+t_programa* crear_programa(t_list*);
+void programa_destroy(t_programa*);
+char* nombre_de_instruccion(int cod_op);
+t_pcb* crear_pcb(t_programa*, int );
+t_registro crear_registro(void);
+
 
 #endif /* SHARED_H_ */
