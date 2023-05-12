@@ -22,14 +22,15 @@ int main(void) {
 	//socket_filesystem = conectar_con_filesystem();
 
 	//	PLANIFICACOR DE LARGO PLAZO
-	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, NULL)  != 0) {
+
+	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, (void*)logger)  != 0) {
 		log_error(logger, "Error al inicializar el Hilo Planificador de Largo Plazo");
 		exit(EXIT_FAILURE);
 	}
 	pthread_detach(hilo_plp);
 
 	//	PLANIFICACOR DE CORTO PLAZO
-	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, NULL)  != 0) {
+	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, (void*)logger)  != 0) {
 		log_error(logger, "Error al inicializar el Hilo Planificador de Corto Plazo");
 		exit(EXIT_FAILURE);
 	}
@@ -41,9 +42,9 @@ int main(void) {
 
     while(1) {
 
-//        log_info(logger, "Esperando un cliente nuevo de la consola...");
+        log_info(logger, "Esperando conexión de consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
-//        log_info(logger, "Entró una consola con el socket: %d", socket_consola);
+//        log_info(logger, "Se conectó una consola con el socket: %d", socket_consola);
         int estado_socket = validar_conexion(socket_consola);
 		int modulo = recibir_operacion(socket_consola);
 //		log_info(logger, "Recibida op code: %d", modulo);
