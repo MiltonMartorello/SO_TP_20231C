@@ -30,6 +30,10 @@ typedef struct
 
 t_kernel_config* kernel_config;
 
+// SE CREAN COMO ESTRUCTURAS. SI SE UTILIZAN EN HILOS RECORDAR DE PASAR COMO REFERENCIA CON -> &
+pthread_t hilo_plp; //PLANIFICADOR DE LARGO PLAZO
+pthread_t hilo_pcp; // PLANIFICADOR DE CORTO PLAZO
+
 /* -- VARIABLES -- */
 int socket_cpu;
 int socket_filesystem;

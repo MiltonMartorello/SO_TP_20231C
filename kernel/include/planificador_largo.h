@@ -11,5 +11,6 @@
 #include <estructuras.h>
 
 int planificador_largo_plazo(void);
+int planificador_corto_plazo(void);
 
 #endif

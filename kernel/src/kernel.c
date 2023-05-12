@@ -21,10 +21,19 @@ int main(void) {
     /* -- CONEXIÓN CON FILESYSTEM -- */
 	//socket_filesystem = conectar_con_filesystem();
 
-//	PLANIFICACOR DE LARGO PLAZO
-	pthread_t hilo_plp;
-	int return_plp = pthread_create(&hilo_plp, NULL, (int*) planificador_largo_plazo, NULL);
+	//	PLANIFICACOR DE LARGO PLAZO
+	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, NULL)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo Planificador de Largo Plazo");
+		exit(EXIT_FAILURE);
+	}
 	pthread_detach(hilo_plp);
+
+	//	PLANIFICACOR DE CORTO PLAZO
+	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, NULL)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo Planificador de Corto Plazo");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_pcp);
 
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
