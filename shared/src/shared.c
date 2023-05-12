@@ -298,7 +298,6 @@ int validar_conexion(int socket) {
 	    fprintf(stderr, "Error al obtener el estado de la conexión: %s\n", strerror(errno));
 	    return -1;
 	}
-	printf("Socket OK\n");
 	return 1;
 }
 

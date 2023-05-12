@@ -7,18 +7,15 @@ void procesar_consola(void *args_hilo) {
 	int socket_consola = args->socket;
 	t_log* logger = args->log;
 
-	log_info(logger, "Iniciado hilo de escucha con consola en socket %d", socket_consola);
+	log_info(logger, "Iniciado nuevo Hilo de escucha con consola en socket %d", socket_consola);
 
 	int estado_socket = validar_conexion(socket_consola);
 	int cod_op = recibir_operacion(socket_consola);
-	log_info(logger, "Recibida op code: %d", cod_op);
 	switch (cod_op) {
 		case PROGRAMA:
-			log_info(logger, "Recibiendo programa");
 			t_buffer* buffer = recibir_buffer_programa(socket_consola, logger);
-			log_info(logger, "Recibido buffer de %d bytes", buffer->size);
 			t_programa* programa = deserializar_programa(buffer, logger);
-			loggear_programa(programa,logger);
+//			loggear_programa(programa,logger);
 			crear_proceso(programa, logger);
 			programa_destroy(programa);
 			break;
@@ -48,7 +45,7 @@ t_list* deserialiar_instrucciones(t_buffer* buffer, t_log* logger) {
 	t_codigo_instruccion cod_instruccion;
 	int offset = 0;
 
-	log_info(logger,"Se van a deserializar las instrucciones");
+//	log_info(logger,"Se van a deserializar las instrucciones");
 	// cantidad de instrucciones
 	memcpy(&cant_instrucciones, buffer->stream + offset, sizeof(int));
 	offset += sizeof(int);
@@ -96,15 +93,15 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 	t_programa* programa = crear_programa(list_create());
 	//t_programa* programa = malloc(sizeof(t_programa));
 	//programa->size = 0;
-	log_info(logger,"Se va a deserializar el programa");
+//	log_info(logger,"Se va a deserializar el programa");
 
 	//Tamaño programa
 	memcpy(&(programa->size), &(buffer->size) , sizeof(int));
-	log_info(logger,"Tamaño del programa: %d", programa->size);
+//	log_info(logger,"Tamaño del programa: %d", programa->size);
 
 	//Tamaño buffer instrucciones
 	memcpy(&(iterador_buffer->size), &(buffer->size), sizeof(int));
-	log_info(logger,"Tamaño del buffer de instrucciones: %d", iterador_buffer->size);
+//	log_info(logger,"Tamaño del buffer de instrucciones: %d", iterador_buffer->size);
 
 	//instrucciones
 	iterador_buffer->stream = malloc(iterador_buffer->size);
