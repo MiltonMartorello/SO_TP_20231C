@@ -1,5 +1,4 @@
 #include "../include/kernel.h"
-#include "../include/i_console.h"
 
 int main(void) {
 
@@ -9,6 +8,8 @@ int main(void) {
 	/* -- INICIAR CONFIGURACIÓN -- */
 	t_config* config_kernel = iniciar_config("./kernel.config");
 	cargar_config_kernel(config_kernel);
+
+	iniciar_colas_planificacion();
 
 	/* -- CONEXIÓN CON CPU -- */
 	//socket_cpu = conectar_con_cpu();
@@ -23,7 +24,7 @@ int main(void) {
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
 	log_info(logger, "Iniciada la conexión de Kernel como servidor: %d",socket_kernel);
 
-  //  while(1) {
+    while(1) {
 
         log_info(logger, "Esperando un cliente nuevo de la consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
@@ -35,22 +36,28 @@ int main(void) {
 				case CONSOLA:
 
 					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
-					pthread_t* hilo;
+					pthread_t hilo;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
+					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+					/*pthread_mutex_t* mutex;
+					int rc = pthread_mutex_init(mutex, NULL);
+					if (rc != 0) {
+						log_error(logger, "Error: No se pudo inicializar el mutex de control de logs");
+					    EXIT_FAILURE;
+					}*/
 
 					args->socket = socket_consola;
 					args->log = logger;
-					procesar_consola(args);
+					//args->mutex = mutex;
 
-					/*int hilo_return = pthread_create(hilo, NULL, (void*) procesar_consola, (void*) args);
+					int hilo_return = pthread_create(&hilo, NULL, (void*) procesar_consola, (void*) args);
 					if (hilo_return != 0) {
 						log_info(logger, "Terminando proceso con exit code de hilo: %d", hilo_return);
 						return -1;
 					}
-					log_info(logger, "Centinela");
-					pthread_join(hilo);
-					*/
+					pthread_join(hilo, NULL);
+
 					free(args);
 					break;
 
@@ -58,11 +65,11 @@ int main(void) {
 					log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO.");
 					break;
 			}
-   // }
+    }
 
 	/* -- FINALIZAR PROGRAMA -- */
+	destroy_colas_planificacion();
 	finalizar_kernel(socket_kernel, logger, config_kernel);
-
 	return EXIT_SUCCESS;
 }
 

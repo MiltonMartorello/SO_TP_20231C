@@ -6,7 +6,9 @@ void procesar_consola(void *args_hilo) {
 
 	int socket_consola = args->socket;
 	t_log* logger = args->log;
+
 	log_info(logger, "Iniciado hilo de escucha con consola en socket %d", socket_consola);
+
 	int estado_socket = validar_conexion(socket_consola);
 	int cod_op = recibir_operacion(socket_consola);
 	log_info(logger, "Recibida op code: %d", cod_op);
@@ -24,7 +26,7 @@ void procesar_consola(void *args_hilo) {
 			log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO. %d", cod_op);
 			break;
 	}
-	//pthread_exit(NULL);
+	pthread_exit(NULL);
 }
 
 t_buffer* recibir_buffer_programa(int socket_consola, t_log* logger) {
@@ -112,14 +114,15 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 	programa->instrucciones = deserialiar_instrucciones(iterador_buffer, logger);
 	buffer_destroy(iterador_buffer);
 
-
 	return programa;
 }
 
 
 void crear_proceso(t_programa* programa,t_log* logger) {
-
-
+	t_pcb* pcb = crear_pcb(programa, nuevo_pid());
+	queue_push(colas_planificacion->cola_new, pcb);
+	log_info(logger, "Encolado nuevo proceso con pid %d a las %s," ,pcb->pid, temporal_get_string_time("%d/%m/%y %H:%M:%S"));
+	log_info(logger, "La cola de NEW cuenta con %d procesos", queue_size(colas_planificacion->cola_new));
 }
 
 void loggear_programa(t_programa* programa,t_log* logger) {
@@ -141,4 +144,8 @@ void loggear_programa(t_programa* programa,t_log* logger) {
 		list_iterator_destroy(iterador_parametros);
 	}
 	list_iterator_destroy(iterador_instrucciones);
+}
+
+int nuevo_pid(void) {
+	return pid_contador++;
 }
