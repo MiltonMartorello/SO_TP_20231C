@@ -1,4 +1,5 @@
 #include "../include/kernel.h"
+#include "../include/planificador_largo.h"
 
 int main(void) {
 
@@ -20,6 +21,11 @@ int main(void) {
     /* -- CONEXIÓN CON FILESYSTEM -- */
 	//socket_filesystem = conectar_con_filesystem();
 
+//	PLANIFICACOR DE LARGO PLAZO
+	pthread_t hilo_plp;
+	int return_plp = pthread_create(&hilo_plp, NULL, (int*) planificador_largo_plazo, NULL);
+	pthread_detach(hilo_plp);
+
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
 	log_info(logger, "Iniciada la conexión de Kernel como servidor: %d",socket_kernel);
@@ -36,27 +42,20 @@ int main(void) {
 				case CONSOLA:
 
 					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
-					pthread_t hilo;
+					pthread_t hilo_consola;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
 					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
-					/*pthread_mutex_t* mutex;
-					int rc = pthread_mutex_init(mutex, NULL);
-					if (rc != 0) {
-						log_error(logger, "Error: No se pudo inicializar el mutex de control de logs");
-					    EXIT_FAILURE;
-					}*/
-
 					args->socket = socket_consola;
 					args->log = logger;
 					//args->mutex = mutex;
 
-					int hilo_return = pthread_create(&hilo, NULL, (void*) procesar_consola, (void*) args);
-					if (hilo_return != 0) {
-						log_info(logger, "Terminando proceso con exit code de hilo: %d", hilo_return);
+					int return_hilo = pthread_create(&hilo_consola, NULL, (void*) procesar_consola, (void*) args);
+					if (return_hilo != 0) {
+						log_info(logger, "Terminando proceso con exit code de hilo: %d", return_hilo);
 						return -1;
 					}
-					pthread_join(hilo, NULL);
+					pthread_join(hilo_consola, NULL);
 
 					free(args);
 					break;

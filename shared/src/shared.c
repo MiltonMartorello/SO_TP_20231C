@@ -362,7 +362,7 @@ char* nombre_de_instruccion(int cod_op) {
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	t_pcb* pcb = malloc(sizeof(t_pcb));
 	pcb->instrucciones = programa->instrucciones;
-	pcb->estado = NEW;
+	pcb->estado_actual = NEW;
 	pcb->estimado_rafaga = 0;
 	pcb->pid = pid_asignado;
 	pcb->program_counter = 0;
@@ -372,6 +372,14 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	pcb->tiempo_llegada = temporal_create();
 
 	return pcb;
+}
+
+void destroy_pcb(t_pcb* pcb) {
+	list_destroy(pcb->instrucciones);
+	list_destroy(pcb->tabla_archivos_abiertos);
+	list_destroy(pcb->tabla_segmento);
+	temporal_destroy(pcb->tiempo_llegada);
+	free(pcb);
 }
 
 //TODO revisar

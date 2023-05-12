@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <shared.h>
+#include <pthread.h>
 #include <commons/log.h>
 #include <commons/config.h>
 #include <commons/txt.h>
@@ -18,5 +19,6 @@ t_list* deserialiar_instrucciones(t_buffer*, t_log*);
 void crear_proceso(t_programa*, t_log*);
 void loggear_programa(t_programa*, t_log*);
 int nuevo_pid(void);
+
 
 #endif

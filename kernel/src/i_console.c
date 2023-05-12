@@ -118,11 +118,26 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 }
 
 
-void crear_proceso(t_programa* programa,t_log* logger) {
+void crear_proceso(t_programa* programa, t_log* logger) {
 	t_pcb* pcb = crear_pcb(programa, nuevo_pid());
+	pthread_mutex_t mutex_cola_new;
+	if(pthread_mutex_init(&mutex_cola_new, NULL) != 0) {
+	    log_error(logger, "Error al inicializar el mutex");
+	    return;
+	}
+	if (pthread_mutex_lock(&mutex_cola_new) != 0) {
+		log_error(logger, "Mutex no pudo lockear");
+	};
+
 	queue_push(colas_planificacion->cola_new, pcb);
-	log_info(logger, "Encolado nuevo proceso con pid %d a las %s," ,pcb->pid, temporal_get_string_time("%d/%m/%y %H:%M:%S"));
+
+	if (pthread_mutex_unlock(&mutex_cola_new) != 0) {
+		log_error(logger, "Mutex no pudo unlockear");
+	};
+	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
 	log_info(logger, "La cola de NEW cuenta con %d procesos", queue_size(colas_planificacion->cola_new));
+	pasar_a_cola_ready(pcb, logger);
+	// sem_signal(blablabla)
 }
 
 void loggear_programa(t_programa* programa,t_log* logger) {
