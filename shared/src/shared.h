@@ -16,7 +16,6 @@
 #include<signal.h>
 
 extern t_log* logger;
-
 /*
  * SERVIDOR
  * */
@@ -52,4 +51,8 @@ void terminar_programa(int, t_log*, t_config*);
 t_programa* crear_programa(t_list*);
 void programa_destroy(t_programa*);
 char* nombre_de_instruccion(int cod_op);
+t_pcb* crear_pcb(t_programa*, int );
+t_registro crear_registro(void);
+
+
 #endif /* SHARED_H_ */

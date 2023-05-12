@@ -358,3 +358,29 @@ char* nombre_de_instruccion(int cod_op) {
 	}
 	return NULL;
 }
+
+t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
+	t_pcb* pcb = malloc(sizeof(t_pcb));
+	pcb->instrucciones = programa->instrucciones;
+	pcb->estado = NEW;
+	pcb->estimado_rafaga = 0;
+	pcb->pid = pid_asignado;
+	pcb->program_counter = 0;
+	pcb->registros = crear_registro();
+	pcb->tabla_archivos_abiertos = list_create();
+	pcb->tabla_segmento = list_create();
+	pcb->tiempo_llegada = temporal_create();
+
+	return pcb;
+}
+
+//TODO revisar
+t_registro crear_registro(void) {
+
+	t_registro registro;
+	return registro;
+}
+
+void iniciar_colas(void) {
+
+}

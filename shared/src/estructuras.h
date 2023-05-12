@@ -4,6 +4,7 @@
 #include <commons/temporal.h>
 #include <commons/bitarray.h>
 #include <commons/log.h>
+#include <commons/collections/queue.h>
 /*
  * GENERAL
  * */
@@ -36,6 +37,7 @@ typedef struct
 typedef struct {
 	int socket;
 	t_log *log;
+	pthread_mutex_t* mutex;
 } t_args_hilo_cliente;
 
 /*
@@ -104,12 +106,20 @@ typedef enum{
 	EXIT
 } t_estado;
 
+typedef struct {
+	t_queue* cola_ready;
+	t_queue* cola_new;
+	t_queue* cola_exec;
+	t_queue* cola_block;
+	t_queue* cola_exit;
+} t_colas;
+
 // PCB
 typedef struct {
 	int pid;
 	t_list* instrucciones;
 	int program_counter;
-	t_registro* registros;
+	t_registro registros;
 	int estimado_rafaga;
 	t_temporal* tiempo_llegada;
 	t_estado estado;
