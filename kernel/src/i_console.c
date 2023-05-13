@@ -132,8 +132,8 @@ void crear_proceso(t_programa* programa, t_log* logger) {
 		log_error(logger, "Mutex no pudo unlockear");
 	};
 	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
-	log_info(logger, "La cola de NEW cuenta con %d procesos", queue_size(colas_planificacion->cola_new));
-	pasar_a_cola_ready(pcb, logger);
+	sem_post(&sem_nuevo_proceso);
+	//log_info(logger, "La cola de NEW cuenta con %d procesos", queue_size(colas_planificacion->cola_new));
 	// sem_signal(blablabla)
 }
 

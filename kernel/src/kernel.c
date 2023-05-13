@@ -1,5 +1,4 @@
 #include "../include/kernel.h"
-#include "../include/planificador_largo.h"
 
 int main(void) {
 
@@ -10,7 +9,10 @@ int main(void) {
 	t_config* config_kernel = iniciar_config("./kernel.config");
 	cargar_config_kernel(config_kernel);
 
+	int grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MAX_MULTIPROGRAMACION");
+
 	iniciar_colas_planificacion();
+	iniciar_semaforos(grado_multiprogramacion);
 
 	/* -- CONEXIÓN CON CPU -- */
 	//socket_cpu = conectar_con_cpu();
@@ -21,16 +23,20 @@ int main(void) {
     /* -- CONEXIÓN CON FILESYSTEM -- */
 	//socket_filesystem = conectar_con_filesystem();
 
-	//	PLANIFICACOR DE LARGO PLAZO
+	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
+	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+	args->log = logger;
+	args->config = config_kernel;
 
-	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, (void*)logger)  != 0) {
+	//	PLANIFICACOR DE LARGO PLAZO
+	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, (void*) args)  != 0) {
 		log_error(logger, "Error al inicializar el Hilo Planificador de Largo Plazo");
 		exit(EXIT_FAILURE);
 	}
 	pthread_detach(hilo_plp);
 
 	//	PLANIFICACOR DE CORTO PLAZO
-	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, (void*)logger)  != 0) {
+	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, (void*) args)  != 0) {
 		log_error(logger, "Error al inicializar el Hilo Planificador de Corto Plazo");
 		exit(EXIT_FAILURE);
 	}
