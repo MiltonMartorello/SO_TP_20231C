@@ -28,8 +28,8 @@ void correr_servidor(void);
 void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket);
 void set_valor_registro(char* nombre_registro,char* valor);
 int posicion_registro(char* nombre_registro);
-
-void actualizar_registros_pcb(t_registro* registros);
+void devolver_proceso(int,t_contexto_proceso*,int,t_log*);
+void actualizar_registros_pcb(t_registro registros);
 
 
 t_list* armar_instrucciones(void);

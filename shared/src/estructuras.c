@@ -88,7 +88,7 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 		instruccion = (t_instruccion*)list_iterator_next(iterador_instrucciones);
 //		log_info(logger, "Entranado al index: %d",iterador_instrucciones->index);
 		// Código de instrucción
-		log_info(logger, "El código OP a alocar es: %d", instruccion->codigo);
+		//log_info(logger, "El código OP a alocar es: %d", instruccion->codigo);
 		memcpy(buffer->stream + offset, &(instruccion->codigo), sizeof(int));
 		offset += sizeof(int);
 		// Cantidad de parámetros
@@ -220,19 +220,7 @@ void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* l
 	offset+= buffer_instrucciones->size;
 	memcpy(paquete->buffer->stream + offset, &(contexto->registros), sizeof(t_registro));
 
-	int bytes = paquete->buffer->size + 2*sizeof(int);	//cod_op + buffer_size
-
-	void* a_enviar = malloc(bytes);
-	int desplazamiento = 0;
-
-	memcpy(a_enviar + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
-	desplazamiento+= sizeof(int);
-	memcpy(a_enviar + desplazamiento, &(paquete->buffer->size), sizeof(int));
-	desplazamiento+= sizeof(int);
-	memcpy(a_enviar + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
-
-	send(socket,a_enviar,bytes,0);
-	free(a_enviar);
+	enviar_paquete(paquete,socket);
 
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);

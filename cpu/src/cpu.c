@@ -1,5 +1,4 @@
 #include "../Include/cpu.h"
-#include "../../shared/src/estructuras.h"
 
 t_log* cpu_logger;
 t_config* config;
@@ -89,7 +88,7 @@ void correr_servidor(void){
 				t_contexto_proceso* proceso = recibir_contexto(socket_kernel,cpu_logger);
 
 				ciclo_de_instruccion(proceso,socket_kernel);
-
+				log_info(cpu_logger,"Se ejecuto un proceso");
 				//liberar_pcb(pcb);
 				break;
 			case -1:
@@ -98,6 +97,7 @@ void correr_servidor(void){
 				exit(EXIT_FAILURE);
 			default:
 				log_error(cpu_logger, "Codigo de operacion desconocido.");
+				return;
 				break;
 		}
 	}
@@ -124,13 +124,17 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 		case ci_YIELD:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <YIELD>",proceso->pid);
-			enviar_contexto(socket,proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
+			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_YIELD");
+			return;
 			break;
 
 		case ci_EXIT:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <EXIT>",proceso->pid);
-			enviar_contexto(socket,proceso,PROCESO_FINALIZADO,cpu_logger);
+			devolver_proceso(socket,proceso,PROCESO_FINALIZADO,cpu_logger);
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_FINALIZADO");
 			fin_de_ciclo = true;
+			return;
 			break;
 
 		default:
@@ -141,6 +145,11 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 	}
 
 	free(una_instruccion);
+}
+
+void devolver_proceso(int socket,t_contexto_proceso* proceso,int codigo,t_log* logger){
+	actualizar_registros_pcb(proceso->registros);
+	enviar_contexto(socket,proceso,codigo,logger);
 }
 
 void set_valor_registro(char* nombre_registro,char* valor){
@@ -178,23 +187,25 @@ int posicion_registro(char* nombre_registro){
 }
 
 
-void actualizar_registros_pcb(t_registro* registros){
-	strncpy(registros->AX,registros_cpu.registros_4[0],4);
-	//printf("AX: %.4s\n",registros->AX);
+void actualizar_registros_pcb(t_registro registros){
+	strncpy(registros.AX,registros_cpu.registros_4[0],4);
+	//printf("AX: %.4s\n",registros.AX);
 
-	strncpy(registros->BX , registros_cpu.registros_4[1],4);
-	strncpy(registros->CX , registros_cpu.registros_4[2],4);
-	strncpy(registros->DX , registros_cpu.registros_4[3],4);
+	strncpy(registros.BX , registros_cpu.registros_4[1],4);
+	strncpy(registros.CX , registros_cpu.registros_4[2],4);
+	strncpy(registros.DX , registros_cpu.registros_4[3],4);
 
-	strncpy(registros->EAX , registros_cpu.registros_8[0],8);
-	strncpy(registros->EBX , registros_cpu.registros_8[1],8);
-	strncpy(registros->ECX , registros_cpu.registros_8[2],8);
-	strncpy(registros->EDX , registros_cpu.registros_8[3],8);
+	strncpy(registros.EAX , registros_cpu.registros_8[0],8);
+	//printf("AX: %.8s\n",registros.EAX);
+	strncpy(registros.EBX , registros_cpu.registros_8[1],8);
+	strncpy(registros.ECX , registros_cpu.registros_8[2],8);
+	strncpy(registros.EDX , registros_cpu.registros_8[3],8);
 
-	strncpy(registros->RAX , registros_cpu.registros_16[0],16);
-	strncpy(registros->RBX , registros_cpu.registros_16[1],16);
-	strncpy(registros->RCX , registros_cpu.registros_16[2],16);
-	strncpy(registros->RDX , registros_cpu.registros_16[3],16);
+	strncpy(registros.RAX , registros_cpu.registros_16[0],16);
+	//printf("AX: %.16s\n",registros.RAX);
+	strncpy(registros.RBX , registros_cpu.registros_16[1],16);
+	strncpy(registros.RCX , registros_cpu.registros_16[2],16);
+	strncpy(registros.RDX , registros_cpu.registros_16[3],16);
 
 }
 
