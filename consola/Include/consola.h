@@ -23,6 +23,6 @@ int conexion_a_kernel(char*, char*, t_log*);
  */
 
 t_buffer* serializar_programa(t_programa*, t_log*);
-t_buffer* serializar_instrucciones(t_list*, t_log*);
+
 int enviar_programa(t_buffer*, int, int, t_log*);
 #endif /* CONSOLA_H_ */
