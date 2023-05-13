@@ -9,7 +9,11 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include <estructuras.h>
-#include <planificador.h>
+#include "planificador.h"
+
+extern t_colas* colas_planificacion;
+extern sem_t sem_grado_multiprogramacion;
+extern sem_t sem_nuevo_proceso;
 
 int pid_contador = 0;
 

@@ -8,6 +8,7 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include <estructuras.h>
+#include "planificador_largo.h"
 
 /* -- ESTRUCTURAS -- */
 typedef struct
@@ -30,6 +31,10 @@ typedef struct
 
 t_kernel_config* kernel_config;
 
+// SE CREAN COMO ESTRUCTURAS. SI SE UTILIZAN EN HILOS RECORDAR DE PASAR COMO REFERENCIA CON -> &
+pthread_t hilo_plp; //PLANIFICADOR DE LARGO PLAZO
+pthread_t hilo_pcp; // PLANIFICADOR DE CORTO PLAZO
+
 /* -- VARIABLES -- */
 int socket_cpu;
 int socket_filesystem;
@@ -42,7 +47,7 @@ int conectar_con_cpu();
 int conectar_con_memoria();
 int conectar_con_filesystem();
 void cargar_config_kernel();
-void finalizar_kernel(int socket_servidor, t_log* logger, t_config* config);
-int procesar_consola(void *args_hilo);
+void finalizar_kernel(int , t_log* , t_config*);
+int procesar_consola(void *);
 
 #endif

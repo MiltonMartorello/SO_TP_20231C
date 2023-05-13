@@ -5,6 +5,8 @@
 #include <commons/bitarray.h>
 #include <commons/log.h>
 #include <commons/collections/queue.h>
+#include <commons/config.h>
+
 /*
  * GENERAL
  * */
@@ -36,10 +38,14 @@ typedef struct
 
 typedef struct {
 	int socket;
-	t_log *log;
+	t_log* log;
 	pthread_mutex_t* mutex;
 } t_args_hilo_cliente;
 
+typedef struct {
+	t_log* log;
+	t_config* config;
+} t_args_hilo_planificador;
 /*
  * PROGRAMA E INSTRUCCIONES
  * CONSOLA - KERNEL
