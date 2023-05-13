@@ -15,6 +15,8 @@
 extern t_colas* colas_planificacion;
 extern sem_t sem_grado_multiprogramacion;
 extern sem_t sem_nuevo_proceso;
+extern sem_t sem_ready_proceso;
+extern sem_t sem_exec_proceso;
 
 int planificador_largo_plazo(void*);
 int planificador_corto_plazo(void*);
