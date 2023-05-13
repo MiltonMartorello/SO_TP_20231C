@@ -9,14 +9,38 @@ int main(void) {
 	t_config* config_kernel = iniciar_config("./kernel.config");
 	cargar_config_kernel(config_kernel);
 
+	int grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MAX_MULTIPROGRAMACION");
+
+	iniciar_colas_planificacion();
+	iniciar_semaforos(grado_multiprogramacion);
+
 	/* -- CONEXIÓN CON CPU -- */
-	socket_cpu = conectar_con_cpu();
+	//socket_cpu = conectar_con_cpu();
 
     /* -- CONEXIÓN CON MEMORIA -- */
-	socket_memoria = conectar_con_memoria();
+	//socket_memoria = conectar_con_memoria();
 
     /* -- CONEXIÓN CON FILESYSTEM -- */
-	socket_memoria = conectar_con_filesystem();
+	//socket_filesystem = conectar_con_filesystem();
+
+	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
+	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+	args->log = logger;
+	args->config = config_kernel;
+
+	//	PLANIFICACOR DE LARGO PLAZO
+	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo Planificador de Largo Plazo");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_plp);
+
+	//	PLANIFICACOR DE CORTO PLAZO
+	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo Planificador de Corto Plazo");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_pcp);
 
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
@@ -24,15 +48,32 @@ int main(void) {
 
     while(1) {
 
-        log_info(logger, "Esperando un cliente nuevo de la consola...");
+        log_info(logger, "Esperando conexión de consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
-        log_info(logger, "Entro una consola con els socket: %d", socket_consola);
-
+//        log_info(logger, "Se conectó una consola con el socket: %d", socket_consola);
+        int estado_socket = validar_conexion(socket_consola);
 		int modulo = recibir_operacion(socket_consola);
-
+//		log_info(logger, "Recibida op code: %d", modulo);
 			switch (modulo) {
 				case CONSOLA:
-					enviar_mensaje("Hola Consola! Soy tu amigo el Kernel", socket_consola, logger);
+
+					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
+					pthread_t hilo_consola;
+
+					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
+					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+					args->socket = socket_consola;
+					args->log = logger;
+					//args->mutex = mutex;
+
+					int return_hilo = pthread_create(&hilo_consola, NULL, (void*) procesar_consola, (void*) args);
+					if (return_hilo != 0) {
+						log_info(logger, "Terminando proceso con exit code de hilo: %d", return_hilo);
+						return -1;
+					}
+					pthread_join(hilo_consola, NULL);
+
+					free(args);
 					break;
 
 				default:
@@ -42,10 +83,12 @@ int main(void) {
     }
 
 	/* -- FINALIZAR PROGRAMA -- */
+	destroy_colas_planificacion();
 	finalizar_kernel(socket_kernel, logger, config_kernel);
-
 	return EXIT_SUCCESS;
 }
+
+
 
 void cargar_config_kernel(t_config* config){
 

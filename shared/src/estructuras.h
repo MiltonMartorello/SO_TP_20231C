@@ -3,6 +3,10 @@
 #include <commons/collections/list.h>
 #include <commons/temporal.h>
 #include <commons/bitarray.h>
+#include <commons/log.h>
+#include <commons/collections/queue.h>
+#include <commons/config.h>
+
 /*
  * GENERAL
  * */
@@ -37,6 +41,16 @@ typedef struct
 } t_paquete;
 
 
+typedef struct {
+	int socket;
+	t_log* log;
+	pthread_mutex_t* mutex;
+} t_args_hilo_cliente;
+
+typedef struct {
+	t_log* log;
+	t_config* config;
+} t_args_hilo_planificador;
 /*
  * PROGRAMA E INSTRUCCIONES
  * CONSOLA - KERNEL
@@ -79,21 +93,6 @@ typedef struct {
  * */
 
 // REGISTROS CPU
-//typedef union {
-//    char* AX;
-//    char*  BX;
-//    char*  CX;
-//    char*  DX;
-//    char*  EAX;
-//    char*  EBX;
-//    char*  ECX;
-//    char*  EDX;
-//    char* * RAX;
-//    char* * RBX;
-//    char* * RCX;
-//    char* * RDX;
-//} t_registro;
-
 typedef union {
     char AX[4];
     char BX[4];
@@ -109,16 +108,33 @@ typedef union {
     char RDX[16];
 } t_registro;
 
+typedef enum{
+	NEW,
+	READY,
+	EXEC,
+	BLOCK,
+	EXIT
+} t_estado;
+
+typedef struct {
+	t_queue* cola_ready;
+	t_queue* cola_new;
+	t_queue* cola_exec;
+	t_queue* cola_block;
+	t_queue* cola_exit;
+} t_colas;
+
 // PCB
 typedef struct {
 	int pid;
-	t_list* MOCK_instrucciones;
+	t_list* instrucciones;
 	int program_counter;
-	t_registro* registros;
-	//t_list MOCK_tabla_segmento;
+	t_registro registros;
 	int estimado_rafaga;
-	//t_temporal* tiempo_llegada;
-	//t_list* MOCK_tabla_archivos_abiertos;
+	t_temporal* tiempo_llegada;
+	t_estado estado_actual;
+	t_list* tabla_archivos_abiertos;
+	t_list* tabla_segmento;
 } t_pcb;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);

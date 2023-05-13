@@ -21,8 +21,6 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 	int response_code_kernel;
 	ip = config_get_string_value(config,"IP_KERNEL");
 	puerto_kernel = config_get_string_value(config,"PUERTO_KERNEL");
-	log_info(logger, "IP: %s.",ip);
-	log_info(logger, "Puerto de conexión CONSOLA-KERNEL: %s", puerto_kernel);;
 
 	socket_kernel = conexion_a_kernel(ip, puerto_kernel, logger);
 	if (socket_kernel < 0){
@@ -30,24 +28,30 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 		EXIT_FAILURE;
 	}
 
-	log_info(logger, "Serializando Programa");
+//	log_info(logger, "Serializando Programa");
 	t_buffer* buffer = serializar_programa(programa, logger);
 	programa_destroy(programa);
 
 	response_code_kernel = enviar_programa(buffer, socket_kernel, PROGRAMA, logger);
 	//buffer_destroy(buffer);
 
+	// Si el send envió algo
 	if (response_code_kernel > 0) {
-		t_paquete* paquete = recibir_paquete(socket_kernel);
+		t_list* respuesta = list_create();
+		respuesta = recibir_paquete(socket_kernel, logger);
 
-		if (paquete->codigo_operacion != PROGRAMA_FINALIZADO) {
-			log_error(logger, "Error al finalizar programa. Se esperaba código %d, y se recibió %d", PROGRAMA_FINALIZADO, paquete->codigo_operacion);
+		if (list_is_empty(respuesta)) {
+			log_error(logger, "La lista de respuesta, esta vacía");
+			EXIT_FAILURE;
+		}
+		else if ((op_code)list_get(respuesta,0) != PROGRAMA_FINALIZADO) {
+			log_error(logger, "Error al finalizar programa. Se esperaba código %d, y se recibió %d", PROGRAMA_FINALIZADO, (op_code)list_get(respuesta,0));
 		}
 		else {
 			log_info(logger, "Programa ha finalizado correctamente");
 		}
 	}
-
+	t_queue* cola = queue_create();
 	log_info(logger, "Finalizando programa...");
 	terminar_programa(socket_kernel,logger,config);
 
@@ -72,18 +76,25 @@ int enviar_programa(t_buffer* buffer, int socket_kernel, int codigo, t_log* logg
 	// llega 2 ints además del size del buffer
 	// Esto esta asi por la necesidad de enviar instrucciones de la consola a kernel. Si no aplica en general, particularizamos en varias funciones.
 	// 1x4 -> Código de operación
-	// 1x4 -> Cantidad de instrucciones
-	t_paquete * paquete = crear_paquete(PROGRAMA);
-	int bytes_a_enviar = buffer->size + (2 * sizeof(int));
-	log_info(logger, "bytes a enviar: %d", bytes_a_enviar);
+	// 1x4 -> Tamaño total
+	t_paquete * paquete = crear_paquete(codigo);
+//	log_info(logger, "hasta este momento el buffer->size tiene %d bytes", buffer->size);
+	int bytes_a_enviar = buffer->size + sizeof(int) * 2;
+//	log_info(logger, "Bytes totales a enviar: %d. a traves del socket %d", bytes_a_enviar, socket_kernel);
 	paquete->buffer = buffer;
 	void* a_enviar = serializar_paquete(paquete, bytes_a_enviar);
-
+/*	int cod_log;
+	memcpy(&cod_log, a_enviar, sizeof(int));
+	log_info(logger, "Enviando %d bytes del cod_op %d a traves del socket %d", sizeof(int), cod_log, socket_kernel);
+	enviar_handshake(socket_kernel, PROGRAMA);*/
+	log_info(logger, "Enviando %d bytes del programa a traves del socket %d", bytes_a_enviar, socket_kernel);
 	response = send(socket_kernel, a_enviar, bytes_a_enviar, 0);
-	if (response <= 0){
+	if (response <= 0) {
 		log_error(logger,"Error al enviar el programa al kernel");
 	} else if (response < bytes_a_enviar){
 		log_error(logger,"Transferencia incompleta. Estimado: %d. Enviado: %d", bytes_a_enviar, response);
+	} else {
+		log_info(logger, "Enviados %d bytes al kernel", response);
 	}
 
 	free(a_enviar);
@@ -96,33 +107,15 @@ t_buffer * serializar_programa(t_programa* programa, t_log* logger){
 	t_buffer* buffer;
 	t_buffer* instrucciones;
 	int offset = 0;
-	instrucciones = serializar_instrucciones(programa->instrucciones, logger);
-
+	instrucciones = serializar_instrucciones(programa->instrucciones, logger); // 336 bytes = instrucciones + cant_instrucciones
 	buffer = crear_buffer();
-	// Tamaño total - Tamaño del buffer de instrucciones - Lista de instrucciones
-	buffer->size = instrucciones->size + (sizeof(int) * 2);
+	// Tamaño total - Lista de instrucciones
+	buffer->size = instrucciones->size;
 	buffer->stream = malloc(buffer->size);
-	log_info(logger,"Tengo un buffer de instrucciones con tamaño %d", instrucciones->size);
-	log_info(logger,"Tengo un buffer total con tamaño %d", buffer->size);
-	// Tamaño total
-	memcpy(buffer->stream + offset , &(programa->size),sizeof(int));
-	offset += sizeof(int);
+//	log_info(logger,"Tengo un buffer de instrucciones con tamaño %d", instrucciones->size);
+//	log_info(logger,"Tengo un buffer total con tamaño %d", buffer->size);
 
-	// Tamaño buffer instrucciones
-	memcpy(buffer->stream + offset , &(instrucciones->size),sizeof(int));
-	offset += sizeof(int);
-
-	// Lista de instrucciones
-	memcpy(buffer->stream + offset , instrucciones->stream ,instrucciones->size);
-	offset += instrucciones->size;
-
-	// Liberamos las instruciones serializadas
-	buffer_destroy(instrucciones);
-
-	if (offset != buffer->size)
-			log_error(logger, "El tamaño del buffer[%d] no coincide con el offset[%d]\n", (int)buffer->size, offset);
-
-	return buffer;
+	return instrucciones;
 }
 
 int serializar_buffer_programa(int size_buffer, int cant_instrucciones, t_list* instrucciones) {
@@ -144,20 +137,20 @@ int serializar_buffer_programa(int size_buffer, int cant_instrucciones, t_list* 
 	memcpy(buffer->stream + offset, &(cant_instrucciones), sizeof(int));
 	offset += sizeof(int);
 	iterador_instrucciones = list_iterator_create(instrucciones);
-	log_info(logger, "Se encontró una lista de: %d",list_size(instrucciones));
+//	log_info(logger, "Se encontró una lista de: %d",list_size(instrucciones));
 
 
 	while (list_iterator_has_next(iterador_instrucciones)) {
-		log_info(logger, "Entranado al index: %d",iterador_instrucciones->index);
+//		log_info(logger, "Entranado al index: %d",iterador_instrucciones->index);
 		instruccion = (t_instruccion*)list_iterator_next(iterador_instrucciones);
 		// Código de instrucción
-		log_info(logger, "El código OP a alocar es: %d", instruccion->codigo);
-		log_info(logger, "Este código de instruccion pesa %lu", sizeof(t_codigo_instruccion));
+//		log_info(logger, "El código OP a alocar es: %d", instruccion->codigo);
+//		log_info(logger, "Este código de instruccion pesa %lu", sizeof(t_codigo_instruccion));
 		memcpy(buffer->stream + offset, &(instruccion->codigo), sizeof(t_codigo_instruccion));
 		offset += sizeof(t_codigo_instruccion);
 		// Cantidad de parámetros
 		cant_parametros = list_size(instruccion->parametros);
-		log_info(logger, "voy a alocar %d bytes", cant_parametros);
+//		log_info(logger, "voy a alocar %d bytes", cant_parametros);
 		memcpy(buffer->stream + offset, &(cant_parametros), sizeof(int));
 		offset += sizeof(int);
 		// Si tiene parámetros
@@ -216,7 +209,7 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 				// TODO revisar si es necesario el + 1
 				antes = size_buffer;
 				size_buffer += sizeof(int) + strlen((char*)list_iterator_next(iterador_parametros)) + 1;
-				log_info(logger, "Este parámetro de instruccion pesa %d", size_buffer - antes - 5);
+//				log_info(logger, "Este parámetro de instruccion pesa %d", size_buffer - antes - 5);
 			}
 			// Liberamos el iterador de parámetros
 			list_iterator_destroy(iterador_parametros);
@@ -242,6 +235,7 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 	// Es el Tamaño calculado + el int con las cantidad de instrucciones a enviar
 	buffer->size = size_buffer + sizeof(int);
 	buffer->stream = malloc(buffer->size);
+
 	//MEMCPY(DESTINO, FUENTE, TAMAÑO)
 	//Cantidad de instrucciones
 	memcpy(buffer->stream + offset, &(cant_instrucciones), sizeof(int));
@@ -252,14 +246,14 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 
 	while (list_iterator_has_next(iterador_instrucciones)) {
 		instruccion = (t_instruccion*)list_iterator_next(iterador_instrucciones);
-		log_info(logger, "Entranado al index: %d",iterador_instrucciones->index);
+//		log_info(logger, "Entranado al index: %d",iterador_instrucciones->index);
 		// Código de instrucción
-		log_info(logger, "El código OP a alocar es: %d", instruccion->codigo);
+//		log_info(logger, "El código OP a alocar es: %d", instruccion->codigo);
 		memcpy(buffer->stream + offset, &(instruccion->codigo), sizeof(int));
 		offset += sizeof(int);
 		// Cantidad de parámetros
 		cant_parametros = list_size(instruccion->parametros);
-		log_info(logger, "voy a alocar %d parametros", cant_parametros);
+//		log_info(logger, "voy a alocar %d parametros", cant_parametros);
 		memcpy(buffer->stream + offset, &cant_parametros, sizeof(int));
 		offset += sizeof(int);
 		// Si tiene parámetros
@@ -269,7 +263,7 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 			while (list_iterator_has_next(iterador_parametros)) {
 				parametro = (char*) list_iterator_next(iterador_parametros);
 				// TODO revisar si es necesario el + 1
-				log_info(logger, "el parámetro %s, mide %d", parametro, strlen(parametro) + 1);
+//				log_info(logger, "el parámetro %s, mide %d", parametro, (int)(strlen(parametro) + 1));
 				size_parametro = strlen(parametro) + 1;
 				// Tamaño del parámetro
 				memcpy(buffer->stream + offset, &(size_parametro), sizeof(int));
@@ -287,7 +281,7 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 	if (offset != buffer->size)
 		log_error(logger, "El tamaño del buffer[%d] no coincide con el offset[%d]\n", (int)buffer->size, offset);
 	else{
-		log_info(logger, "El tamaño del buffer[%d] coincide con el offset[%d]\n", (int)buffer->size, offset);
+//		log_info(logger, "El tamaño del buffer[%d] coincide con el offset[%d]\n", (int)buffer->size, offset);
 	}
 	//int offset = serializar_buffer_programa(size_buffer, cant_instrucciones, instrucciones);
 
