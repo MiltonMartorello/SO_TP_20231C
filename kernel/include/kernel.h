@@ -8,6 +8,7 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include <estructuras.h>
+#include "planificador_largo.h"
 
 /* -- ESTRUCTURAS -- */
 typedef struct

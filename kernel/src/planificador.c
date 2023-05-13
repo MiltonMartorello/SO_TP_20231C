@@ -1,4 +1,8 @@
-#include "planificador.h"
+#include "../include/planificador.h"
+
+ t_colas* colas_planificacion;
+ sem_t sem_grado_multiprogramacion;
+ sem_t sem_nuevo_proceso;
 
 void iniciar_colas_planificacion(void) {
 
@@ -19,6 +23,14 @@ void destroy_colas_planificacion(void) {
 	queue_destroy(colas_planificacion->cola_ready);
 	free(colas_planificacion);
 }
+
+void iniciar_semaforos(int grado_multiprogramacion) {
+
+	sem_init(&sem_grado_multiprogramacion, 0, grado_multiprogramacion);
+	sem_init(&sem_nuevo_proceso, 0, 0);
+
+}
+
 
 /*
  * Quita el PCB de La cola Actual, y lo pasa a la cola de READY*/
