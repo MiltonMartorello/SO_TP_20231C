@@ -6,7 +6,6 @@
 #include <shared.h>
 #include <commons/config.h>
 #include <commons/txt.h>
-#include "../../shared/src/estructuras.h"
 
 typedef struct{
     int retardo_instruccion;
@@ -25,16 +24,16 @@ typedef struct{
 void cargar_config(char* path);
 void conexion_a_memoria(char* ip,char* puerto,t_log* logger);
 void correr_servidor(void);
-t_pcb* recibir_pcb(int socket);
-void ciclo_de_instruccion(t_pcb* pcb);
+
+void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket);
 void set_valor_registro(char* nombre_registro,char* valor);
 int posicion_registro(char* nombre_registro);
-void devolver_cpu(t_pcb* pcb,cod_proceso estado);
-void actualizar_registros_pcb(t_registro* registros);
-void enviar_pcb(t_pcb* pcb,cod_proceso estado);
-void armar_pcb(void);
+void devolver_proceso(int,t_contexto_proceso*,int,t_log*);
+void actualizar_registros_pcb(t_registro registros);
+
+
 t_list* armar_instrucciones(void);
 void imprimir_registros(t_registro* registros);
-
+void terminar(void);
 
 #endif /* CPU_H_ */

@@ -1,5 +1,4 @@
 #include "../Include/cpu.h"
-#include "../../shared/src/estructuras.h"
 
 t_log* cpu_logger;
 t_config* config;
@@ -24,7 +23,7 @@ int main(int argc, char **argv) {
 	cpu_logger = iniciar_logger("cpu.log");
 	cargar_config(config_path);
 
-	conexion_a_memoria(cpu_config->ip_memoria,cpu_config->puerto_memoria,cpu_logger);
+	//conexion_a_memoria(cpu_config->ip_memoria,cpu_config->puerto_memoria,cpu_logger);
 
 	correr_servidor();
 
@@ -85,10 +84,11 @@ void correr_servidor(void){
 		switch(modulo){
 			case KERNEL:
 				log_info(cpu_logger, "Kernel Conectado.");
-				//t_pcb *pcb = recibir_pcb(socket_kernel);
-				armar_pcb();
-				ciclo_de_instruccion(pcb_local);
+				recibir_operacion(socket_kernel);//pcb
+				t_contexto_proceso* proceso = recibir_contexto(socket_kernel,cpu_logger);
 
+				ciclo_de_instruccion(proceso,socket_kernel);
+				log_info(cpu_logger,"Se ejecuto un proceso");
 				//liberar_pcb(pcb);
 				break;
 			case -1:
@@ -97,54 +97,59 @@ void correr_servidor(void){
 				exit(EXIT_FAILURE);
 			default:
 				log_error(cpu_logger, "Codigo de operacion desconocido.");
+				return;
 				break;
 		}
 	}
 }
 
 
-t_pcb* recibir_pcb(int socket){
-	t_pcb * un_pcb = malloc(sizeof(t_pcb));
-	return un_pcb;
-}
-
-void ciclo_de_instruccion(t_pcb* pcb){
+void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 	bool fin_de_ciclo = false;
 	t_instruccion* una_instruccion = malloc(sizeof(t_instruccion));
 
 	while(!fin_de_ciclo){
 
-		una_instruccion = list_get(pcb->MOCK_instrucciones, pcb->program_counter);
+		una_instruccion = list_get(proceso->instrucciones, proceso->program_counter);
 
 		switch (una_instruccion->codigo)
 		{
 		case ci_SET:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",pcb->pid,(char*)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
 			usleep(cpu_config->retardo_instruccion * 1000);
 			set_valor_registro((char *)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
 
 			break;
 
 		case ci_YIELD:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <YIELD>",pcb->pid);
-			devolver_cpu(pcb,PROCESO_DESALOJADO_POR_YIELD);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <YIELD>",proceso->pid);
+			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_YIELD");
+			return;
 			break;
 
 		case ci_EXIT:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <EXIT>",pcb->pid);
-			devolver_cpu(pcb,PROCESO_FINALIZADO);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <EXIT>",proceso->pid);
+			devolver_proceso(socket,proceso,PROCESO_FINALIZADO,cpu_logger);
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_FINALIZADO");
 			fin_de_ciclo = true;
+			return;
 			break;
 
 		default:
 			break;
 		}
 
-		pcb->program_counter++;
+		proceso->program_counter++;
 	}
 
 	free(una_instruccion);
+}
+
+void devolver_proceso(int socket,t_contexto_proceso* proceso,int codigo,t_log* logger){
+	actualizar_registros_pcb(proceso->registros);
+	enviar_contexto(socket,proceso,codigo,logger);
 }
 
 void set_valor_registro(char* nombre_registro,char* valor){
@@ -181,65 +186,26 @@ int posicion_registro(char* nombre_registro){
 	return NULL;
 }
 
-void devolver_cpu(t_pcb* pcb,cod_proceso estado){
 
-	actualizar_registros_pcb(pcb->registros);
+void actualizar_registros_pcb(t_registro registros){
+	strncpy(registros.AX,registros_cpu.registros_4[0],4);
+	//printf("AX: %.4s\n",registros.AX);
 
-	//enviar_pcb(pcb,estado);
-}
+	strncpy(registros.BX , registros_cpu.registros_4[1],4);
+	strncpy(registros.CX , registros_cpu.registros_4[2],4);
+	strncpy(registros.DX , registros_cpu.registros_4[3],4);
 
-void actualizar_registros_pcb(t_registro* registros){
-	strncpy(registros->AX,registros_cpu.registros_4[0],4);
-	//printf("AX: %.4s\n",registros->AX);
+	strncpy(registros.EAX , registros_cpu.registros_8[0],8);
+	//printf("AX: %.8s\n",registros.EAX);
+	strncpy(registros.EBX , registros_cpu.registros_8[1],8);
+	strncpy(registros.ECX , registros_cpu.registros_8[2],8);
+	strncpy(registros.EDX , registros_cpu.registros_8[3],8);
 
-	strncpy(registros->BX , registros_cpu.registros_4[1],4);
-	strncpy(registros->CX , registros_cpu.registros_4[2],4);
-	strncpy(registros->DX , registros_cpu.registros_4[3],4);
-
-	strncpy(registros->EAX , registros_cpu.registros_8[0],8);
-	strncpy(registros->EBX , registros_cpu.registros_8[1],8);
-	strncpy(registros->ECX , registros_cpu.registros_8[2],8);
-	strncpy(registros->EDX , registros_cpu.registros_8[3],8);
-
-	strncpy(registros->RAX , registros_cpu.registros_16[0],16);
-	strncpy(registros->RBX , registros_cpu.registros_16[1],16);
-	strncpy(registros->RCX , registros_cpu.registros_16[2],16);
-	strncpy(registros->RDX , registros_cpu.registros_16[3],16);
+	strncpy(registros.RAX , registros_cpu.registros_16[0],16);
+	//printf("AX: %.16s\n",registros.RAX);
+	strncpy(registros.RBX , registros_cpu.registros_16[1],16);
+	strncpy(registros.RCX , registros_cpu.registros_16[2],16);
+	strncpy(registros.RDX , registros_cpu.registros_16[3],16);
 
 }
 
-
-void enviar_pcb(t_pcb* pcb,cod_proceso estado){
-
-//	serializar_pcb(pcb);
-//	crear_paquete(estado);
-//	enviar_paquete();
-}
-
-//POR AHORA, HASTA NO TENER RESUELTO EL ENVIO DE PCB POR PARTE DE KERNEL
-void armar_pcb(void){
-	pcb_local = malloc(sizeof(t_pcb));
-
-	pcb_local->pid = 1;
-	pcb_local->MOCK_instrucciones = armar_instrucciones();
-	pcb_local->program_counter = 0;
-	pcb_local->registros = malloc(sizeof(t_registro));
-	pcb_local->estimado_rafaga = 1010;
-
-}
-
-t_list* armar_instrucciones(void){
-
-	t_list* lista = list_create();
-
-	t_instruccion* instruccion1 = crear_instruccion(ci_SET, false);
-
-	list_add(instruccion1->parametros, "AX");
-	list_add(instruccion1->parametros, "TOPA");
-	list_add(lista, instruccion1);
-
-	t_instruccion* instruccion2 = crear_instruccion(ci_EXIT, true);
-	list_add(lista, instruccion2);
-
-	return lista;
-}

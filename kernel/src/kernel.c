@@ -15,7 +15,7 @@ int main(void) {
 	iniciar_semaforos(grado_multiprogramacion);
 
 	/* -- CONEXIÓN CON CPU -- */
-	//socket_cpu = conectar_con_cpu();
+	socket_cpu = conectar_con_cpu();
 
     /* -- CONEXIÓN CON MEMORIA -- */
 	//socket_memoria = conectar_con_memoria();
@@ -63,6 +63,7 @@ int main(void) {
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
 					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
 					args->socket = socket_consola;
+					args->socket_cpu = socket_cpu;
 					args->log = logger;
 					//args->mutex = mutex;
 
@@ -129,8 +130,7 @@ int conectar_con_cpu(){
 
 	socket_cpu = crear_conexion(kernel_config->IP_CPU, kernel_config->PUERTO_CPU);
 	enviar_handshake(socket_cpu, KERNEL);
-	recibir_operacion(socket_cpu);
-	recibir_mensaje(socket_cpu, logger);
+
 	return socket_cpu;
 }
 
