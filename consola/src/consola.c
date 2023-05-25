@@ -37,8 +37,7 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 
 	// Si el send envió algo
 	if (response_code_kernel > 0) {
-		t_list* respuesta = list_create();
-		respuesta = recibir_paquete(socket_kernel, logger);
+		t_list* respuesta = recibir_paquete(socket_kernel, logger);
 
 		if (list_is_empty(respuesta)) {
 			log_error(logger, "La lista de respuesta, esta vacía");
@@ -51,7 +50,6 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 			log_info(logger, "Programa ha finalizado correctamente");
 		}
 	}
-	t_queue* cola = queue_create();
 	log_info(logger, "Finalizando programa...");
 	terminar_programa(socket_kernel,logger,config);
 

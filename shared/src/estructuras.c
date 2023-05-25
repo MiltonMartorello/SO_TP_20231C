@@ -181,20 +181,6 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger) {
 	return instrucciones;
 }
 
-void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger){
-	log_info(logger,"PID: %d  -ejecutar proceso ",pcb->pid);
-	t_contexto_proceso* contexto_pcb = malloc(sizeof(t_contexto_proceso));
-	contexto_pcb->pid = pcb->pid;
-	contexto_pcb->program_counter = pcb->program_counter;
-	contexto_pcb->instrucciones = pcb->instrucciones;
-	contexto_pcb->registros = pcb->registros;
-	log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
-	log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
-	enviar_contexto(socket,contexto_pcb,CONTEXTO_PROCESO,logger);
-
-	free(contexto_pcb);
-}
-
 void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger){
 
 	t_paquete* paquete = crear_paquete(codigo);
@@ -226,7 +212,6 @@ void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* l
 	free(buffer_instrucciones);
 	eliminar_paquete(paquete);
 }
-
 
 
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger){

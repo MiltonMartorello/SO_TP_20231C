@@ -38,8 +38,10 @@ int planificador_corto_plazo(void* args_hilo) {
 		pasar_a_cola_exec(pcb, logger);
 		t_pcb* pcb2 = (t_pcb*)queue_peek(colas_planificacion->cola_exec);
 		log_info(logger,"PID:%d ",pcb2->pid);
-		// llamar a función que ejecutar proceso;
 		ejecutar_proceso(socket_cpu, pcb, logger);
+		//TODO RECIBIR UN SIGNAL EN PARTICULAR => MOTIVO
+		recibir_operacion(socket_cpu);//pcb
+		t_contexto_proceso* proceso = recibir_contexto(socket_cpu,logger);
 	}
 	return 1;
 }

@@ -27,7 +27,6 @@ void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
 t_list* recibir_paquete(int, t_log*);
 
-
 /*
  * CLIENTE
  * */
@@ -51,9 +50,5 @@ void terminar_programa(int, t_log*, t_config*);
 t_programa* crear_programa(t_list*);
 void programa_destroy(t_programa*);
 char* nombre_de_instruccion(int cod_op);
-t_pcb* crear_pcb(t_programa*, int );
-void destroy_pcb(t_pcb*);
-t_registro crear_registro(void);
-
 
 #endif /* SHARED_H_ */

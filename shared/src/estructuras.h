@@ -38,7 +38,6 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-
 typedef struct {
 	int socket;
 	int socket_cpu;
@@ -50,11 +49,9 @@ typedef struct {
 	t_log* log;
 	t_config* config;
 } t_args_hilo_planificador;
-/*
- * PROGRAMA E INSTRUCCIONES
- * CONSOLA - KERNEL
- * */
 
+
+/*CODIGO DE INSTRUCCION*/
 typedef enum {
 	ci_SET = 1,
 	ci_WAIT,
@@ -86,11 +83,6 @@ typedef struct {
 	t_list* instrucciones;
 } t_programa;
 
-
-/*
- * PLANIFICACION
- * */
-
 // REGISTROS CPU
 typedef union {
     char AX[4];
@@ -107,35 +99,6 @@ typedef union {
     char RDX[16];
 } t_registro;
 
-typedef enum{
-	NEW,
-	READY,
-	EXEC,
-	BLOCK,
-	EXIT
-} t_estado;
-
-typedef struct {
-	t_queue* cola_ready;
-	t_queue* cola_new;
-	t_queue* cola_exec;
-	t_queue* cola_block;
-	t_queue* cola_exit;
-} t_colas;
-
-// PCB
-typedef struct {
-	int pid;
-	t_list* instrucciones;
-	int program_counter;
-	t_registro registros;
-	int estimado_rafaga;
-	t_temporal* tiempo_llegada;
-	t_estado estado_actual;
-	t_list* tabla_archivos_abiertos;
-	t_list* tabla_segmento;
-} t_pcb;
-
 typedef struct{
 	int pid;
 	int program_counter;
@@ -148,7 +111,6 @@ t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);
 t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger);
 t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger);
-void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger);
 void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger);
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger);
 

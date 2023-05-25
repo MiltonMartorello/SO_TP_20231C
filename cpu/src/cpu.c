@@ -7,7 +7,6 @@ int socket_kernel;
 int socket_memoria;
 t_cpu_config* cpu_config;
 t_reg registros_cpu;
-t_pcb* pcb_local;
 
 char* IP_CPU = "127.0.0.1";
 

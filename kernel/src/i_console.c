@@ -18,8 +18,9 @@ void procesar_consola(void *args_hilo) {
 			t_buffer* buffer = recibir_buffer_programa(socket_consola, logger);
 			t_programa* programa = deserializar_programa(buffer, logger);
 //			loggear_programa(programa,logger);
-			crear_proceso(programa, logger,socket_cpu);
-			programa_destroy(programa);
+			crear_proceso(programa, logger, socket_cpu);
+			//programa_destroy(programa);
+			free(programa);
 			break;
 		default:
 			log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO. %d", cod_op);
@@ -38,13 +39,10 @@ t_buffer* recibir_buffer_programa(int socket_consola, t_log* logger) {
 
 
 
-
 t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 	t_buffer* iterador_buffer = crear_buffer();
 	int offset = 0;
 	t_programa* programa = crear_programa(list_create());
-	//t_programa* programa = malloc(sizeof(t_programa));
-	//programa->size = 0;
 //	log_info(logger,"Se va a deserializar el programa");
 
 	//Tamaño programa
@@ -88,6 +86,7 @@ void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
 	sem_post(&sem_nuevo_proceso);
 	//log_info(logger, "La cola de NEW cuenta con %d procesos", queue_size(colas_planificacion->cola_new));
+	//TODO SIGNAL THIS
 	// sem_signal(blablabla)
 }
 
