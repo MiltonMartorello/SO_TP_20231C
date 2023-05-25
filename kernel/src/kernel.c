@@ -85,6 +85,7 @@ int main(void) {
 
 	/* -- FINALIZAR PROGRAMA -- */
 	destroy_colas_planificacion();
+	destroy_semaforos();
 	finalizar_kernel(socket_kernel, logger, config_kernel);
 	return EXIT_SUCCESS;
 }
