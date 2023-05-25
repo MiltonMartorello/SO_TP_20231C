@@ -6,6 +6,7 @@
 
  sem_t sem_ready_proceso;
  sem_t sem_exec_proceso;
+ sem_t sem_block_proceso;
 
 void iniciar_colas_planificacion(void) {
 
@@ -33,6 +34,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_nuevo_proceso, 0, 0);
 	sem_init(&sem_ready_proceso, 0, 0);
 	sem_init(&sem_exec_proceso, 0, 0);
+	sem_init(&sem_block_proceso,0, 0);
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
@@ -96,6 +98,19 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	queue_push(colas_planificacion->cola_exec, pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exec_proceso);
+}
+
+void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger) {
+	if(pcb->estado_actual != EXEC){
+		log_error(logger, "Error, no es un estado válido");
+		EXIT_FAILURE;
+	}
+	queue_pop(colas_planificacion->cola_exec);
+	char* estado_anterior = estado_string(pcb->estado_actual);
+	pcb->estado_actual = BLOCK;
+	queue_push(colas_planificacion->cola_block, pcb);
+	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	sem_post(&sem_block_proceso);
 }
 
 void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger){

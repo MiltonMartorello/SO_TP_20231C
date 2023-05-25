@@ -44,6 +44,7 @@ void destroy_pcb(t_pcb*);
 void ejecutar_proceso(int, t_pcb*, t_log*);
 void pasar_a_cola_ready(t_pcb*, t_log*);
 void pasar_a_cola_exec(t_pcb*, t_log*);
+void pasar_a_cola_blocked(t_pcb*, t_log*);
 
 char* estado_string(int);
 t_registro crear_registro(void);
