@@ -9,10 +9,67 @@
 #include <shared.h>
 #include "estructuras.h"
 
+/* -- ESTRUCTURAS -- */
+
+typedef struct {
+    uint32_t block_size;
+    uint32_t block_count;
+} Superbloque;
+
+typedef struct {
+    char nombre_archivo;
+    uint32_t tamanio_archivo;
+    uint32_t puntero_directo;
+    uint32_t puntero_indirecto;
+} FCB;
+
+typedef struct {
+    // Definir la estructura del Bitmap de Bloques
+} BitmapBloques;
+
+typedef struct {
+    // Definir la estructura del Archivo de Bloques
+} ArchivoBloques;
+
+typedef struct
+{
+	char* IP_MEMORIA;
+	char* PUERTO_MEMORIA;
+	char* PUERTO_ESCUCHA;
+    char* PATH_SUPERBLOQUE;
+    char* PATH_BITMAP;
+    char* PATH_BLOQUES;
+    char* PATH_FCB;
+    int RETARDO_ACCESO_BLOQUE;
+
+} t_fs_config;
+
+/* -- VARIABLES -- */
+t_config* config_fs;
+t_fs_config* fs_config;
+int socket_fs;
+int socket_kernel;
+int socket_memoria;
+int estado_socket_mem;
+int estado_socket_kernel;
+
+/* CONSTANTES */
+
 #define PATH_CONFIG "file_system.config"
 
-void terminar_programa(int conexion, t_log* logger, t_config* config);
-void* esperar_cliente_hilo (void *arg);
+/* -- FUNCIONES -- */
 
-void conexion_con_memoria(char* ip,char* puerto,t_log* logger);
+void cargar_config_fs(t_config* config_fs);
+void inicializar_fs(Superbloque* sb, BitmapBloques* bitmap, ArchivoBloques* archivoBloques);
+void conectar_con_memoria();
+void correr_servidor();
+void abrirArchivo(const char* nombreArchivo);
+void crearArchivo(const char* nombreArchivo);
+void truncarArchivo(const char* nombreArchivo, uint32_t nuevoTamano);
+void leerArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
+void escribirArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
+void accederBitmap(uint32_t numeroBloque, int estado);
+void accederBloque(const char* nombreArchivo, uint32_t numeroBloqueArchivo, uint32_t numeroBloqueFS);
+void finalizar_fs(int conexion, t_log* logger, t_config* config);
+
 #endif /* FILESYSTEM_H_ */
