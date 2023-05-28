@@ -19,8 +19,8 @@ void procesar_consola(void *args_hilo) {
 			t_programa* programa = deserializar_programa(buffer, logger);
 //			loggear_programa(programa,logger);
 			crear_proceso(programa, logger, socket_cpu);
-			//programa_destroy(programa);
-			free(programa);
+			respuesta_proceso(programa, logger, socket_consola);
+			programa_destroy(programa);
 			break;
 		default:
 			log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO. %d", cod_op);
@@ -68,26 +68,31 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 	t_pcb* pcb = crear_pcb(programa, nuevo_pid());
 	log_info(logger,"Se creo un pcb con %d instrucciones",list_size(pcb->instrucciones));
-	pthread_mutex_t mutex_cola_new;
-	if(pthread_mutex_init(&mutex_cola_new, NULL) != 0) {
-	    log_error(logger, "Error al inicializar el mutex");
-	    return;
-	}
 	if (pthread_mutex_lock(&mutex_cola_new) != 0) {
 		log_error(logger, "Mutex no pudo lockear");
 	};
 
 	queue_push(colas_planificacion->cola_new, pcb);
-	//ejecutar_proceso(socket_cpu,pcb,logger);
 
 	if (pthread_mutex_unlock(&mutex_cola_new) != 0) {
 		log_error(logger, "Mutex no pudo unlockear");
 	};
 	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
 	sem_post(&sem_nuevo_proceso);
-	//log_info(logger, "La cola de NEW cuenta con %d procesos", queue_size(colas_planificacion->cola_new));
-	//TODO SIGNAL THIS
-	// sem_signal(blablabla)
+}
+
+void respuesta_proceso(t_programa* programa,t_log* logger, int socket_consola) {
+	sem_wait(&sem_exit_proceso);
+	if (pthread_mutex_lock(&mutex_cola_exit) != 0) {
+		log_error(logger, "Mutex no pudo lockear");
+	};
+	t_pcb* pcb = queue_pop(colas_planificacion->cola_exit);
+	if (pthread_mutex_unlock(&mutex_cola_exit) != 0) {
+		log_error(logger, "Mutex no pudo unlockear");
+	};
+	loggear_return_kernel(pcb->pid, pcb->motivo, logger);
+	sem_post(&sem_grado_multiprogramacion);
+	enviar_handshake(socket_consola, pcb->motivo);
 }
 
 void loggear_programa(t_programa* programa,t_log* logger) {
@@ -109,6 +114,23 @@ void loggear_programa(t_programa* programa,t_log* logger) {
 		list_iterator_destroy(iterador_parametros);
 	}
 	list_iterator_destroy(iterador_instrucciones);
+}
+
+void loggear_return_kernel(int pid, int return_kernel, t_log* logger) {
+	switch(return_kernel) {
+		case SUCCESS:
+			log_info(logger, "Finaliza el proceso <%d> - Motivo: SUCCESS", pid);
+			break;
+		case SEG_FAULT:
+			log_info(logger, "Finaliza el proceso <%d> - Motivo: SEG_FAULT", pid);
+			break;
+		case OUT_OF_MEMORY:
+			log_info(logger, "Finaliza el proceso <%d> - Motivo: OUT_OF_MEMORY", pid);
+			break;
+		default:
+			log_error(logger, "Finaliza el proceso <%d> - Motivo: Error innesperado: %d", pid, return_kernel);
+			EXIT_FAILURE;
+	}
 }
 
 int nuevo_pid(void) {

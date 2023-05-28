@@ -9,6 +9,10 @@
  sem_t sem_block_proceso;
  sem_t sem_exit_proceso;
 
+ pthread_mutex_t mutex_cola_new;
+ pthread_mutex_t mutex_cola_ready;
+ pthread_mutex_t mutex_cola_exit;
+
 void iniciar_colas_planificacion(void) {
 
 	colas_planificacion = malloc(sizeof(t_colas));
@@ -37,6 +41,9 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_exec_proceso, 0, 0);
 	sem_init(&sem_block_proceso, 0, 0);
 	sem_init(&sem_exit_proceso, 0, 0);
+	pthread_mutex_init(&mutex_cola_new, NULL);
+	pthread_mutex_init(&mutex_cola_ready, NULL);
+	pthread_mutex_init(&mutex_cola_exit, NULL);
 }
 
 void destroy_semaforos(void) {
@@ -61,7 +68,7 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	pcb->tabla_segmento = list_create();
 	pcb->tiempo_llegada = NULL;
 	pcb->tiempo_ejecucion = NULL;
-
+	pcb->motivo = NOT_DEFINED;
 	return pcb;
 }
 
@@ -127,7 +134,7 @@ void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger) {
 	sem_post(&sem_block_proceso);
 }
 
-void pasar_a_cola_exit(t_pcb* pcb, t_log* logger) {
+void pasar_a_cola_exit(t_pcb* pcb, t_log* logger, return_code motivo) {
 	if(pcb->estado_actual != EXEC){
 		log_error(logger, "Error, no es un estado válido");
 		EXIT_FAILURE;
@@ -135,12 +142,13 @@ void pasar_a_cola_exit(t_pcb* pcb, t_log* logger) {
 	queue_pop(colas_planificacion->cola_exec);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = EXIT;
+	pcb->motivo = motivo;
 	queue_push(colas_planificacion->cola_exit, pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exit_proceso);
 }
 
-void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger){
+void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	log_info(logger,"PID: %d  -ejecutar proceso ",pcb->pid);
 	t_contexto_proceso* contexto_pcb = malloc(sizeof(t_contexto_proceso));
 	contexto_pcb->pid = pcb->pid;
@@ -149,7 +157,7 @@ void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger){
 	contexto_pcb->registros = pcb->registros;
 	log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
 	log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
-	enviar_contexto(socket,contexto_pcb,CONTEXTO_PROCESO,logger);
+	enviar_contexto(socket_cpu, contexto_pcb, CONTEXTO_PROCESO, logger);
 
 	free(contexto_pcb);
 }

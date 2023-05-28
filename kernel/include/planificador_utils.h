@@ -27,6 +27,7 @@ typedef struct {
 	t_estado estado_actual;
 	t_list* tabla_archivos_abiertos;
 	t_list* tabla_segmento;
+	return_code motivo;
 } t_pcb;
 
 typedef struct {
@@ -55,7 +56,7 @@ void pasar_a_cola_ready(t_pcb*, t_log*);
  * */
 void pasar_a_cola_exec(t_pcb*, t_log*);
 void pasar_a_cola_blocked(t_pcb*, t_log*);
-void pasar_a_cola_exit(t_pcb*, t_log*);
+void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
 
 char* estado_string(int);
 t_registro crear_registro(void);

@@ -30,6 +30,15 @@ typedef enum
 	PROCESO_FINALIZADO
 } op_code;
 
+typedef enum
+{
+	// RETURN CODES DE KERNEL A CONSOLA
+	SUCCESS = 1,
+	SEG_FAULT,
+	OUT_OF_MEMORY,
+	NOT_DEFINED
+} return_code;
+
 typedef struct
 {
 	int size;

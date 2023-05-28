@@ -22,7 +22,6 @@ int planificador_corto_plazo(void* args_hilo) {
 		actualizar_pcb(pcb, contexto);
 		log_info(logger, "Program Counter actualizado a %d",pcb->program_counter);
 		procesar_contexto(pcb, cod_op, logger);
-		EXIT_SUCCESS;
 	}
 	return 1;
 }
@@ -43,7 +42,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, t_log* logger) {
 		case PROCESO_FINALIZADO:
 			//TODO RETURN
 			log_info(logger, "Proceso desalojado por EXIT");
-			EXIT_SUCCESS;
+			pasar_a_cola_exit(pcb, logger, SUCCESS);
 			break;
 	}
 
