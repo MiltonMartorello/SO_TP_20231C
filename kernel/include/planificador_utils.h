@@ -1,5 +1,5 @@
-#ifndef SRC_PLANIFICADOR_H_
-#define SRC_PLANIFICADOR_H_
+#ifndef SRC_PLANIFICADOR_UTILS_H_
+#define SRC_PLANIFICADOR_UTILS_H_
 
 #include <estructuras.h>
 #include <errno.h>
@@ -61,4 +61,4 @@ char* estado_string(int);
 t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);
 
-#endif /* SRC_PLANIFICADOR_H_ */
+#endif /* SRC_PLANIFICADOR_UTILS_H_ */

@@ -1,4 +1,4 @@
-#include "../include/planificador.h"
+#include "../include/planificador_utils.h"
 
  t_colas* colas_planificacion;
  sem_t sem_grado_multiprogramacion;
