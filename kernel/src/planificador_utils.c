@@ -1,4 +1,4 @@
-#include "../include/planificador.h"
+#include "../include/planificador_utils.h"
 
  t_colas* colas_planificacion;
  sem_t sem_grado_multiprogramacion;
@@ -6,6 +6,12 @@
 
  sem_t sem_ready_proceso;
  sem_t sem_exec_proceso;
+ sem_t sem_block_proceso;
+ sem_t sem_exit_proceso;
+
+ pthread_mutex_t mutex_cola_new;
+ pthread_mutex_t mutex_cola_ready;
+ pthread_mutex_t mutex_cola_exit;
 
 void iniciar_colas_planificacion(void) {
 
@@ -33,6 +39,21 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_nuevo_proceso, 0, 0);
 	sem_init(&sem_ready_proceso, 0, 0);
 	sem_init(&sem_exec_proceso, 0, 0);
+	sem_init(&sem_block_proceso, 0, 0);
+	sem_init(&sem_exit_proceso, 0, 0);
+	pthread_mutex_init(&mutex_cola_new, NULL);
+	pthread_mutex_init(&mutex_cola_ready, NULL);
+	pthread_mutex_init(&mutex_cola_exit, NULL);
+}
+
+void destroy_semaforos(void) {
+
+	sem_destroy(&sem_grado_multiprogramacion);
+	sem_destroy(&sem_nuevo_proceso);
+	sem_destroy(&sem_ready_proceso);
+	sem_destroy(&sem_exec_proceso);
+	sem_destroy(&sem_block_proceso);
+	sem_destroy(&sem_exit_proceso);
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
@@ -45,8 +66,9 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	pcb->registros = crear_registro();
 	pcb->tabla_archivos_abiertos = list_create();
 	pcb->tabla_segmento = list_create();
-	pcb->tiempo_llegada = temporal_create();
-
+	pcb->tiempo_llegada = NULL;
+	pcb->tiempo_ejecucion = NULL;
+	pcb->motivo = NOT_DEFINED;
 	return pcb;
 }
 
@@ -55,11 +77,10 @@ void destroy_pcb(t_pcb* pcb) {
 	list_destroy(pcb->tabla_archivos_abiertos);
 	list_destroy(pcb->tabla_segmento);
 	temporal_destroy(pcb->tiempo_llegada);
+	temporal_destroy(pcb->tiempo_ejecucion);
 	free(pcb);
 }
 
-/*
- * Quita el PCB de La cola Actual, y lo pasa a la cola de READY*/
 
 void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 
@@ -80,8 +101,10 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = READY;
+	pcb->tiempo_llegada = temporal_reset(pcb->tiempo_llegada);
 	queue_push(colas_planificacion->cola_ready,pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	loggear_cola_ready(logger);
 	sem_post(&sem_ready_proceso);
 }
 
@@ -93,12 +116,40 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	queue_pop(colas_planificacion->cola_ready);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = EXEC;
+	pcb->tiempo_ejecucion = temporal_reset(pcb->tiempo_ejecucion);
 	queue_push(colas_planificacion->cola_exec, pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exec_proceso);
 }
 
-void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger){
+void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger) {
+	if(pcb->estado_actual != EXEC){
+		log_error(logger, "Error, no es un estado válido");
+		EXIT_FAILURE;
+	}
+	queue_pop(colas_planificacion->cola_exec);
+	char* estado_anterior = estado_string(pcb->estado_actual);
+	pcb->estado_actual = BLOCK;
+	queue_push(colas_planificacion->cola_block, pcb);
+	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	sem_post(&sem_block_proceso);
+}
+
+void pasar_a_cola_exit(t_pcb* pcb, t_log* logger, return_code motivo) {
+	if(pcb->estado_actual != EXEC){
+		log_error(logger, "Error, no es un estado válido");
+		EXIT_FAILURE;
+	}
+	queue_pop(colas_planificacion->cola_exec);
+	char* estado_anterior = estado_string(pcb->estado_actual);
+	pcb->estado_actual = EXIT;
+	pcb->motivo = motivo;
+	queue_push(colas_planificacion->cola_exit, pcb);
+	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	sem_post(&sem_exit_proceso);
+}
+
+void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	log_info(logger,"PID: %d  -ejecutar proceso ",pcb->pid);
 	t_contexto_proceso* contexto_pcb = malloc(sizeof(t_contexto_proceso));
 	contexto_pcb->pid = pcb->pid;
@@ -107,10 +158,38 @@ void ejecutar_proceso(int socket, t_pcb* pcb,t_log* logger){
 	contexto_pcb->registros = pcb->registros;
 	log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
 	log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
-	enviar_contexto(socket,contexto_pcb,CONTEXTO_PROCESO,logger);
+	enviar_contexto(socket_cpu, contexto_pcb, CONTEXTO_PROCESO, logger);
 
 	free(contexto_pcb);
 }
+
+void loggear_cola_ready(t_log* logger) {
+    char* pids = concatenar_pids(colas_planificacion->cola_ready->elements);
+
+    log_info(logger, "Cola Ready <HRRN>: [%s]", pids);
+    free(pids);
+}
+
+char* concatenar_pids(t_list* lista) {
+    char* pids = string_new();
+
+    void concatenar_pid(void* elemento) {
+        int pid = *((int*)elemento);
+
+        char* pid_str = string_itoa(pid);
+        string_append_with_format(&pids, "%s, ", pid_str);
+        free(pid_str);
+    }
+
+    list_iterate(lista, concatenar_pid);
+
+    if (string_length(pids) > 0) {
+        pids = string_substring_until(pids, string_length(pids) - 2);
+    }
+
+    return pids;
+}
+
 
 char* estado_string(int cod_op) {
 	switch(cod_op) {
@@ -141,4 +220,12 @@ t_registro crear_registro(void) {
 
 	t_registro registro;
 	return registro;
+}
+
+t_temporal* temporal_reset(t_temporal* temporal) {
+	if (temporal != NULL) {
+		temporal_destroy(temporal);
+	}
+	temporal = temporal_create();
+	return temporal;
 }

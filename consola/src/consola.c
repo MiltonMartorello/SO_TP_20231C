@@ -18,7 +18,7 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 	char* ip;
 	char* puerto_kernel;
 	int socket_kernel;
-	int response_code_kernel;
+	int bytes_enviados;
 	ip = config_get_string_value(config,"IP_KERNEL");
 	puerto_kernel = config_get_string_value(config,"PUERTO_KERNEL");
 
@@ -32,27 +32,18 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 	t_buffer* buffer = serializar_programa(programa, logger);
 	programa_destroy(programa);
 
-	response_code_kernel = enviar_programa(buffer, socket_kernel, PROGRAMA, logger);
+	bytes_enviados = enviar_programa(buffer, socket_kernel, PROGRAMA, logger);
 	//buffer_destroy(buffer);
-
 	// Si el send envió algo
-	if (response_code_kernel > 0) {
-		t_list* respuesta = recibir_paquete(socket_kernel, logger);
-
-		if (list_is_empty(respuesta)) {
-			log_error(logger, "La lista de respuesta, esta vacía");
-			EXIT_FAILURE;
-		}
-		else if ((op_code)list_get(respuesta,0) != PROGRAMA_FINALIZADO) {
-			log_error(logger, "Error al finalizar programa. Se esperaba código %d, y se recibió %d", PROGRAMA_FINALIZADO, (op_code)list_get(respuesta,0));
-		}
-		else {
+	if (bytes_enviados > 0) {
+		int return_kernel = recibir_operacion(socket_kernel);
+		if (return_kernel == SUCCESS) {
 			log_info(logger, "Programa ha finalizado correctamente");
+		} else {
+			log_error(logger, "Error al finalizar programa. Código de error: %d", return_kernel);
 		}
 	}
-	log_info(logger, "Finalizando programa...");
 	terminar_programa(socket_kernel,logger,config);
-
 	EXIT_SUCCESS;
 }
 

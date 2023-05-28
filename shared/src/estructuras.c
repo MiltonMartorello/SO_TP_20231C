@@ -181,7 +181,7 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger) {
 	return instrucciones;
 }
 
-void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger){
+void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log* logger){
 
 	t_paquete* paquete = crear_paquete(codigo);
 	t_buffer* buffer_instrucciones = serializar_instrucciones(contexto->instrucciones,logger);

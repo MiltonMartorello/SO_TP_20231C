@@ -76,29 +76,29 @@ void correr_servidor(void){
 	socket_kernel = esperar_cliente(socket_cpu, cpu_logger);
 	//TODO verificar socket != -1
 
-	while(1){
+	int modulo = recibir_operacion(socket_kernel);
 
-		int modulo = recibir_operacion(socket_kernel);
-
-		switch(modulo){
-			case KERNEL:
-				log_info(cpu_logger, "Kernel Conectado.");
+	switch(modulo){
+		case KERNEL:
+			log_info(cpu_logger, "Kernel Conectado.");
+			while(1){
 				recibir_operacion(socket_kernel);//pcb
-				t_contexto_proceso* proceso = recibir_contexto(socket_kernel,cpu_logger);
+				t_contexto_proceso* proceso = recibir_contexto(socket_kernel, cpu_logger);
 
 				ciclo_de_instruccion(proceso,socket_kernel);
 				log_info(cpu_logger,"Se ejecuto un proceso");
 				//liberar_pcb(pcb);
-				break;
-			case -1:
-				log_error(cpu_logger, "Se desconectó el cliente.");
-				close(socket_kernel);
-				exit(EXIT_FAILURE);
-			default:
-				log_error(cpu_logger, "Codigo de operacion desconocido.");
-				return;
-				break;
-		}
+			}
+			break;
+		case -1:
+			log_error(cpu_logger, "Se desconectó el cliente.");
+			close(socket_kernel);
+			exit(EXIT_FAILURE);
+		default:
+			log_error(cpu_logger, "Codigo de operacion desconocido.");
+			return;
+			break;
+
 	}
 }
 
@@ -111,14 +111,13 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 	while(!fin_de_ciclo){
 
 		una_instruccion = list_get(proceso->instrucciones, proceso->program_counter);
-
+		proceso->program_counter++;
 		switch (una_instruccion->codigo)
 		{
 		case ci_SET:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
 			usleep(cpu_config->retardo_instruccion * 1000);
 			set_valor_registro((char *)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
-
 			break;
 
 		case ci_YIELD:
@@ -140,7 +139,6 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			break;
 		}
 
-		proceso->program_counter++;
 	}
 
 	free(una_instruccion);

@@ -1,5 +1,5 @@
-#ifndef PLANIFICADOR_LARGO_H
-#define PLANIFICADOR_LARGO_H
+#ifndef PLANIFICADOR_CORTO_H_
+#define PLANIFICADOR_CORTO_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +18,8 @@ extern sem_t sem_nuevo_proceso;
 extern sem_t sem_ready_proceso;
 extern sem_t sem_exec_proceso;
 
-int planificador_largo_plazo(void*);
-
-#endif
+int planificador_corto_plazo(void*);
+void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto);
+void procesar_contexto(t_pcb* pcb, op_code cod_op, t_log* logger);
+t_pcb* planificar(char* algoritmo, t_log* logger);
+#endif /* PLANIFICADOR_CORTO_H_ */
