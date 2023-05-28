@@ -38,12 +38,19 @@ typedef struct {
 	t_queue* cola_exit;
 } t_colas;
 
+typedef struct {
+    char* pids;
+} ConcatenacionPIDs;
+
 void iniciar_colas_planificacion(void);
 void destroy_colas_planificacion(void);
 void iniciar_semaforos(int);
 void destroy_semaforos(void);
 t_pcb* crear_pcb(t_programa*, int);
 void destroy_pcb(t_pcb*);
+/*
+ * Crea una estructura t_contexto en base a un pcb y lo envía al cpu
+ * */
 void ejecutar_proceso(int, t_pcb*, t_log*);
 /*
  * Quita el PCB de La cola Actual, y lo pasa a la cola de READY
@@ -58,6 +65,8 @@ void pasar_a_cola_exec(t_pcb*, t_log*);
 void pasar_a_cola_blocked(t_pcb*, t_log*);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
 
+char* concatenar_pids(t_list*);
+void loggear_cola_ready(t_log*);
 char* estado_string(int);
 t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);

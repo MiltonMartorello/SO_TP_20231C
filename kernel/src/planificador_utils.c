@@ -104,6 +104,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 	pcb->tiempo_llegada = temporal_reset(pcb->tiempo_llegada);
 	queue_push(colas_planificacion->cola_ready,pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	loggear_cola_ready(logger);
 	sem_post(&sem_ready_proceso);
 }
 
@@ -161,6 +162,34 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 
 	free(contexto_pcb);
 }
+
+void loggear_cola_ready(t_log* logger) {
+    char* pids = concatenar_pids(colas_planificacion->cola_ready->elements);
+
+    log_info(logger, "Cola Ready <HRRN>: [%s]", pids);
+    free(pids);
+}
+
+char* concatenar_pids(t_list* lista) {
+    char* pids = string_new();
+
+    void concatenar_pid(void* elemento) {
+        int pid = *((int*)elemento);
+
+        char* pid_str = string_itoa(pid);
+        string_append_with_format(&pids, "%s, ", pid_str);
+        free(pid_str);
+    }
+
+    list_iterate(lista, concatenar_pid);
+
+    if (string_length(pids) > 0) {
+        pids = string_substring_until(pids, string_length(pids) - 2);
+    }
+
+    return pids;
+}
+
 
 char* estado_string(int cod_op) {
 	switch(cod_op) {
