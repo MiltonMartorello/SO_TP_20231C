@@ -40,10 +40,16 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, t_log* logger) {
 			pasar_a_cola_ready(pcb, logger);
 			break;
 		case PROCESO_FINALIZADO:
-			//TODO RETURN
 			log_info(logger, "Proceso desalojado por EXIT");
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
 			break;
+		case PROCESO_BLOQUEADO:
+			log_info(logger, "Proceso desalojado por BLOQUEO");
+			pasar_a_cola_blocked(pcb, logger);
+			break;
+		default:
+			log_error(logger, "Error: La respuesta del CPU es innesperada. Cod: %d", cod_op);
+			EXIT_FAILURE;
 	}
 
 }
