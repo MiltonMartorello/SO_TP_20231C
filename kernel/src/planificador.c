@@ -59,7 +59,8 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	pcb->registros = crear_registro();
 	pcb->tabla_archivos_abiertos = list_create();
 	pcb->tabla_segmento = list_create();
-	pcb->tiempo_llegada = temporal_create();
+	pcb->tiempo_llegada = NULL;
+	pcb->tiempo_ejecucion = NULL;
 
 	return pcb;
 }
@@ -69,11 +70,10 @@ void destroy_pcb(t_pcb* pcb) {
 	list_destroy(pcb->tabla_archivos_abiertos);
 	list_destroy(pcb->tabla_segmento);
 	temporal_destroy(pcb->tiempo_llegada);
+	temporal_destroy(pcb->tiempo_ejecucion);
 	free(pcb);
 }
 
-/*
- * Quita el PCB de La cola Actual, y lo pasa a la cola de READY*/
 
 void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 
@@ -94,6 +94,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = READY;
+	pcb->tiempo_llegada = temporal_reset(pcb->tiempo_llegada);
 	queue_push(colas_planificacion->cola_ready,pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_ready_proceso);
@@ -107,6 +108,7 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	queue_pop(colas_planificacion->cola_ready);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = EXEC;
+	pcb->tiempo_ejecucion = temporal_reset(pcb->tiempo_ejecucion);
 	queue_push(colas_planificacion->cola_exec, pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exec_proceso);
@@ -181,4 +183,12 @@ t_registro crear_registro(void) {
 
 	t_registro registro;
 	return registro;
+}
+
+t_temporal* temporal_reset(t_temporal* temporal) {
+	if (temporal != NULL) {
+		temporal_destroy(temporal);
+	}
+	temporal = temporal_create();
+	return temporal;
 }

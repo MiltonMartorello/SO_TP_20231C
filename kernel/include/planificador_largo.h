@@ -20,5 +20,7 @@ extern sem_t sem_exec_proceso;
 
 int planificador_largo_plazo(void*);
 int planificador_corto_plazo(void*);
-
+void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto);
+void procesar_contexto(t_pcb* pcb, op_code cod_op, t_log* logger);
+t_pcb* planificar(char* algoritmo, t_log* logger);
 #endif
