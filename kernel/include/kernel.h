@@ -9,6 +9,7 @@
 #include <commons/txt.h>
 #include <estructuras.h>
 #include "planificador_largo.h"
+#include "planificador_corto.h"
 
 /* -- ESTRUCTURAS -- */
 typedef struct

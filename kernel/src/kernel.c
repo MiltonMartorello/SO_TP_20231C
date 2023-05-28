@@ -9,10 +9,8 @@ int main(void) {
 	t_config* config_kernel = iniciar_config("./kernel.config");
 	cargar_config_kernel(config_kernel);
 
-	int grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MAX_MULTIPROGRAMACION");
-
 	iniciar_colas_planificacion();
-	iniciar_semaforos(grado_multiprogramacion);
+	iniciar_semaforos(kernel_config->GRADO_MAX_MULTIPROGRAMACION);
 
 	/* -- CONEXIÓN CON CPU -- */
 	socket_cpu = conectar_con_cpu();
