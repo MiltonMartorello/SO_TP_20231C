@@ -22,6 +22,7 @@ typedef struct {
 	int program_counter;
 	t_registro registros;
 	int estimado_rafaga;
+	int nuevo_estimado;
 	t_temporal* tiempo_llegada;
 	t_temporal* tiempo_ejecucion;
 	t_estado estado_actual;
@@ -61,6 +62,8 @@ void pasar_a_cola_ready(t_pcb*, t_log*);
  * Quita el PCB de La cola READY, y lo pasa a la cola de EXEC
  * Activa Timer de ejecución
  * */
+void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparador)(t_pcb*, t_pcb*, t_log*));
+int comparador_hrrn(t_pcb*, t_pcb*, t_log*);
 void pasar_a_cola_exec(t_pcb*, t_log*);
 void pasar_a_cola_blocked(t_pcb*, t_log*);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);

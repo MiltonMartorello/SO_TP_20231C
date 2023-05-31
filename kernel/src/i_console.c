@@ -20,7 +20,7 @@ void procesar_consola(void *args_hilo) {
 //			loggear_programa(programa,logger);
 			crear_proceso(programa, logger, socket_cpu);
 			respuesta_proceso(programa, logger, socket_consola);
-			programa_destroy(programa);
+			//programa_destroy(programa);
 			break;
 		default:
 			log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO. %d", cod_op);

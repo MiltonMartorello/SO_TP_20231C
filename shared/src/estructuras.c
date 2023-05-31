@@ -59,7 +59,7 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 	}
 	// Liberamos el iterador de instrucciones
 	list_iterator_destroy(iterador_instrucciones);
-	log_info(logger, "Análisis de serializado: %d Instrucciones, con un tamaño de buffer total de: %d", cant_instrucciones, size_buffer);
+	//log_info(logger, "Análisis de serializado: %d Instrucciones, con un tamaño de buffer total de: %d", cant_instrucciones, size_buffer);
 	/*
 	 * SERIALIZACION
 	 * */

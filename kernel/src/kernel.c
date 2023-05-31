@@ -70,7 +70,7 @@ int main(void) {
 						log_info(logger, "Terminando proceso con exit code de hilo: %d", return_hilo);
 						return -1;
 					}
-					pthread_join(hilo_consola, NULL);
+					pthread_detach(hilo_consola);
 
 					free(args);
 					break;

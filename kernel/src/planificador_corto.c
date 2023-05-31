@@ -6,9 +6,9 @@ int planificador_corto_plazo(void* args_hilo) {
 	t_args_hilo_planificador* args = (t_args_hilo_planificador*) args_hilo;
 	t_log* logger = args->log;
 	log_info(logger, "P_CORTO -> Inicializado Hilo Planificador de Corto Plazo");
-	t_log* config = args->config;
+	t_config* config = args->config;
     char* algoritmo = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
-    log_info(logger, "Algoritmo: %s", algoritmo);
+    log_info(logger, "P_CORTO -> Algoritmo: %s", algoritmo);
 	while(1) {
 		log_info(logger, "P_CORTO -> Esperando wait de Ready Proceso");
 		sem_wait(&sem_ready_proceso);
@@ -16,12 +16,12 @@ int planificador_corto_plazo(void* args_hilo) {
 		ejecutar_proceso(socket_cpu, pcb, logger);
 		//TODO RECIBIR UN SIGNAL EN PARTICULAR => MOTIVO
 		op_code cod_op = recibir_operacion(socket_cpu);//pcb
-		log_info(logger, "Recibida operación: %d", cod_op);
+		//log_info(logger, "Recibida operación: %d", cod_op);
 		t_contexto_proceso* contexto = recibir_contexto(socket_cpu, logger);
-		log_info(logger, "Recibí el contexto del proceso PID: %d", contexto->pid);
+		//log_info(logger, "Recibí el contexto del proceso PID: %d", contexto->pid);
 		actualizar_pcb(pcb, contexto);
-		log_info(logger, "Program Counter actualizado a %d",pcb->program_counter);
-		procesar_contexto(pcb, cod_op, logger);
+		//log_info(logger, "P_CORTO -> Program Counter actualizado a %d", pcb->program_counter);
+		procesar_contexto(pcb, cod_op, algoritmo, logger);
 	}
 	return 1;
 }
@@ -32,19 +32,25 @@ void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto) {
 	temporal_stop(pcb->tiempo_ejecucion);
 }
 
-void procesar_contexto(t_pcb* pcb, op_code cod_op, t_log* logger) {
-	log_info(logger, "Procesando contexto");
+void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger) {
+	//log_info(logger, "Procesando contexto");
 	switch(cod_op) {
 		case PROCESO_DESALOJADO_POR_YIELD:
-			log_info(logger, "Proceso desalojado por Yield");
-			pasar_a_cola_ready(pcb, logger);
+			log_info(logger, "P_CORTO -> Proceso desalojado por Yield");
+			if(string_equals_ignore_case(algoritmo, "HRRN")) {
+				//log_info(logger, "Ingresando a HRRN");
+				pasar_a_cola_ready_en_orden(pcb, logger, comparador_hrrn);
+			} else {
+				//log_info(logger, "Ingresando a FIFO");
+				pasar_a_cola_ready(pcb, logger);
+			}
 			break;
 		case PROCESO_FINALIZADO:
-			log_info(logger, "Proceso desalojado por EXIT");
+			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
 			break;
 		case PROCESO_BLOQUEADO:
-			log_info(logger, "Proceso desalojado por BLOQUEO");
+			log_info(logger, "P_CORTO -> Proceso desalojado por BLOQUEO");
 			pasar_a_cola_blocked(pcb, logger);
 			break;
 		default:
@@ -56,11 +62,15 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, t_log* logger) {
 
 t_pcb* planificar(char* algoritmo, t_log* logger) {
 	if (string_equals_ignore_case(algoritmo, "HRRN")) {
-		//t_list* lista_ordenada = list_sorted(colas_planificacion->cola_ready->elements, comparator);
+		//t_list* lista_ordenada = list_sorted(colas_planificacion->cola_ready->elements, (bool (*)(void *, void *))comparador_hrrn);
+		t_pcb* pcb = (t_pcb*)queue_peek(colas_planificacion->cola_ready);
+		pasar_a_cola_exec(pcb, logger);
+		//log_info(logger,"PID:%d ",pcb->pid);
+		return pcb;
 	} else if (string_equals_ignore_case(algoritmo, "FIFO")){
 		t_pcb* pcb = (t_pcb*)queue_peek(colas_planificacion->cola_ready);
 		pasar_a_cola_exec(pcb, logger);
-		log_info(logger,"PID:%d ",pcb->pid);
+		//log_info(logger,"PID:%d ",pcb->pid);
 		return pcb;
 	} else {
 		log_error(logger, "Error: No existe el algoritmo: %s", algoritmo);
