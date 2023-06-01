@@ -13,6 +13,8 @@
  pthread_mutex_t mutex_cola_ready;
  pthread_mutex_t mutex_cola_exit;
 
+ t_list* lista_recursos;
+
  double alfa = 0.5;
 
 void iniciar_colas_planificacion(void) {
@@ -247,7 +249,7 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	sem_post(&sem_exec_proceso);
 }
 
-void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger) {
+void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger,t_queue* cola) {
 	if(pcb->estado_actual != EXEC){
 		log_error(logger, "Error, no es un estado válido");
 		EXIT_FAILURE;
@@ -255,7 +257,8 @@ void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger) {
 	queue_pop(colas_planificacion->cola_exec);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = BLOCK;
-	queue_push(colas_planificacion->cola_block, pcb);
+	//queue_push(colas_planificacion->cola_block, pcb);
+	queue_push(cola,pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_block_proceso);
 }
@@ -356,4 +359,29 @@ t_temporal* temporal_reset(t_temporal* temporal) {
 	}
 	temporal = temporal_create();
 	return temporal;
+}
+
+void iniciar_recursos(char** recursos, char** instancias){
+
+	lista_recursos = list_create();
+
+	for(int i=0;i< string_array_size(recursos);i++){
+
+		t_recurso* recurso = malloc(sizeof(t_recurso));
+		recurso->nombre = recursos[i];
+		recurso->instancias = instancias[i];
+		recurso->cola_bloqueados = queue_create();
+
+		list_add(lista_recursos, recurso);
+	}
+}
+
+t_recurso* buscar_recurso(char* nombre){
+
+	bool _func_aux(t_recurso* recurso){
+
+		return string_equals_ignore_case(recurso->nombre, nombre);
+	}
+
+	return (t_recurso*)list_find(lista_recursos,_func_aux);
 }

@@ -43,6 +43,12 @@ typedef struct {
     char* pids;
 } ConcatenacionPIDs;
 
+typedef struct {
+	char* nombre;
+	int instancias;
+	t_queue* cola_bloqueados;
+} t_recurso;
+
 void iniciar_colas_planificacion(void);
 void destroy_colas_planificacion(void);
 void iniciar_semaforos(int);
@@ -65,7 +71,7 @@ void pasar_a_cola_ready(t_pcb*, t_log*);
 void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparador)(t_pcb*, t_pcb*, t_log*));
 int comparador_hrrn(t_pcb*, t_pcb*, t_log*);
 void pasar_a_cola_exec(t_pcb*, t_log*);
-void pasar_a_cola_blocked(t_pcb*, t_log*);
+void pasar_a_cola_blocked(t_pcb*, t_log*,t_queue*);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
 
 char* concatenar_pids(t_list*);
@@ -73,5 +79,8 @@ void loggear_cola_ready(t_log*);
 char* estado_string(int);
 t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);
+
+void iniciar_recursos(char** recursos, char** instancias);
+t_recurso* buscar_recurso(char* nombre);
 
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

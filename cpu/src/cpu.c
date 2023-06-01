@@ -127,6 +127,18 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			return;
 			break;
 
+		case ci_IO:
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO>",proceso->pid);
+			break;
+
+		case ci_WAIT:
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT>",proceso->pid);
+			break;
+
+		case ci_SIGNAL:
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL>",proceso->pid);
+			break;
+
 		case ci_EXIT:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <EXIT>",proceso->pid);
 			devolver_proceso(socket,proceso,PROCESO_FINALIZADO,cpu_logger);

@@ -19,8 +19,16 @@ extern sem_t sem_nuevo_proceso;
 extern sem_t sem_ready_proceso;
 extern sem_t sem_exec_proceso;
 
+extern t_list* lista_recursos;
+
 int planificador_corto_plazo(void*);
 void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto);
 void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger);
 t_pcb* planificar(char* algoritmo, t_log* logger);
+
+void bloqueo_io(void* pcb, void* tiempo,void* tipo_algoritmo)
+void procesar_wait_recurso(void* pcb, void* nombre_recurso,void* tipo_algoritmo);
+void procesar_signal_recurso(void* pcb, void* nombre_recurso,void* tipo_algoritmo);
+void pasar_segun_algoritmo(char* algoritmo,t_pcb* proceso);
+
 #endif /* PLANIFICADOR_CORTO_H_ */

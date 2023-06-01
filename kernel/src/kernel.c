@@ -9,6 +9,7 @@ int main(void) {
 	t_config* config_kernel = iniciar_config("./kernel.config");
 	cargar_config_kernel(config_kernel);
 
+	iniciar_recursos(kernel_config->RECURSOS,kernel_config->INSTANCIAS_RECURSOS);
 	iniciar_colas_planificacion();
 	iniciar_semaforos(kernel_config->GRADO_MAX_MULTIPROGRAMACION);
 
