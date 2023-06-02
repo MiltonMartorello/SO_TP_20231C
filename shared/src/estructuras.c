@@ -204,7 +204,49 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	//cant_instrucciones.stream_instrucciones
 	memcpy(paquete->buffer->stream + offset, buffer_instrucciones->stream, buffer_instrucciones->size);
 	offset+= buffer_instrucciones->size;
-	memcpy(paquete->buffer->stream + offset, &(contexto->registros), sizeof(t_registro));
+
+	//serializar_registros(contexto->registros, paquete->buffer->stream, &offset);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.AX, sizeof(contexto->registros.AX));
+//    log_info(logger, "Contexto AX: %s",contexto->registros.AX);
+    offset += sizeof(contexto->registros.AX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.BX, sizeof(contexto->registros.BX));
+    offset += sizeof(contexto->registros.BX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.CX, sizeof(contexto->registros.CX));
+    offset += sizeof(contexto->registros.CX);
+//    log_info(logger, "Contexto CX: %s",contexto->registros.CX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.DX, sizeof(contexto->registros.DX));
+    offset += sizeof(contexto->registros.DX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.EAX, sizeof(contexto->registros.EAX));
+    offset += sizeof(contexto->registros.EAX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.EBX, sizeof(contexto->registros.EBX));
+    offset += sizeof(contexto->registros.EBX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.ECX, sizeof(contexto->registros.ECX));
+    offset += sizeof(contexto->registros.ECX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.EDX, sizeof(contexto->registros.EDX));
+    offset += sizeof(contexto->registros.EDX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.RAX, sizeof(contexto->registros.RAX));
+    offset += sizeof(contexto->registros.RAX);
+//    log_info(logger, "Contexto RAX: %s",contexto->registros.RAX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.RBX, sizeof(contexto->registros.RBX));
+    offset += sizeof(contexto->registros.RBX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.RCX, sizeof(contexto->registros.RCX));
+    offset += sizeof(contexto->registros.RCX);
+
+    memcpy(paquete->buffer->stream + offset, contexto->registros.RDX, sizeof(contexto->registros.RDX));
+    offset += sizeof(contexto->registros.RDX);
+
+	//memcpy(paquete->buffer->stream + offset, &(contexto->registros), sizeof(t_registro));
 
 	enviar_paquete(paquete,socket);
 
@@ -235,7 +277,44 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	memcpy((buffer_instrucciones->stream),buffer + desplazamiento,buffer_instrucciones->size);
 	proceso->instrucciones = deserializar_instrucciones(buffer_instrucciones,logger);
 	desplazamiento+=buffer_instrucciones->size;
-	memcpy(&(proceso->registros),buffer + desplazamiento, sizeof(t_registro));
+
+	//memcpy(&(proceso->registros),buffer + desplazamiento, sizeof(t_registro));
+
+    memcpy(&(proceso->registros.AX), buffer + desplazamiento, sizeof(proceso->registros.AX));
+    desplazamiento += sizeof(proceso->registros.AX);
+
+    memcpy(&(proceso->registros.BX), buffer + desplazamiento, sizeof(proceso->registros.BX));
+    desplazamiento += sizeof(proceso->registros.BX);
+
+    memcpy(&(proceso->registros.CX), buffer + desplazamiento, sizeof(proceso->registros.CX));
+    desplazamiento += sizeof(proceso->registros.CX);
+
+    memcpy(&(proceso->registros.DX), buffer + desplazamiento, sizeof(proceso->registros.DX));
+    desplazamiento += sizeof(proceso->registros.DX);
+
+    memcpy(&(proceso->registros.EAX), buffer + desplazamiento, sizeof(proceso->registros.EAX));
+    desplazamiento += sizeof(proceso->registros.EAX);
+
+    memcpy(&(proceso->registros.EBX), buffer + desplazamiento, sizeof(proceso->registros.EBX));
+    desplazamiento += sizeof(proceso->registros.EBX);
+
+    memcpy(&(proceso->registros.ECX), buffer + desplazamiento, sizeof(proceso->registros.ECX));
+    desplazamiento += sizeof(proceso->registros.ECX);
+
+    memcpy(&(proceso->registros.EDX), buffer + desplazamiento, sizeof(proceso->registros.EDX));
+    desplazamiento += sizeof(proceso->registros.EDX);
+
+    memcpy(&(proceso->registros.RAX), buffer + desplazamiento, sizeof(proceso->registros.RAX));
+    desplazamiento += sizeof(proceso->registros.RAX);
+
+    memcpy(&(proceso->registros.RBX), buffer + desplazamiento, sizeof(proceso->registros.RBX));
+    desplazamiento += sizeof(proceso->registros.RBX);
+
+    memcpy(&(proceso->registros.RCX), buffer + desplazamiento, sizeof(proceso->registros.RCX));
+    desplazamiento += sizeof(proceso->registros.RCX);
+
+    memcpy(&(proceso->registros.RDX), buffer + desplazamiento, sizeof(proceso->registros.RDX));
+    desplazamiento += sizeof(proceso->registros.RDX);
 
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);

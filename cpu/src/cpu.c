@@ -145,27 +145,48 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 }
 
 void devolver_proceso(int socket,t_contexto_proceso* proceso,int codigo,t_log* logger){
-	actualizar_registros_pcb(proceso->registros);
+	actualizar_registros_pcb(&proceso->registros);
 	enviar_contexto(socket,proceso,codigo,logger);
 }
 
-void set_valor_registro(char* nombre_registro,char* valor){
+
+void loggear_registros(t_registro* registro) {
+    log_info(cpu_logger, "Valores del registro:");
+    log_info(cpu_logger, "AX: %s", registro->AX);
+    log_info(cpu_logger, "BX: %s", registro->BX);
+    log_info(cpu_logger, "CX: %s", registro->CX);
+    log_info(cpu_logger, "DX: %s", registro->DX);
+    log_info(cpu_logger, "EAX: %s", registro->EAX);
+    log_info(cpu_logger, "EBX: %s", registro->EBX);
+    log_info(cpu_logger, "ECX: %s", registro->ECX);
+    log_info(cpu_logger, "EDX: %s", registro->EDX);
+    log_info(cpu_logger, "RAX: %s", registro->RAX);
+    log_info(cpu_logger, "RBX: %s", registro->RBX);
+    log_info(cpu_logger, "RCX: %s", registro->RCX);
+    log_info(cpu_logger, "RDX: %s", registro->RDX);
+}
+
+
+void set_valor_registro(char* nombre_registro, char* valor){
 
 	char tipo_registro = nombre_registro[0];
 	int posicion = posicion_registro(nombre_registro);
-
+//	log_info(cpu_logger, "Set de tipo %c %s", tipo_registro, valor);
 	switch (tipo_registro)
 	{
 	case 'R':
 		strncpy(registros_cpu.registros_16[posicion],valor,16);
+//		log_info(cpu_logger, "Actualizando registro R: %s", valor);
 		break;
 
 	case 'E':
 		strncpy(registros_cpu.registros_8[posicion],valor,8);
+//		log_info(cpu_logger, "Actualizando registro E: %s", valor);
 		break;
 
 	default:
 		strncpy(registros_cpu.registros_4[posicion],valor,4);
+//		log_info(cpu_logger, "Actualizando registro X: %s", valor);
 		break;
 	}
 }
@@ -184,25 +205,44 @@ int posicion_registro(char* nombre_registro){
 }
 
 
-void actualizar_registros_pcb(t_registro registros){
-	strncpy(registros.AX,registros_cpu.registros_4[0],4);
-	//printf("AX: %.4s\n",registros.AX);
+void actualizar_registros_pcb(t_registro* registros) {
+    strcpy(registros->AX, registros_cpu.registros_4[0]);
+    //log_info(cpu_logger, "Registro AX %s, %s", registros->AX, registros_cpu.registros_4[0]);
 
-	strncpy(registros.BX , registros_cpu.registros_4[1],4);
-	strncpy(registros.CX , registros_cpu.registros_4[2],4);
-	strncpy(registros.DX , registros_cpu.registros_4[3],4);
+    strcpy(registros->BX, registros_cpu.registros_4[1]);
+//    log_info(cpu_logger, "Registro BX: %.4s, %s", registros->BX, registros_cpu.registros_4[1]);
 
-	strncpy(registros.EAX , registros_cpu.registros_8[0],8);
-	//printf("AX: %.8s\n",registros.EAX);
-	strncpy(registros.EBX , registros_cpu.registros_8[1],8);
-	strncpy(registros.ECX , registros_cpu.registros_8[2],8);
-	strncpy(registros.EDX , registros_cpu.registros_8[3],8);
+    strncpy(registros->CX, registros_cpu.registros_4[2], 5);
+//    log_info(cpu_logger, "Registro CX: %.4s, %s", registros->CX, registros_cpu.registros_4[2]);
 
-	strncpy(registros.RAX , registros_cpu.registros_16[0],16);
-	//printf("AX: %.16s\n",registros.RAX);
-	strncpy(registros.RBX , registros_cpu.registros_16[1],16);
-	strncpy(registros.RCX , registros_cpu.registros_16[2],16);
-	strncpy(registros.RDX , registros_cpu.registros_16[3],16);
+    strncpy(registros->DX, registros_cpu.registros_4[3], 5);
+//    log_info(cpu_logger, "Registro DX: %.4s, %s", registros->DX, registros_cpu.registros_4[3]);
 
+    strncpy(registros->EAX, registros_cpu.registros_8[0], 9);
+//    log_info(cpu_logger, "Registro EAX: %.8s, %s", registros->EAX, registros_cpu.registros_8[0]);
+
+    strncpy(registros->EBX, registros_cpu.registros_8[1], 9);
+//    log_info(cpu_logger, "Registro EBX: %.8s, %s", registros->EBX, registros_cpu.registros_8[1]);
+
+    strncpy(registros->ECX, registros_cpu.registros_8[2], 9);
+//    log_info(cpu_logger, "Registro ECX: %.8s, %s", registros->ECX, registros_cpu.registros_8[2]);
+
+    strncpy(registros->EDX, registros_cpu.registros_8[3], 9);
+//    log_info(cpu_logger, "Registro EDX: %.8s, %s", registros->EDX, registros_cpu.registros_8[3]);
+
+    strncpy(registros->RAX, registros_cpu.registros_16[0], 17);
+//    log_info(cpu_logger, "Registro RAX: %.16s, %s", registros->RAX, registros_cpu.registros_16[0]);
+
+    strncpy(registros->RBX, registros_cpu.registros_16[1], 17);
+//    log_info(cpu_logger, "Registro RBX: %.16s, %s", registros->RBX, registros_cpu.registros_16[1]);
+
+    strncpy(registros->RCX, registros_cpu.registros_16[2], 17);
+//    log_info(cpu_logger, "Registro RCX: %.16s, %s", registros->RCX, registros_cpu.registros_16[2]);
+
+    strncpy(registros->RDX, registros_cpu.registros_16[3], 17);
+//    log_info(cpu_logger, "Registro RDX: %.16s, %s", registros->RDX, registros_cpu.registros_16[3]);
+
+    loggear_registros(registros);
 }
+
 
