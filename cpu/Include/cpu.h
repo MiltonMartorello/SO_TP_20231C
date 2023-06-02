@@ -17,9 +17,9 @@ typedef struct{
 } t_cpu_config;
 
 typedef struct{
-    char registros_4[4][4];
-    char registros_8[4][8];
-    char registros_16[4][16];
+    char registros_4[4][5];
+    char registros_8[4][9];
+    char registros_16[4][17];
 } t_reg;
 
 void cargar_config(char* path);
@@ -30,7 +30,8 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket);
 void set_valor_registro(char* nombre_registro,char* valor);
 int posicion_registro(char* nombre_registro);
 void devolver_proceso(int,t_contexto_proceso*,int,t_log*);
-void actualizar_registros_pcb(t_registro registros);
+void actualizar_registros_pcb(t_registro* registros);
+void loggear_registros(t_registro* registro);
 
 
 t_list* armar_instrucciones(void);

@@ -25,11 +25,12 @@ int planificador_corto_plazo(void*);
 void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto);
 void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger);
 t_pcb* planificar(char* algoritmo, t_log* logger);
-
 void bloqueo_io(void* vArgs);
 void procesar_wait_recurso(void* vArgs);
 void procesar_signal_recurso(void* vArgs);
 void pasar_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger);
 char * recibir_recurso(void);
+
+void loggear_registros(t_registro registro, t_log* logger);
 
 #endif /* PLANIFICADOR_CORTO_H_ */
