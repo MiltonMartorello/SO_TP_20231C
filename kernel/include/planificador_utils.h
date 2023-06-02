@@ -89,6 +89,6 @@ t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);
 
 void iniciar_recursos(char** recursos, char** instancias);
-t_recurso* buscar_recurso(char* nombre, t_log* logger);
+int buscar_recurso(char* nombre, t_log* logger);
 
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

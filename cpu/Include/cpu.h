@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <shared.h>
+#include <estructuras.h>
 #include <commons/config.h>
 #include <commons/txt.h>
 
@@ -36,4 +37,6 @@ t_list* armar_instrucciones(void);
 void imprimir_registros(t_registro* registros);
 void terminar(void);
 
+void liberar_proceso(t_contexto_proceso* proceso);
+void liberar_parametros_instruccion(void* instruccion);
 #endif /* CPU_H_ */

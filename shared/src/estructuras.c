@@ -1,6 +1,6 @@
 #include <errno.h>
-#include "shared.h"
-#include "estructuras.h"
+#include <shared.h>
+#include <estructuras.h>
 
 t_instruccion* crear_instruccion(t_codigo_instruccion codigo, bool empty) {
 	t_instruccion* instruccion = malloc(sizeof(t_instruccion));
@@ -243,3 +243,5 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	log_info(logger, "Se recibio un proceso con PID: %d",proceso->pid);
 	return proceso;
 }
+
+

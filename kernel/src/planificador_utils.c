@@ -14,6 +14,7 @@
  pthread_mutex_t mutex_cola_exit;
 
  t_list* lista_recursos;
+ char** indice_recursos;
 
  double alfa = 0.5;
 
@@ -364,24 +365,31 @@ t_temporal* temporal_reset(t_temporal* temporal) {
 void iniciar_recursos(char** recursos, char** instancias){
 
 	lista_recursos = list_create();
+	indice_recursos = recursos;
 
 	for(int i=0;i< string_array_size(recursos);i++){
 
 		t_recurso* recurso = malloc(sizeof(t_recurso));
 		recurso->nombre = recursos[i];
-		recurso->instancias = instancias[i];
+		recurso->instancias = atoi(instancias[i]);
 		recurso->cola_bloqueados = queue_create();
 
 		list_add(lista_recursos, recurso);
+		printf("INDICE_RECURSOS[%d] : %s --------> ",i, indice_recursos[i]);
+		printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
 	}
 }
 
-t_recurso* buscar_recurso(char* nombre, t_log* logger){
+int buscar_recurso(char* nombre, t_log* logger){
 
-	bool _func_aux(t_recurso* recurso){
+	for(int i=0;i< string_array_size(indice_recursos);i++){
 
-		return string_equals_ignore_case(recurso->nombre, nombre);
+		if(strcmp(nombre,(char*)indice_recursos[i]) == 0){
+			printf("BUSCAR_RECURSO: _%s_ es igual a _%s_ \n",nombre, indice_recursos[i]);
+			return  i;
+		}
+
 	}
-
-	return (t_recurso*)list_find(lista_recursos,_func_aux);
+	return -1;
 }
+

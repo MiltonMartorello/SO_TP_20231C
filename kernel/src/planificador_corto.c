@@ -55,17 +55,12 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
 
-
-
 			log_info(logger, "P_CORTO -> Proceso desalojado por BLOQUEO");
 			log_info(logger, "PID: <%d> - Bloqueado por: <IO>",pcb->pid);
 
-			int tiempo_bloqueo;
-			recv(socket_cpu, &tiempo_bloqueo, sizeof(int), MSG_WAITALL);//CPU le manda el tiempo
+			int tiempo_bloqueo = recibir_operacion(socket_cpu);//CPU le manda el tiempo
 
-			// (void*)pcb,
-			// tiempo_bloqueo,
-			// (void*) algoritmo
+			log_info("El proceso %d debera bloquearse por %d milisegundos",pcb->pid,tiempo_bloqueo);
 
 			args->algoritmo = algoritmo;
 			args->tiempo_bloqueo = tiempo_bloqueo;
@@ -97,6 +92,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			args->algoritmo = algoritmo;
 			args->nombre_recurso = nombre;
 			args->pcb = pcb;
+			args->logger = logger;
 
 			pthread_create(&thread_bloqueados, NULL, (void *)procesar_signal_recurso, (void *)args);
 			pthread_detach(thread_bloqueados);
@@ -108,15 +104,19 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 
 }
 
-void bloqueo_io(void* pcb, void* tiempo,void* tipo_algoritmo){
+void bloqueo_io(void* vArgs){
 
-	t_pcb* proceso = (t_pcb*) pcb;
-	char* algoritmo = (char*)tipo_algoritmo;
+	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
+	char* algoritmo = args->algoritmo;
+	int tiempo = args->tiempo_bloqueo;
+	t_log* logger = args->logger;
+	t_pcb* pcb = args->pcb;
 
-	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", proceso->pid, tiempo);
-	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
-	usleep((int)tiempo*1000);
-	pasar_a_cola_ready(pcb, logger);
+	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", pcb->pid, tiempo);
+
+	usleep(tiempo*1000);
+	//pasar_a_cola_ready(pcb, logger);
+	pasar_segun_algoritmo(algoritmo,pcb,logger);
 }
 
 void procesar_wait_recurso(void* vArgs) {
@@ -124,18 +124,19 @@ void procesar_wait_recurso(void* vArgs) {
 	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
 	char* nombre = args->nombre_recurso;
 	t_log* logger = args->logger;
-	log_info(logger, "Haciendo Wait de Recurso: %s",nombre);
-	t_recurso* recurso = buscar_recurso(nombre, logger);
 	t_pcb* pcb = args->pcb;
 	char* algoritmo = args->algoritmo;
 
+	int pos = buscar_recurso(nombre, logger);
 
-	if(recurso != NULL){
+	if(pos != -1 ){
+		t_recurso* recurso = (t_recurso*)list_get(lista_recursos,pos);
+
 		if(recurso->instancias > 0){
 			recurso->instancias--;
-			log_info(logger,"PID: <%d> - Wait: <%s> - Instancias: <%d>",pcb->pid,nombre,recurso->instancias);
+			log_info(logger,"PID: <%d> - Wait: <%s> - Instancias: <%d>",pcb->pid,recurso->nombre,recurso->instancias);
 
-			pasar_segun_algoritmo(algoritmo,pcb);
+			pasar_segun_algoritmo(algoritmo,pcb,logger);
 		}
 		else{
 			pasar_a_cola_blocked(pcb, logger, recurso->cola_bloqueados);
@@ -143,6 +144,7 @@ void procesar_wait_recurso(void* vArgs) {
 		}
 	}
 	else{
+		log_info(logger, "No se encontro recurso %s , pasando PROCESO <%d> a EXIT",nombre,pcb->pid);
 		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
 	}
 
@@ -154,26 +156,31 @@ void procesar_signal_recurso(void* vArgs){
 	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
 	char* nombre = args->nombre_recurso;
 	t_log* logger = args->logger;
-	log_info(logger, "Haciendo Signal de Recurso: %s",nombre);
-	t_recurso* recurso = buscar_recurso(nombre, logger);
 	t_pcb* proceso = args->pcb;
 	char* algoritmo = args->algoritmo;
 
-	if(recurso != NULL){
+	int pos = buscar_recurso(nombre, logger);
 
+	if(pos != -1){
+		t_recurso* recurso = (t_recurso*)list_get(lista_recursos,pos);
 		recurso->instancias++;
 		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",proceso->pid,nombre,recurso->instancias);
 
-		pasar_segun_algoritmo(algoritmo, queue_pop(recurso->cola_bloqueados));
+		if(queue_size(recurso->cola_bloqueados) > 0){
+			pasar_segun_algoritmo(algoritmo, queue_pop(recurso->cola_bloqueados),logger);
+		}
+
+		pasar_segun_algoritmo(algoritmo,proceso,logger);
 	}
 	else{
+		log_info(logger, "No se encontro recurso, pasando a EXIT");
 		pasar_a_cola_exit(proceso, logger, RESOURCE_NOT_FOUND); //TODO
 	}
 
 	free(nombre);
 }
 
-void pasar_segun_algoritmo(char* algoritmo,t_pcb* proceso){
+void pasar_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger){
 	if(string_equals_ignore_case(algoritmo, "HRRN")) {
 		pasar_a_cola_ready_en_orden(proceso, logger, comparador_hrrn);
 	} else {

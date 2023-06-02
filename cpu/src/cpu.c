@@ -87,7 +87,7 @@ void correr_servidor(void){
 
 				ciclo_de_instruccion(proceso,socket_kernel);
 				log_info(cpu_logger,"Se ejecuto un proceso");
-				//liberar_pcb(pcb);
+				liberar_proceso(proceso);
 			}
 			break;
 		case -1:
@@ -128,24 +128,30 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			break;
 
 		case ci_IO:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO>",proceso->pid);
-			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
-			enviar_handshake(atoi(list_get(una_instruccion->parametros,1)),socket);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0));
+			devolver_proceso(socket,proceso,PROCESO_BLOQUEADO,cpu_logger);
+			enviar_handshake(socket,atoi(list_get(una_instruccion->parametros,0)));
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_BLOQUEADO");
+			return;
 			break;
 
 		case ci_WAIT:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT>",proceso->pid);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0));
 			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_WAIT,cpu_logger);
-			enviar_mensaje(list_get(una_instruccion->parametros,1),socket,cpu_logger);
+			enviar_mensaje(list_get(una_instruccion->parametros,0),socket,cpu_logger);
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
+			return;
 			break;
 
 		case ci_SIGNAL:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL>",proceso->pid);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0));
 			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_SIGNAL,cpu_logger);
-			void * nombre = list_get(una_instruccion->parametros,1);
-			log_info(cpu_logger, "%s", nombre);
-			log_info(cpu_logger, "%s" , (char*)nombre);
-			enviar_mensaje(list_get(una_instruccion->parametros,1),socket,cpu_logger);
+			void * nombre = list_get(una_instruccion->parametros,0);
+			//log_info(cpu_logger, "%s", nombre);
+			//log_info(cpu_logger, "%s" , (char*)nombre);
+			enviar_mensaje(list_get(una_instruccion->parametros,0),socket,cpu_logger);
+			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
+			return;
 			break;
 
 		case ci_EXIT:
@@ -225,5 +231,16 @@ void actualizar_registros_pcb(t_registro registros){
 	strncpy(registros.RCX , registros_cpu.registros_16[2],16);
 	strncpy(registros.RDX , registros_cpu.registros_16[3],16);
 
+}
+
+void liberar_proceso(t_contexto_proceso* proceso){
+
+	list_destroy_and_destroy_elements(proceso->instrucciones,(void*)liberar_parametros_instruccion);
+}
+
+void liberar_parametros_instruccion(void* instruccion){
+	t_instruccion* una_instruccion = (t_instruccion*) instruccion;
+
+	list_destroy_and_destroy_elements(una_instruccion->parametros,(void*)free);
 }
 
