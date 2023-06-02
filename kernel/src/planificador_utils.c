@@ -119,7 +119,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 	queue_push(colas_planificacion->cola_ready,pcb);
 	pthread_mutex_unlock(&mutex_cola_ready);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	loggear_cola_ready(logger);
+	loggear_cola_ready(logger, "FIFO");
 	sem_post(&sem_ready_proceso);
 }
 
@@ -174,7 +174,7 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 	}
 	pthread_mutex_unlock(&mutex_cola_ready);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb_nuevo->pid, estado_anterior, estado_string(pcb_nuevo->estado_actual));
-	loggear_cola_ready(logger);
+	loggear_cola_ready(logger, "HRRN");
 	sem_post(&sem_ready_proceso);
 }
 
@@ -251,10 +251,7 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 }
 
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger,t_queue* cola) {
-	if(pcb->estado_actual != EXEC){
-		log_error(logger, "Error, no es un estado válido");
-		EXIT_FAILURE;
-	}
+
 	queue_pop(colas_planificacion->cola_exec);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = BLOCK;
@@ -295,10 +292,11 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	free(contexto_pcb);
 }
 
-void loggear_cola_ready(t_log* logger) {
+//TODO: arreglar harcodeo
+void loggear_cola_ready(t_log* logger, char* algoritmo) {
     char* pids = concatenar_pids(colas_planificacion->cola_ready->elements);
 
-    log_info(logger, "P_CORTO -> Cola Ready <HRRN>: [%s]", pids);
+    log_info(logger, "P_CORTO -> Cola Ready <%s>: [%s]", algoritmo, pids);
     free(pids);
 }
 
@@ -383,7 +381,6 @@ void iniciar_recursos(char** recursos, char** instancias){
 int buscar_recurso(char* nombre, t_log* logger){
 
 	for(int i=0;i< string_array_size(indice_recursos);i++){
-
 		if(strcmp(nombre,(char*)indice_recursos[i]) == 0){
 			printf("BUSCAR_RECURSO: _%s_ es igual a _%s_ \n",nombre, indice_recursos[i]);
 			return  i;

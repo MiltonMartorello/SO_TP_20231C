@@ -66,7 +66,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			args->tiempo_bloqueo = tiempo_bloqueo;
 			args->pcb = pcb;
 			args->logger = logger;
-
+			sleep(tiempo_bloqueo/2);
 			pthread_create(&thread_bloqueados, NULL, (void *)bloqueo_io, (void*) args);
 			pthread_detach(thread_bloqueados);
 
@@ -113,9 +113,8 @@ void bloqueo_io(void* vArgs){
 	t_pcb* pcb = args->pcb;
 
 	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", pcb->pid, tiempo);
-
-	usleep(tiempo*1000);
-	//pasar_a_cola_ready(pcb, logger);
+	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
+	usleep(tiempo*1000000);
 	pasar_segun_algoritmo(algoritmo,pcb,logger);
 }
 

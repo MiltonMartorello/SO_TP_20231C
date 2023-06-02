@@ -1,4 +1,4 @@
-#include <shared.h>
+#include "shared.h"
 #include <errno.h>
 
 t_log* logger; //TODO
@@ -207,11 +207,13 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 
 void enviar_paquete(t_paquete* paquete, int socket_cliente)
 {
-	int bytes = paquete->buffer->size + 2*sizeof(int);
+	// Cod Operacion + Size Paquete
+	int bytes = paquete->buffer->size + 2 * sizeof(int);
+	printf("Bytes a enviar: %d\n", bytes);
 	void* a_enviar = serializar_paquete(paquete, bytes);
 
-	send(socket_cliente, a_enviar, bytes, 0);
-
+	int bytes_enviados = send(socket_cliente, a_enviar, bytes, 0);
+	printf("Bytes enviados: %d\n", bytes_enviados);
 	free(a_enviar);
 }
 

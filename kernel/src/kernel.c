@@ -1,12 +1,17 @@
 #include "../include/kernel.h"
 
-int main(void) {
+int main(int argc, char **argv) {
 
 	logger = iniciar_logger("kernel.log");
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	t_config* config_kernel = iniciar_config("./kernel.config");
+	char* config_path = argv[1];
+	if(argc < 1){
+		printf("Falta path a archivo de configuración.\n");
+		return EXIT_FAILURE;
+	}
+	t_config* config_kernel = iniciar_config(config_path);
 	cargar_config_kernel(config_kernel);
 
 	iniciar_recursos(kernel_config->RECURSOS,kernel_config->INSTANCIAS_RECURSOS);
@@ -56,7 +61,6 @@ int main(void) {
 			switch (modulo) {
 				case CONSOLA:
 
-					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
 					pthread_t hilo_consola;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
@@ -64,6 +68,7 @@ int main(void) {
 					args->socket = socket_consola;
 					args->socket_cpu = socket_cpu;
 					args->log = logger;
+					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
 					//args->mutex = mutex;
 
 					int return_hilo = pthread_create(&hilo_consola, NULL, (void*) procesar_consola, (void*) args);
@@ -73,7 +78,7 @@ int main(void) {
 					}
 					pthread_detach(hilo_consola);
 
-					free(args);
+					//free(args);
 					break;
 
 				default:

@@ -83,7 +83,7 @@ void pasar_a_cola_blocked(t_pcb*, t_log*,t_queue*);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
 
 char* concatenar_pids(t_list*);
-void loggear_cola_ready(t_log*);
+void loggear_cola_ready(t_log* logger, char* algoritmo);
 char* estado_string(int);
 t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);

@@ -1,6 +1,6 @@
 #include <errno.h>
-#include <shared.h>
-#include <estructuras.h>
+#include "shared.h"
+#include "estructuras.h"
 
 t_instruccion* crear_instruccion(t_codigo_instruccion codigo, bool empty) {
 	t_instruccion* instruccion = malloc(sizeof(t_instruccion));
@@ -189,7 +189,12 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	paquete->codigo_operacion = codigo;
 
 	int offset = 0;
+	// PID + PC + Size de Instrucciones
 	int tamanio_paquete = sizeof(int)*3 + sizeof(t_registro) + buffer_instrucciones->size; //TODO agregar size tabla
+	log_info(logger, "Tamaño Paquete: %d", tamanio_paquete);
+	log_info(logger, "Tamaño PID + PC + Size Instrucciones: %d", sizeof(int)*3 );
+	log_info(logger, "Tamaño t_registro: %d", sizeof(t_registro));
+	log_info(logger, "Tamaño Instrucciones: %d", buffer_instrucciones->size);
 	paquete->buffer = buffer_paquete;
 	paquete->buffer->size = tamanio_paquete;
 	paquete->buffer->stream = malloc(tamanio_paquete);
@@ -204,9 +209,12 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	//cant_instrucciones.stream_instrucciones
 	memcpy(paquete->buffer->stream + offset, buffer_instrucciones->stream, buffer_instrucciones->size);
 	offset+= buffer_instrucciones->size;
-	memcpy(paquete->buffer->stream + offset, &(contexto->registros), sizeof(t_registro));
 
-	enviar_paquete(paquete,socket);
+	memcpy(paquete->buffer->stream + offset, &(contexto->registros), sizeof(t_registro));
+	offset+= sizeof(t_registro);
+
+	log_info(logger, "Offset = %d", offset);
+	enviar_paquete(paquete, socket);
 
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);
@@ -223,7 +231,7 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	t_buffer* buffer_instrucciones = malloc(sizeof(t_buffer));
 
 	buffer = recibir_buffer(&size,socket);
-
+	log_info(logger, "Recibí un buffer de: %d", size);
 	memcpy(&(proceso->pid),buffer + desplazamiento,sizeof(int));
 	desplazamiento+=sizeof(int);
 	memcpy(&(proceso->program_counter),buffer + desplazamiento,sizeof(int));
