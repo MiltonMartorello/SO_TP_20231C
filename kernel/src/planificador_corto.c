@@ -13,17 +13,35 @@ int planificador_corto_plazo(void* args_hilo) {
 		log_info(logger, "P_CORTO -> Esperando wait de Ready Proceso");
 		sem_wait(&sem_ready_proceso);
 		t_pcb* pcb = planificar(algoritmo, logger);
+		loggear_registros(pcb->registros, logger);
 		ejecutar_proceso(socket_cpu, pcb, logger);
 		//TODO RECIBIR UN SIGNAL EN PARTICULAR => MOTIVO
 		op_code cod_op = recibir_operacion(socket_cpu);//pcb
 		//log_info(logger, "Recibida operación: %d", cod_op);
 		t_contexto_proceso* contexto = recibir_contexto(socket_cpu, logger);
+		loggear_registros(contexto->registros, logger);
 		//log_info(logger, "Recibí el contexto del proceso PID: %d", contexto->pid);
 		actualizar_pcb(pcb, contexto);
 		//log_info(logger, "P_CORTO -> Program Counter actualizado a %d", pcb->program_counter);
 		procesar_contexto(pcb, cod_op, algoritmo, logger);
 	}
 	return 1;
+}
+
+void loggear_registros(t_registro registro, t_log* logger) {
+    log_info(logger, "Valores del registro:");
+    log_info(logger, "AX: %.*s", 4, registro.AX);
+    log_info(logger, "BX: %.*s", 4, registro.BX);
+    log_info(logger, "CX: %.*s", 4, registro.CX);
+    log_info(logger, "DX: %.*s", 4, registro.DX);
+    log_info(logger, "EAX: %.*s", 8, registro.EAX);
+    log_info(logger, "EBX: %.*s", 8, registro.EBX);
+    log_info(logger, "ECX: %.*s", 8, registro.ECX);
+    log_info(logger, "EDX: %.*s", 8, registro.EDX);
+    log_info(logger, "RAX: %.*s", 16, registro.RAX);
+    log_info(logger, "RBX: %.*s", 16, registro.RBX);
+    log_info(logger, "RCX: %.*s", 16, registro.RCX);
+    log_info(logger, "RDX: %.*s", 16, registro.RDX);
 }
 
 void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto) {
