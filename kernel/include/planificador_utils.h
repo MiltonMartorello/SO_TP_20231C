@@ -49,6 +49,14 @@ typedef struct {
 	t_queue* cola_bloqueados;
 } t_recurso;
 
+typedef struct {
+	t_pcb* pcb;
+	int tiempo_bloqueo;
+	char* algoritmo;
+	char* nombre_recurso;
+	t_log* logger;
+} t_args_hilo_block;
+
 void iniciar_colas_planificacion(void);
 void destroy_colas_planificacion(void);
 void iniciar_semaforos(int);
@@ -81,6 +89,6 @@ t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);
 
 void iniciar_recursos(char** recursos, char** instancias);
-t_recurso* buscar_recurso(char* nombre);
+t_recurso* buscar_recurso(char* nombre, t_log* logger);
 
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

@@ -34,6 +34,10 @@ void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto) {
 
 void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger) {
 	//log_info(logger, "Procesando contexto");
+	pthread_t thread_bloqueados;
+	t_args_hilo_block* args = malloc(sizeof(t_args_hilo_block));
+	char* nombre;
+
 	switch(cod_op) {
 		case PROCESO_DESALOJADO_POR_YIELD:
 			log_info(logger, "P_CORTO -> Proceso desalojado por Yield");
@@ -51,7 +55,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
 
-			pthread_t thread_bloqueados;
+
 
 			log_info(logger, "P_CORTO -> Proceso desalojado por BLOQUEO");
 			log_info(logger, "PID: <%d> - Bloqueado por: <IO>",pcb->pid);
@@ -59,31 +63,42 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			int tiempo_bloqueo;
 			recv(socket_cpu, &tiempo_bloqueo, sizeof(int), MSG_WAITALL);//CPU le manda el tiempo
 
-			pthread_create(&thread_bloqueados, NULL, (void *)bloqueo_io, (void *)pcb,tiempo_bloqueo,(void*) algoritmo);
+			// (void*)pcb,
+			// tiempo_bloqueo,
+			// (void*) algoritmo
+
+			args->algoritmo = algoritmo;
+			args->tiempo_bloqueo = tiempo_bloqueo;
+			args->pcb = pcb;
+			args->logger = logger;
+
+			pthread_create(&thread_bloqueados, NULL, (void *)bloqueo_io, (void*) args);
 			pthread_detach(thread_bloqueados);
 
 			//pasar_a_cola_blocked(pcb, logger);
 			break;
 		case PROCESO_DESALOJADO_POR_WAIT:
-			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT "); //TODO modificar log
 
-			pthread_t thread_bloqueados;
+			nombre = recibir_recurso();
+			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT de %s ", nombre); //TODO modificar log
+			args->algoritmo = algoritmo;
+			args->nombre_recurso = nombre;
+			args->pcb = pcb;
+			args->logger = logger;
 
-			char* nombre = recibir_recurso();
-
-			pthread_create(&thread_bloqueados, NULL, (void *)procesar_wait_recurso, (void *)pcb,(char*) nombre,(void*) algoritmo);
+			pthread_create(&thread_bloqueados, NULL, (void *)procesar_wait_recurso,(void*) args);
 			pthread_detach(thread_bloqueados);
 			break;
 
-			break;
 		case PROCESO_DESALOJADO_POR_SIGNAL:
-			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar SIGNAL");
 
-			pthread_t thread_bloqueados;
+			nombre = recibir_recurso();
+			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar SIGNAL de %s ", nombre);
+			args->algoritmo = algoritmo;
+			args->nombre_recurso = nombre;
+			args->pcb = pcb;
 
-			char* nombre = recibir_recurso();
-
-			pthread_create(&thread_bloqueados, NULL, (void *)procesar_signal_recurso, (void *)pcb,(char*) nombre,(void*) algoritmo);
+			pthread_create(&thread_bloqueados, NULL, (void *)procesar_signal_recurso, (void *)args);
 			pthread_detach(thread_bloqueados);
 			break;
 		default:
@@ -94,54 +109,62 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 }
 
 void bloqueo_io(void* pcb, void* tiempo,void* tipo_algoritmo){
+
 	t_pcb* proceso = (t_pcb*) pcb;
 	char* algoritmo = (char*)tipo_algoritmo;
 
-	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>",proceso->pid,tiempo);
-	usleep(tiempo*1000);
-
+	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", proceso->pid, tiempo);
+	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
+	usleep((int)tiempo*1000);
+	pasar_a_cola_ready(pcb, logger);
 }
 
-void procesar_wait_recurso(void* pcb, void* nombre_recurso,void* tipo_algoritmo){
+void procesar_wait_recurso(void* vArgs) {
 
-	char* nombre = (char*) nombre_recurso;
-	t_recurso* recurso = buscar_recurso(nombre);
-	t_pcb* proceso = (t_pcb*) pcb;
-	char* algoritmo = (char*)tipo_algoritmo;
+	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
+	char* nombre = args->nombre_recurso;
+	t_log* logger = args->logger;
+	log_info(logger, "Haciendo Wait de Recurso: %s",nombre);
+	t_recurso* recurso = buscar_recurso(nombre, logger);
+	t_pcb* pcb = args->pcb;
+	char* algoritmo = args->algoritmo;
+
 
 	if(recurso != NULL){
 		if(recurso->instancias > 0){
 			recurso->instancias--;
-			log_info(logger,"PID: <%d> - Wait: <%s> - Instancias: <%d>",proceso->pid,nombre,recurso->instancias);
+			log_info(logger,"PID: <%d> - Wait: <%s> - Instancias: <%d>",pcb->pid,nombre,recurso->instancias);
 
-			pasar_segun_algoritmo(algoritmo,proceso);
+			pasar_segun_algoritmo(algoritmo,pcb);
 		}
 		else{
-			pasar_a_cola_blocked(pcb,logger,recurso->cola_bloqueados);
+			pasar_a_cola_blocked(pcb, logger, recurso->cola_bloqueados);
 			log_info(logger,"PID: <PID> - Bloqueado por: <%s>",nombre);
 		}
 	}
 	else{
-		pasar_a_cola_exit(proceso, logger, RESOURCE_NOT_FOUND); //TODO
+		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
 	}
 
 	free(nombre);
 }
 
-void procesar_signal_recurso(void* pcb, void* nombre_recurso,void* tipo_algoritmo){
+void procesar_signal_recurso(void* vArgs){
 
-	char* nombre = (char*) nombre_recurso;
-	t_recurso* recurso = buscar_recurso(nombre);
-	t_pcb* proceso = (t_pcb*) pcb;
-	char* algoritmo = (char*)tipo_algoritmo;
+	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
+	char* nombre = args->nombre_recurso;
+	t_log* logger = args->logger;
+	log_info(logger, "Haciendo Signal de Recurso: %s",nombre);
+	t_recurso* recurso = buscar_recurso(nombre, logger);
+	t_pcb* proceso = args->pcb;
+	char* algoritmo = args->algoritmo;
 
 	if(recurso != NULL){
 
 		recurso->instancias++;
 		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",proceso->pid,nombre,recurso->instancias);
 
-		//
-		pasar_segun_algoritmo(algoritmo,proceso);
+		pasar_segun_algoritmo(algoritmo, queue_pop(recurso->cola_bloqueados));
 	}
 	else{
 		pasar_a_cola_exit(proceso, logger, RESOURCE_NOT_FOUND); //TODO
@@ -176,11 +199,11 @@ t_pcb* planificar(char* algoritmo, t_log* logger) {
 	}
 }
 
-char* recibir_recurso(void)
+char * recibir_recurso(void)
 {
-	recibir_operacion(socket_cpu) //MENSAJE
+	recibir_operacion(socket_cpu); //MENSAJE
 	int size;
-	char* nombre_recurso = recibir_buffer(&size, socket_cpu);
+	char* nombre_recurso = (char*) recibir_buffer(&size, socket_cpu);
 
 	return nombre_recurso;
 }

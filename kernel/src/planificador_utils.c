@@ -231,8 +231,8 @@ int comparador_hrrn(t_pcb* pcb_nuevo, t_pcb* pcb_lista, t_log* logger) {
 }
 
 void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
-	if(pcb->estado_actual != READY){
-		log_error(logger, "Error, no es un estado válido");
+	if(pcb->estado_actual != READY) {
+		log_error(logger, "Error, cola invalida");
 		EXIT_FAILURE;
 	}
 	pthread_mutex_lock(&mutex_cola_ready);
@@ -258,7 +258,7 @@ void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger,t_queue* cola) {
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = BLOCK;
 	//queue_push(colas_planificacion->cola_block, pcb);
-	queue_push(cola,pcb);
+	queue_push(cola, pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_block_proceso);
 }
@@ -376,7 +376,7 @@ void iniciar_recursos(char** recursos, char** instancias){
 	}
 }
 
-t_recurso* buscar_recurso(char* nombre){
+t_recurso* buscar_recurso(char* nombre, t_log* logger){
 
 	bool _func_aux(t_recurso* recurso){
 

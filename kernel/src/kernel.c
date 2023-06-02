@@ -124,7 +124,7 @@ int conectar_con_memoria(){
 	return socket_memoria;
 }
 
-int conectar_con_cpu(){
+int conectar_con_cpu() {
 
 	log_info(logger, "Iniciando la conexión con CPU [IP %s] y [PUERTO:%s]", kernel_config->IP_CPU, kernel_config->PUERTO_CPU);
 

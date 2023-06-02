@@ -129,14 +129,23 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 		case ci_IO:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO>",proceso->pid);
+			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
+			enviar_handshake(atoi(list_get(una_instruccion->parametros,1)),socket);
 			break;
 
 		case ci_WAIT:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT>",proceso->pid);
+			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_WAIT,cpu_logger);
+			enviar_mensaje(list_get(una_instruccion->parametros,1),socket,cpu_logger);
 			break;
 
 		case ci_SIGNAL:
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL>",proceso->pid);
+			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_SIGNAL,cpu_logger);
+			void * nombre = list_get(una_instruccion->parametros,1);
+			log_info(cpu_logger, "%s", nombre);
+			log_info(cpu_logger, "%s" , (char*)nombre);
+			enviar_mensaje(list_get(una_instruccion->parametros,1),socket,cpu_logger);
 			break;
 
 		case ci_EXIT:

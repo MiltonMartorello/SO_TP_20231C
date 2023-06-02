@@ -68,6 +68,11 @@ typedef struct {
 } t_args_hilo_planificador;
 
 
+/*			// (void*)pcb,
+			// tiempo_bloqueo,
+			// (void*) algoritmo*/
+
+
 /*CODIGO DE INSTRUCCION*/
 typedef enum {
 	ci_SET = 1,
