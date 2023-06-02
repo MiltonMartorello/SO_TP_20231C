@@ -189,7 +189,12 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	paquete->codigo_operacion = codigo;
 
 	int offset = 0;
+	// PID + PC + Size de Instrucciones
 	int tamanio_paquete = sizeof(int)*3 + sizeof(t_registro) + buffer_instrucciones->size; //TODO agregar size tabla
+	log_info(logger, "Tamaño Paquete: %d", tamanio_paquete);
+	log_info(logger, "Tamaño PID + PC + Size Instrucciones: %d", sizeof(int)*3 );
+	log_info(logger, "Tamaño t_registro: %d", sizeof(t_registro));
+	log_info(logger, "Tamaño Instrucciones: %d", buffer_instrucciones->size);
 	paquete->buffer = buffer_paquete;
 	paquete->buffer->size = tamanio_paquete;
 	paquete->buffer->stream = malloc(tamanio_paquete);
@@ -246,9 +251,9 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
     memcpy(paquete->buffer->stream + offset, contexto->registros.RDX, sizeof(contexto->registros.RDX));
     offset += sizeof(contexto->registros.RDX);
 
-	//memcpy(paquete->buffer->stream + offset, &(contexto->registros), sizeof(t_registro));
 
-	enviar_paquete(paquete,socket);
+	log_info(logger, "Offset = %d", offset);
+	enviar_paquete(paquete, socket);
 
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);
@@ -265,7 +270,7 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	t_buffer* buffer_instrucciones = malloc(sizeof(t_buffer));
 
 	buffer = recibir_buffer(&size,socket);
-
+	log_info(logger, "Recibí un buffer de: %d", size);
 	memcpy(&(proceso->pid),buffer + desplazamiento,sizeof(int));
 	desplazamiento+=sizeof(int);
 	memcpy(&(proceso->program_counter),buffer + desplazamiento,sizeof(int));
@@ -322,3 +327,5 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	log_info(logger, "Se recibio un proceso con PID: %d",proceso->pid);
 	return proceso;
 }
+
+

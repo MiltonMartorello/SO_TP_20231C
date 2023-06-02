@@ -13,6 +13,9 @@
  pthread_mutex_t mutex_cola_ready;
  pthread_mutex_t mutex_cola_exit;
 
+ t_list* lista_recursos;
+ char** indice_recursos;
+
  double alfa = 0.5;
 
 void iniciar_colas_planificacion(void) {
@@ -116,7 +119,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 	queue_push(colas_planificacion->cola_ready,pcb);
 	pthread_mutex_unlock(&mutex_cola_ready);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	loggear_cola_ready(logger);
+	loggear_cola_ready(logger, "FIFO");
 	sem_post(&sem_ready_proceso);
 }
 
@@ -171,7 +174,7 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 	}
 	pthread_mutex_unlock(&mutex_cola_ready);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb_nuevo->pid, estado_anterior, estado_string(pcb_nuevo->estado_actual));
-	loggear_cola_ready(logger);
+	loggear_cola_ready(logger, "HRRN");
 	sem_post(&sem_ready_proceso);
 }
 
@@ -229,8 +232,8 @@ int comparador_hrrn(t_pcb* pcb_nuevo, t_pcb* pcb_lista, t_log* logger) {
 }
 
 void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
-	if(pcb->estado_actual != READY){
-		log_error(logger, "Error, no es un estado válido");
+	if(pcb->estado_actual != READY) {
+		log_error(logger, "Error, cola invalida");
 		EXIT_FAILURE;
 	}
 	pthread_mutex_lock(&mutex_cola_ready);
@@ -247,15 +250,13 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	sem_post(&sem_exec_proceso);
 }
 
-void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger) {
-	if(pcb->estado_actual != EXEC){
-		log_error(logger, "Error, no es un estado válido");
-		EXIT_FAILURE;
-	}
+void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger,t_queue* cola) {
+
 	queue_pop(colas_planificacion->cola_exec);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = BLOCK;
-	queue_push(colas_planificacion->cola_block, pcb);
+	//queue_push(colas_planificacion->cola_block, pcb);
+	queue_push(cola, pcb);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_block_proceso);
 }
@@ -291,10 +292,11 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	free(contexto_pcb);
 }
 
-void loggear_cola_ready(t_log* logger) {
+//TODO: arreglar harcodeo
+void loggear_cola_ready(t_log* logger, char* algoritmo) {
     char* pids = concatenar_pids(colas_planificacion->cola_ready->elements);
 
-    log_info(logger, "P_CORTO -> Cola Ready <HRRN>: [%s]", pids);
+    log_info(logger, "P_CORTO -> Cola Ready <%s>: [%s]", algoritmo, pids);
     free(pids);
 }
 
@@ -357,3 +359,34 @@ t_temporal* temporal_reset(t_temporal* temporal) {
 	temporal = temporal_create();
 	return temporal;
 }
+
+void iniciar_recursos(char** recursos, char** instancias){
+
+	lista_recursos = list_create();
+	indice_recursos = recursos;
+
+	for(int i=0;i< string_array_size(recursos);i++){
+
+		t_recurso* recurso = malloc(sizeof(t_recurso));
+		recurso->nombre = recursos[i];
+		recurso->instancias = atoi(instancias[i]);
+		recurso->cola_bloqueados = queue_create();
+
+		list_add(lista_recursos, recurso);
+		printf("INDICE_RECURSOS[%d] : %s --------> ",i, indice_recursos[i]);
+		printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
+	}
+}
+
+int buscar_recurso(char* nombre, t_log* logger){
+
+	for(int i=0;i< string_array_size(indice_recursos);i++){
+		if(strcmp(nombre,(char*)indice_recursos[i]) == 0){
+			printf("BUSCAR_RECURSO: _%s_ es igual a _%s_ \n",nombre, indice_recursos[i]);
+			return  i;
+		}
+
+	}
+	return -1;
+}
+

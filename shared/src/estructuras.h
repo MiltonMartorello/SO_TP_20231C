@@ -28,7 +28,9 @@ typedef enum
 	CONTEXTO_PROCESO = 30, //TODO
 	PROCESO_DESALOJADO_POR_YIELD,
 	PROCESO_FINALIZADO,
-	PROCESO_BLOQUEADO
+	PROCESO_BLOQUEADO,
+	PROCESO_DESALOJADO_POR_WAIT,
+	PROCESO_DESALOJADO_POR_SIGNAL
 } op_code;
 
 typedef enum
@@ -37,7 +39,8 @@ typedef enum
 	SUCCESS = 1,
 	SEG_FAULT,
 	OUT_OF_MEMORY,
-	NOT_DEFINED
+	NOT_DEFINED,
+	RESOURCE_NOT_FOUND
 } return_code;
 
 typedef struct
@@ -63,6 +66,11 @@ typedef struct {
 	t_log* log;
 	t_config* config;
 } t_args_hilo_planificador;
+
+
+/*			// (void*)pcb,
+			// tiempo_bloqueo,
+			// (void*) algoritmo*/
 
 
 /*CODIGO DE INSTRUCCION*/
