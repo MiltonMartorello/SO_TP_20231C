@@ -1,23 +1,24 @@
 #include "../include/planificador_utils.h"
 
- t_colas* colas_planificacion;
- sem_t sem_grado_multiprogramacion;
- sem_t sem_nuevo_proceso;
 
- sem_t sem_ready_proceso;
- sem_t sem_exec_proceso;
- sem_t sem_block_proceso;
- sem_t sem_exit_proceso;
+t_colas* colas_planificacion;
+sem_t sem_grado_multiprogramacion;
+sem_t sem_nuevo_proceso;
 
- pthread_mutex_t mutex_cola_new;
- pthread_mutex_t mutex_cola_ready;
- pthread_mutex_t mutex_cola_exit;
+sem_t sem_ready_proceso;
+sem_t sem_exec_proceso;
+sem_t sem_block_proceso;
+sem_t sem_exit_proceso;
 
- t_list* lista_recursos;
- char** indice_recursos;
+pthread_mutex_t mutex_cola_new;
+pthread_mutex_t mutex_cola_ready;
+pthread_mutex_t mutex_cola_exit;
 
- double alfa = 0.5;
- t_kernel_config* kernel_config;
+t_list* lista_recursos;
+char** indice_recursos;
+
+double alfa = 0.5;
+t_kernel_config* kernel_config;
 
 void iniciar_colas_planificacion(void) {
 
@@ -120,7 +121,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 	queue_push(colas_planificacion->cola_ready,pcb);
 	pthread_mutex_unlock(&mutex_cola_ready);
 	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	loggear_cola_ready(logger, "FIFO");
+	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 	sem_post(&sem_ready_proceso);
 }
 
@@ -194,42 +195,14 @@ double calcular_estimado_proxima_rafaga (t_pcb* pcb, t_log* logger) {
 	} else {
 		real_anterior = (double) temporal_gettime(pcb->tiempo_ejecucion);
 	}
-	//log_info(logger, "Estimado Anterior de PID %d: %f", pcb->pid, estimado_anterior);
-	//log_info(logger, "Real Anterior de PID %d: %f", pcb->pid, real_anterior);
+	log_info(logger, "Estimado Anterior de PID %d: %f", pcb->pid, estimado_anterior);
+	log_info(logger, "Real Anterior de PID %d: %f", pcb->pid, real_anterior);
 	double nuevo_estimado = alfa * estimado_anterior + (1 - alfa) * real_anterior;
-	//log_info(logger, "Calculado nuevo estimado de PID %d: %f", pcb->pid, nuevo_estimado);
+	log_info(logger, "Calculado nuevo estimado de PID %d: %f", pcb->pid, nuevo_estimado);
 	pcb->nuevo_estimado = nuevo_estimado;
 	return nuevo_estimado;
 }
 
-int comparador_hrrn(t_pcb* pcb_nuevo, t_pcb* pcb_lista, t_log* logger) {
-	//log_info(logger,"||||||||| COMPARADOR |||||||||");
-
-	double S_pcb_nuevo = calcular_estimado_proxima_rafaga(pcb_nuevo, logger);
-	double S_pcb_lista =  calcular_estimado_proxima_rafaga(pcb_lista, logger);
-
-	int64_t W_pcb_nuevo =  0;
-	int64_t W_pcb_lista =  temporal_gettime(pcb_lista->tiempo_llegada);
-
-	double ratio_pcb_nuevo = (S_pcb_nuevo + W_pcb_nuevo) / (double)S_pcb_nuevo;
-	double ratio_pcb_lista = (S_pcb_lista + W_pcb_lista) / (double)S_pcb_lista;
-
-	log_info(logger, "P_CORTO -> Comparando Ratios: pcb1(pid %d) - [S: %f] - [W: %ld] - [RR: %f] ||| pcb2(pid %d): - [S: %f] - [W: %ld] - [RR:%f]" ,
-			pcb_nuevo->pid, S_pcb_nuevo, W_pcb_nuevo, ratio_pcb_nuevo,
-			pcb_lista->pid, S_pcb_lista, W_pcb_lista, ratio_pcb_lista);
-
-	if(ratio_pcb_nuevo > ratio_pcb_lista) {
-		log_info(logger, "P_CORTO -> pcb1(pid %d) - [RR: %f] > pcb2(pid %d): [RR:%f]" , pcb_nuevo->pid, ratio_pcb_nuevo, pcb_lista->pid, ratio_pcb_lista);
-		return 1;
-	} else if (ratio_pcb_nuevo  == ratio_pcb_lista) {
-		// TODO es necesario?
-		log_info(logger, "P_CORTO -> pcb1(pid %d) - [RR: %f] == pcb2(pid %d): [RR:%f]" , pcb_nuevo->pid, ratio_pcb_nuevo, pcb_lista->pid, ratio_pcb_lista);
-		return 1;
-	} else {
-		log_info(logger, "P_CORTO -> pcb1(pid %d) - [RR: %f] < pcb2(pid %d): [RR:%f]" , pcb_nuevo->pid, ratio_pcb_nuevo, pcb_lista->pid, ratio_pcb_lista);
-		return -1;
-	}
-}
 
 void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	if(pcb->estado_actual != READY) {

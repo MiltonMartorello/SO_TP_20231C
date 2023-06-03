@@ -6,11 +6,11 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	char* config_path = argv[1];
-	if(argc < 1){
-		printf("Falta path a archivo de configuración.\n");
-		return EXIT_FAILURE;
-	}
+	char* config_path = "./kernel_hrrn.config";
+//	if(argc < 1){
+//		printf("Falta path a archivo de configuración.\n");
+//		return EXIT_FAILURE;
+//	}
 	t_config* config_kernel = iniciar_config(config_path);
 	cargar_config_kernel(config_kernel);
 
