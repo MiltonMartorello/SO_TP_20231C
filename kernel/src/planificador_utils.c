@@ -1,5 +1,4 @@
 #include "../include/planificador_utils.h"
-#include <string.h>
 
  t_colas* colas_planificacion;
  sem_t sem_grado_multiprogramacion;
@@ -295,6 +294,7 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 
 //TODO: arreglar harcodeo
 void loggear_cola_ready(t_log* logger, char* algoritmo) {
+
     char* pids = concatenar_pids(colas_planificacion->cola_ready->elements);
 
     log_info(logger, "P_CORTO -> Cola Ready <%s>: [%s]", algoritmo, pids);
@@ -302,6 +302,7 @@ void loggear_cola_ready(t_log* logger, char* algoritmo) {
 }
 
 char* concatenar_pids(t_list* lista) {
+
     char* pids = string_new();
 
     void concatenar_pid(void* elemento) {
@@ -375,8 +376,8 @@ void iniciar_recursos(char** recursos, char** instancias){
 		recurso->cola_bloqueados = queue_create();
 
 		list_add(lista_recursos, recurso);
-		printf("INDICE_RECURSOS[%d] : %s --------> ",i, indice_recursos[i]);
-		printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
+//		printf("INDICE_RECURSOS[%d] : %s --------> ",i, indice_recursos[i]);
+//		printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
 	}
 }
 
@@ -384,10 +385,8 @@ int buscar_recurso(char* nombre, t_log* logger){
 
 	for(int i=0;i< string_array_size(indice_recursos);i++){
 		if(strcmp(nombre,(char*)indice_recursos[i]) == 0){
-			printf("BUSCAR_RECURSO: _%s_ es igual a _%s_ \n",nombre, indice_recursos[i]);
 			return  i;
 		}
-
 	}
 	return -1;
 }

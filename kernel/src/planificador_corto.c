@@ -1,6 +1,6 @@
 #include "../include/planificador_corto.h"
 
-extern socket_cpu;
+extern int socket_cpu;
 
 int planificador_corto_plazo(void* args_hilo) {
 	t_args_hilo_planificador* args = (t_args_hilo_planificador*) args_hilo;
@@ -78,7 +78,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 
 			int tiempo_bloqueo = recibir_operacion(socket_cpu);//CPU le manda el tiempo
 
-			log_info("El proceso %d debera bloquearse por %d milisegundos",pcb->pid,tiempo_bloqueo);
+			log_info(logger,"El proceso %d debera bloquearse por %d milisegundos",pcb->pid,tiempo_bloqueo);
 
 			args->algoritmo = algoritmo;
 			args->tiempo_bloqueo = tiempo_bloqueo;
@@ -157,7 +157,7 @@ void procesar_wait_recurso(void* vArgs) {
 		}
 		else{
 			pasar_a_cola_blocked(pcb, logger, recurso->cola_bloqueados);
-			log_info(logger,"PID: <PID> - Bloqueado por: <%s>",nombre);
+			log_info(logger,"PID: <%d> - Bloqueado por: <%s>",pcb->pid,nombre);
 		}
 	}
 	else{

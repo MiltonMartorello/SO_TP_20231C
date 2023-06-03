@@ -13,6 +13,7 @@ void procesar_consola(void *args_hilo) {
 
 	int estado_socket = validar_conexion(socket_consola);
 	int cod_op = recibir_operacion(socket_consola);
+
 	switch (cod_op) {
 		case PROGRAMA:
 			t_buffer* buffer = recibir_buffer_programa(socket_consola, logger);

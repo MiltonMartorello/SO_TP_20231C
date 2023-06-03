@@ -3,9 +3,11 @@
 
 #include <estructuras.h>
 #include <errno.h>
-#include <string.h>
+#include <commons/string.h>
 #include <stdlib.h>
 #include <semaphore.h>
+#include <stdio.h>
+#include <pthread.h>
 
 typedef enum{
 	NEW,
