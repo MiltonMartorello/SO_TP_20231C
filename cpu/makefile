@@ -35,3 +35,5 @@ clean:
 run: $(TARGET)
 	./$(TARGET) $(CONFIG)
 
+valgrind: $(TARGET)
+	valgrind ./$(TARGET) $(CONFIG)
