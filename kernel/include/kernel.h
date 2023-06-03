@@ -11,26 +11,7 @@
 #include "planificador_largo.h"
 #include "planificador_corto.h"
 
-/* -- ESTRUCTURAS -- */
-typedef struct
-{
-	char* IP_MEMORIA;
-	char* PUERTO_MEMORIA;
-	char* IP_FILESYSTEM;
-	char* PUERTO_FILESYSTEM;
-	char* IP_CPU;
-	char* PUERTO_CPU;
-	char* PUERTO_ESCUCHA;
-    char* ALGORITMO_PLANIFICACION;
-    int ESTIMACION_INICIAL;
-    int HRRN_ALFA;
-    int GRADO_MAX_MULTIPROGRAMACION;
-    char** RECURSOS;
-    char** INSTANCIAS_RECURSOS;
-
-} t_kernel_config;
-
-t_kernel_config* kernel_config;
+extern t_kernel_config* kernel_config;
 
 // SE CREAN COMO ESTRUCTURAS. SI SE UTILIZAN EN HILOS RECORDAR DE PASAR COMO REFERENCIA CON -> &
 pthread_t hilo_plp; //PLANIFICADOR DE LARGO PLAZO

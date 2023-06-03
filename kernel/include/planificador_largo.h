@@ -17,6 +17,8 @@ extern sem_t sem_grado_multiprogramacion;
 extern sem_t sem_nuevo_proceso;
 extern sem_t sem_ready_proceso;
 extern sem_t sem_exec_proceso;
+extern t_kernel_config* kernel_config;
+
 
 int planificador_largo_plazo(void*);
 

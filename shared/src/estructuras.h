@@ -135,5 +135,6 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger);
 t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger);
 void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger);
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger);
+int size_of_registros(t_contexto_proceso* contexto);
 
 #endif /* SRC_ESTRUCTURAS_H_ */

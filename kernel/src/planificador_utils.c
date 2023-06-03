@@ -1,4 +1,5 @@
 #include "../include/planificador_utils.h"
+#include <string.h>
 
  t_colas* colas_planificacion;
  sem_t sem_grado_multiprogramacion;
@@ -17,6 +18,7 @@
  char** indice_recursos;
 
  double alfa = 0.5;
+ t_kernel_config* kernel_config;
 
 void iniciar_colas_planificacion(void) {
 
@@ -69,7 +71,7 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	t_pcb* pcb = malloc(sizeof(t_pcb));
 	pcb->instrucciones = programa->instrucciones;
 	pcb->estado_actual = NEW;
-	pcb->estimado_rafaga = 10000;
+	pcb->estimado_rafaga = kernel_config->ESTIMACION_INICIAL;
 	pcb->nuevo_estimado = 0;
 	pcb->pid = pid_asignado;
 	pcb->program_counter = 0;
@@ -124,7 +126,6 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 }
 
 void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparador)(t_pcb*, t_pcb*, t_log*)) {
-
 	switch(pcb_nuevo->estado_actual){
 		case NEW:
 			pthread_mutex_lock(&mutex_cola_new);
@@ -183,7 +184,7 @@ double calcular_estimado_proxima_rafaga (t_pcb* pcb, t_log* logger) {
 	double estimado_anterior;
 	//.current.tv_sec = -1;
 	if(pcb->estimado_rafaga <= 0) {
-		estimado_anterior = 10000.0;
+		estimado_anterior = kernel_config->ESTIMACION_INICIAL;
 	} else {
 		estimado_anterior = (double) pcb->estimado_rafaga;
 	}
@@ -284,8 +285,8 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	contexto_pcb->program_counter = pcb->program_counter;
 	contexto_pcb->instrucciones = pcb->instrucciones;
 	contexto_pcb->registros = pcb->registros;
-	log_info(logger,"El pcb tiene el PC en %d ",pcb->program_counter);
-	log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
+	//log_info(logger,"El pcb tiene el PC en %d ",pcb->program_counter);
+	//log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
 	//log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
 	enviar_contexto(socket_cpu, contexto_pcb, CONTEXTO_PROCESO, logger);
 
@@ -349,6 +350,7 @@ char* estado_string(int cod_op) {
 t_registro crear_registro(void) {
 
 	t_registro registro;
+    memset(&registro, 0, sizeof(t_registro));
 	return registro;
 }
 

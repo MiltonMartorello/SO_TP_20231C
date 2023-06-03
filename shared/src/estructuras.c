@@ -190,11 +190,10 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 
 	int offset = 0;
 	// PID + PC + Size de Instrucciones
-	int tamanio_paquete = sizeof(int)*3 + sizeof(t_registro) + buffer_instrucciones->size; //TODO agregar size tabla
-	log_info(logger, "Tamaño Paquete: %d", tamanio_paquete);
-	log_info(logger, "Tamaño PID + PC + Size Instrucciones: %d", sizeof(int)*3 );
-	log_info(logger, "Tamaño t_registro: %d", sizeof(t_registro));
-	log_info(logger, "Tamaño Instrucciones: %d", buffer_instrucciones->size);
+	int tamanio_paquete = sizeof(int) *3 + size_of_registros(contexto) + buffer_instrucciones->size; //TODO agregar size tabla
+//	log_info(logger, "Tamaño Paquete: %d", tamanio_paquete);
+//	log_info(logger, "Tamaño PID + PC + Size Instrucciones: %d", sizeof(int)*3);
+//	log_info(logger, "Tamaño Instrucciones: %d", buffer_instrucciones->size);
 	paquete->buffer = buffer_paquete;
 	paquete->buffer->size = tamanio_paquete;
 	paquete->buffer->stream = malloc(tamanio_paquete);
@@ -252,7 +251,7 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
     offset += sizeof(contexto->registros.RDX);
 
 
-	log_info(logger, "Offset = %d", offset);
+//	log_info(logger, "Offset = %d", offset);
 	enviar_paquete(paquete, socket);
 
 	free(buffer_instrucciones->stream);
@@ -260,6 +259,24 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	eliminar_paquete(paquete);
 }
 
+
+int size_of_registros(t_contexto_proceso* contexto) {
+	int size = 0;
+	size += sizeof(contexto->registros.AX);
+	size += sizeof(contexto->registros.BX);
+	size += sizeof(contexto->registros.CX);
+	size += sizeof(contexto->registros.DX);
+	size += sizeof(contexto->registros.EAX);
+	size += sizeof(contexto->registros.EBX);
+	size += sizeof(contexto->registros.ECX);
+	size += sizeof(contexto->registros.EDX);
+	size += sizeof(contexto->registros.RAX);
+	size += sizeof(contexto->registros.RBX);
+	size += sizeof(contexto->registros.RCX);
+	size += sizeof(contexto->registros.RDX);
+	//printf("los registros pesan %d \n", size);
+	return size;
+}
 
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 
@@ -270,7 +287,7 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	t_buffer* buffer_instrucciones = malloc(sizeof(t_buffer));
 
 	buffer = recibir_buffer(&size,socket);
-	log_info(logger, "Recibí un buffer de: %d", size);
+	//log_info(logger, "Recibí un buffer de: %d", size);
 	memcpy(&(proceso->pid),buffer + desplazamiento,sizeof(int));
 	desplazamiento+=sizeof(int);
 	memcpy(&(proceso->program_counter),buffer + desplazamiento,sizeof(int));

@@ -207,14 +207,28 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 
 void enviar_paquete(t_paquete* paquete, int socket_cliente)
 {
-	// Cod Operacion + Size Paquete
-	int bytes = paquete->buffer->size + 2 * sizeof(int);
-	printf("Bytes a enviar: %d\n", bytes);
-	void* a_enviar = serializar_paquete(paquete, bytes);
+    // Cod Operacion + Size Paquete
+    int bytes = paquete->buffer->size + 2 * sizeof(int);
+//    printf("Bytes a enviar: %d\n", bytes);
+    void* a_enviar = serializar_paquete(paquete, bytes);
 
-	int bytes_enviados = send(socket_cliente, a_enviar, bytes, 0);
-	printf("Bytes enviados: %d\n", bytes_enviados);
-	free(a_enviar);
+    if (a_enviar == NULL)
+    {
+        printf("Error al serializar el paquete.\n");
+        return; // O manejar el error de acuerdo a tu lógica
+    }
+
+    int bytes_enviados = send(socket_cliente, a_enviar, bytes, 0);
+
+    if (bytes_enviados == -1)
+    {
+        printf("Error al enviar el paquete.\n");
+        free(a_enviar);
+        return; // O manejar el error de acuerdo a tu lógica
+    }
+
+//    printf("Bytes enviados: %d\n", bytes_enviados);
+    free(a_enviar);
 }
 
 void eliminar_paquete(t_paquete* paquete)

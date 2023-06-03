@@ -21,6 +21,9 @@ extern sem_t sem_exec_proceso;
 
 extern t_list* lista_recursos;
 
+extern t_kernel_config* kernel_config;
+
+
 int planificador_corto_plazo(void*);
 void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto);
 void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger);

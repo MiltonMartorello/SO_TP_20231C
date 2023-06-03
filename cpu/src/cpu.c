@@ -269,7 +269,7 @@ void actualizar_registros_pcb(t_registro* registros) {
     strncpy(registros->RDX, registros_cpu.registros_16[3], 17);
 //    log_info(cpu_logger, "Registro RDX: %.16s, %s", registros->RDX, registros_cpu.registros_16[3]);
 
-    loggear_registros(registros);
+   // loggear_registros(registros);
 }
 
 

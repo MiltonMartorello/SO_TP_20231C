@@ -10,16 +10,16 @@ int planificador_corto_plazo(void* args_hilo) {
     char* algoritmo = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
     log_info(logger, "P_CORTO -> Algoritmo: %s", algoritmo);
 	while(1) {
-		log_info(logger, "P_CORTO -> Esperando wait de Ready Proceso");
+		log_info(logger, "P_CORTO -> Esperando Nuevo Proceso");
 		sem_wait(&sem_ready_proceso);
 		t_pcb* pcb = planificar(algoritmo, logger);
-		loggear_registros(pcb->registros, logger);
+		//loggear_registros(pcb->registros, logger);
 		ejecutar_proceso(socket_cpu, pcb, logger);
 		//TODO RECIBIR UN SIGNAL EN PARTICULAR => MOTIVO
 		op_code cod_op = recibir_operacion(socket_cpu);//pcb
 		//log_info(logger, "Recibida operación: %d", cod_op);
 		t_contexto_proceso* contexto = recibir_contexto(socket_cpu, logger);
-		loggear_registros(contexto->registros, logger);
+		//loggear_registros(contexto->registros, logger);
 		//log_info(logger, "Recibí el contexto del proceso PID: %d", contexto->pid);
 		actualizar_pcb(pcb, contexto);
 		//log_info(logger, "P_CORTO -> Program Counter actualizado a %d", pcb->program_counter);

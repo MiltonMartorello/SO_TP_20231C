@@ -20,6 +20,8 @@ extern sem_t sem_exit_proceso;
 extern pthread_mutex_t mutex_cola_new;
 extern pthread_mutex_t mutex_cola_exit;
 
+extern t_kernel_config* kernel_config;
+
 int pid_contador = 0;
 
 t_buffer* recibir_buffer_programa(int, t_log*);
