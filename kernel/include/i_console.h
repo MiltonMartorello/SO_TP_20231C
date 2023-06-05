@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <shared.h>
 #include <pthread.h>
+#include <string.h>
 #include <semaphore.h>
 #include <commons/log.h>
 #include <commons/config.h>
@@ -32,6 +33,8 @@ void respuesta_proceso(t_programa*, t_log*, int);
 void loggear_programa(t_programa*, t_log*);
 void loggear_return_kernel(int , int , t_log* );
 int nuevo_pid(void);
+void loggear_resultado(t_log *logger);
+//void test_timers(t_pcb* pcb);
 
 
 #endif

@@ -28,6 +28,7 @@ void iniciar_colas_planificacion(void) {
 	colas_planificacion->cola_exit = queue_create();
 	colas_planificacion->cola_new = queue_create();
 	colas_planificacion->cola_ready = queue_create();
+	colas_planificacion->log_ejecucion = queue_create();
 }
 
 void destroy_colas_planificacion(void) {
@@ -37,6 +38,7 @@ void destroy_colas_planificacion(void) {
 	queue_destroy(colas_planificacion->cola_exit);
 	queue_destroy(colas_planificacion->cola_new);
 	queue_destroy(colas_planificacion->cola_ready);
+	queue_destroy(colas_planificacion->log_ejecucion);
 	free(colas_planificacion);
 }
 
@@ -66,7 +68,7 @@ void destroy_semaforos(void) {
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	t_temporal temporal;
 	temporal.elapsed_ms = 0;
-	temporal.status = TEMPORAL_STATUS_STOPPED;
+	temporal.status = -1;
 
 	t_pcb* pcb = malloc(sizeof(t_pcb));
 	pcb->instrucciones = programa->instrucciones;
@@ -96,18 +98,20 @@ void destroy_pcb(t_pcb* pcb) {
 
 void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 
+	char* origen = "P_CORTO ";
 	switch(pcb->estado_actual){
 		case NEW:
 			pthread_mutex_lock(&mutex_cola_new);
-			queue_pop(colas_planificacion->cola_new);
+			pcb = queue_pop(colas_planificacion->cola_new);
 			pthread_mutex_unlock(&mutex_cola_new);
+			origen = "P_LARGO ";
 			break;
 		case EXEC:
-			queue_pop(colas_planificacion->cola_exec);
+			pcb = queue_pop(colas_planificacion->cola_exec);
 			temporal_stop(pcb->tiempo_ejecucion);
 			break;
 		case BLOCK:
-			queue_pop(colas_planificacion->cola_block);
+			pcb = queue_pop(colas_planificacion->cola_block);
 			break;
 		default:
 			log_error(logger, "Error, no es un estado válido");
@@ -116,12 +120,15 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = READY;
+	//temporal_reset(pcb->tiempo_llegada);
 	pcb->tiempo_llegada = temporal_create();
+	//temporal_resume(pcb->tiempo_llegada);
 	pthread_mutex_lock(&mutex_cola_ready);
 	queue_push(colas_planificacion->cola_ready,pcb);
 	pthread_mutex_unlock(&mutex_cola_ready);
-	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
+	log_info(logger, "%s -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", origen, pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	//loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
+	//log_info(logger, "Timer iniciado de PID %d: (%d)", pcb->pid, temporal_gettime(pcb->tiempo_llegada));
 	sem_post(&sem_ready_proceso);
 }
 
@@ -174,7 +181,7 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 		list_iterator_destroy(iterador_pcbs);
 	}
 	pthread_mutex_unlock(&mutex_cola_ready);
-	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb_nuevo->pid, estado_anterior, estado_string(pcb_nuevo->estado_actual));
+	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb_nuevo->pid, estado_anterior, estado_string(pcb_nuevo->estado_actual));
 	loggear_cola_ready(logger, "HRRN");
 	sem_post(&sem_ready_proceso);
 }
@@ -190,27 +197,27 @@ double calcular_estimado_proxima_rafaga (t_pcb* pcb, t_log* logger) {
 	}
 
 	// Si el tiempo es negativo significa que esto se inicializó pero nunca se ejecutó.
-	if(pcb->tiempo_ejecucion->elapsed_ms <= 0) {
+	if(pcb->tiempo_ejecucion != NULL && pcb->tiempo_ejecucion->elapsed_ms <= 0) {
 		real_anterior = 0.0;
 	} else {
 		real_anterior = (double) temporal_gettime(pcb->tiempo_ejecucion);
 	}
-	log_info(logger, "Estimado Anterior de PID %d: %f", pcb->pid, estimado_anterior);
-	log_info(logger, "Real Anterior de PID %d: %f", pcb->pid, real_anterior);
+	//log_info(logger, "Estimado Anterior de PID %d: %f", pcb->pid, estimado_anterior);
+	//log_info(logger, "Real Anterior de PID %d: %f", pcb->pid, real_anterior);
 	double nuevo_estimado = alfa * estimado_anterior + (1 - alfa) * real_anterior;
-	log_info(logger, "Calculado nuevo estimado de PID %d: %f", pcb->pid, nuevo_estimado);
+	//log_info(logger, "Calculado nuevo estimado de PID %d: %f", pcb->pid, nuevo_estimado);
 	pcb->nuevo_estimado = nuevo_estimado;
 	return nuevo_estimado;
 }
-
 
 void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	if(pcb->estado_actual != READY) {
 		log_error(logger, "Error, cola invalida");
 		EXIT_FAILURE;
 	}
+	//log_info(logger,"Candidato PID: %d", pcb->pid);
 	pthread_mutex_lock(&mutex_cola_ready);
-	queue_pop(colas_planificacion->cola_ready);
+	pcb = queue_pop(colas_planificacion->cola_ready);
 	pthread_mutex_unlock(&mutex_cola_ready);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = EXEC;
@@ -219,7 +226,8 @@ void pasar_a_cola_exec(t_pcb* pcb,t_log* logger) {
 	pthread_mutex_lock(&mutex_cola_exit);
 	queue_push(colas_planificacion->cola_exec, pcb);
 	pthread_mutex_unlock(&mutex_cola_exit);
-	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	queue_push(colas_planificacion->log_ejecucion, pcb->pid);
+	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exec_proceso);
 }
 
@@ -230,7 +238,7 @@ void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger,t_queue* cola) {
 	pcb->estado_actual = BLOCK;
 	//queue_push(colas_planificacion->cola_block, pcb);
 	queue_push(cola, pcb);
-	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_block_proceso);
 }
 
@@ -246,7 +254,7 @@ void pasar_a_cola_exit(t_pcb* pcb, t_log* logger, return_code motivo) {
 	pthread_mutex_lock(&mutex_cola_exit);
 	queue_push(colas_planificacion->cola_exit, pcb);
 	pthread_mutex_unlock(&mutex_cola_exit);
-	log_info(logger, "Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
+	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exit_proceso);
 }
 
@@ -267,9 +275,9 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 
 //TODO: arreglar harcodeo
 void loggear_cola_ready(t_log* logger, char* algoritmo) {
-
+	pthread_mutex_lock(&mutex_cola_ready);
     char* pids = concatenar_pids(colas_planificacion->cola_ready->elements);
-
+    pthread_mutex_unlock(&mutex_cola_ready);
     log_info(logger, "P_CORTO -> Cola Ready <%s>: [%s]", algoritmo, pids);
     free(pids);
 }
@@ -329,7 +337,7 @@ t_registro crear_registro(void) {
 }
 
 t_temporal* temporal_reset(t_temporal* temporal) {
-	if (temporal != NULL) {
+	if (temporal->status >= 0) {
 		temporal_destroy(temporal);
 	}
 	temporal = temporal_create();

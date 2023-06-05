@@ -342,7 +342,7 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);
 
-	log_info(logger, "Se recibio un proceso con PID: %d",proceso->pid);
+	//log_info(logger, "Se recibio un proceso con PID: %d",proceso->pid);
 	return proceso;
 }
 

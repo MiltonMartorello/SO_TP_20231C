@@ -11,7 +11,7 @@ int planificador_corto_plazo(void* args_hilo) {
     char* algoritmo = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
     log_info(logger, "P_CORTO -> Algoritmo: %s", algoritmo);
 	while(1) {
-		log_info(logger, "P_CORTO -> Esperando Nuevo Proceso");
+		//log_info(logger, "P_CORTO -> Esperando Nuevo Proceso...");
 		sem_wait(&sem_ready_proceso);
 		t_pcb* pcb = planificar(algoritmo, logger);
 		//loggear_registros(pcb->registros, logger);
@@ -60,13 +60,6 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_YIELD:
 			log_info(logger, "P_CORTO -> Proceso desalojado por Yield");
 			pasar_a_cola_ready(pcb, logger);
-//			if(string_equals_ignore_case(algoritmo, "HRRN")) {
-//				//log_info(logger, "Ingresando a HRRN");
-//				pasar_a_cola_ready_en_orden(pcb, logger, comparador_hrrn);
-//			} else {
-//				//log_info(logger, "Ingresando a FIFO");
-//				pasar_a_cola_ready(pcb, logger);
-//			}
 			break;
 		case PROCESO_FINALIZADO:
 			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
@@ -212,9 +205,9 @@ t_pcb* planificar(char* algoritmo, t_log* logger) {
 		//t_pcb* pcb = (t_pcb*)queue_peek(colas_planificacion->cola_ready);
 		// "FIFO"
 		// TODO: evaluar cola y tomar candidato
-		log_info(logger, "planificando con %s", algoritmo);
+		//log_info(logger, "planificando con %s", algoritmo);
 		t_pcb* pcb = proximo_proceso_hrrn(logger);
-		loggear_cola_ready(logger, algoritmo);
+		//loggear_cola_ready(logger, algoritmo);
 		pasar_a_cola_exec(pcb, logger);
 		//log_info(logger,"PID:%d ",pcb->pid);
 		return pcb;
@@ -244,9 +237,13 @@ t_pcb* proximo_proceso_hrrn(t_log* logger) {
 	if (list_size(lista_ready) > 1) {
 		list_sort(lista_ready, comparador_hrrn);
 	}
-	colas_planificacion->cola_ready->elements = lista_ready;
+	//colas_planificacion->cola_ready->elements = lista_ready;
+	pthread_mutex_lock(&mutex_cola_ready);
+	t_pcb* pcb = queue_peek(colas_planificacion->cola_ready);
+	pthread_mutex_unlock(&mutex_cola_ready);
+	//log_info(logger,"Candidato PID: %d", pcb->pid);
 	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
-	return queue_peek(colas_planificacion->cola_ready);
+	return pcb;
 }
 
 bool comparador_hrrn(void* pcb1, void* pcb2) {
@@ -258,25 +255,21 @@ bool comparador_hrrn(void* pcb1, void* pcb2) {
 	double S_pcb_nuevo = calcular_estimado_proxima_rafaga(pcb_nuevo, logger);
 	double S_pcb_lista =  calcular_estimado_proxima_rafaga(pcb_lista, logger);
 
-	int64_t W_pcb_nuevo =  temporal_gettime(pcb_lista->tiempo_llegada);
+	int64_t W_pcb_nuevo =  temporal_gettime(pcb_nuevo->tiempo_llegada);
 	int64_t W_pcb_lista =  temporal_gettime(pcb_lista->tiempo_llegada);
 
 	double ratio_pcb_nuevo = (S_pcb_nuevo + W_pcb_nuevo) / (double)S_pcb_nuevo;
 	double ratio_pcb_lista = (S_pcb_lista + W_pcb_lista) / (double)S_pcb_lista;
 
-	log_info(logger, "P_CORTO -> Comparando Ratios: pcb1(pid %d) - [S: %f] - [W: %ld] - [RR: %f] ||| pcb2(pid %d): - [S: %f] - [W: %ld] - [RR:%f]" ,
-			pcb_nuevo->pid, S_pcb_nuevo, W_pcb_nuevo, ratio_pcb_nuevo,
-			pcb_lista->pid, S_pcb_lista, W_pcb_lista, ratio_pcb_lista);
-
-	if(ratio_pcb_nuevo > ratio_pcb_lista) {
-		log_info(logger, "P_CORTO -> pcb1(pid %d) - [RR: %f] > pcb2(pid %d): [RR:%f]" , pcb_nuevo->pid, ratio_pcb_nuevo, pcb_lista->pid, ratio_pcb_lista);
-		return true;
-	} else if (ratio_pcb_nuevo  == ratio_pcb_lista) {
-		// TODO es necesario?
-		log_info(logger, "P_CORTO -> pcb1(pid %d) - [RR: %f] == pcb2(pid %d): [RR:%f]" , pcb_nuevo->pid, ratio_pcb_nuevo, pcb_lista->pid, ratio_pcb_lista);
+	if(ratio_pcb_nuevo >= ratio_pcb_lista) {
+//		log_info(logger, "HRRN -> PID %d - [S: %f] - [W: %d] - [RR: %f] > PID %d: - [S: %f] - [W: %d] - [RR:%f]" ,
+//					pcb_nuevo->pid, S_pcb_nuevo, W_pcb_nuevo, ratio_pcb_nuevo,
+//					pcb_lista->pid, S_pcb_lista, W_pcb_lista, ratio_pcb_lista);
 		return true;
 	} else {
-		log_info(logger, "P_CORTO -> pcb1(pid %d) - [RR: %f] < pcb2(pid %d): [RR:%f]" , pcb_nuevo->pid, ratio_pcb_nuevo, pcb_lista->pid, ratio_pcb_lista);
+//		log_info(logger, "HRRN -> PID %d - [S: %f] - [W: %d] - [RR: %f] < PID %d: - [S: %f] - [W: %d] - [RR:%f]"  ,
+//					pcb_nuevo->pid, S_pcb_nuevo, W_pcb_nuevo, ratio_pcb_nuevo,
+//					pcb_lista->pid, S_pcb_lista, W_pcb_lista, ratio_pcb_lista);
 		return false;
 	}
 }
