@@ -7,6 +7,8 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include <commons/collections/queue.h>
+#include "estructuras.h"
+#include "file_parser.h"
 
 #define PATH_LOG "consola.log"
 

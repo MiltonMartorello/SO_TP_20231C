@@ -1,6 +1,8 @@
 #ifndef FILE_PARSER_H_
 #define FILE_PARSER_H_
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <shared.h>
 

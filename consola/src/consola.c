@@ -30,6 +30,7 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 
 //	log_info(logger, "Serializando Programa");
 	t_buffer* buffer = serializar_programa(programa, logger);
+
 	programa_destroy(programa);
 
 	bytes_enviados = enviar_programa(buffer, socket_kernel, PROGRAMA, logger);
@@ -39,10 +40,14 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 		int return_kernel = recibir_operacion(socket_kernel);
 		if (return_kernel == SUCCESS) {
 			log_info(logger, "Programa ha finalizado correctamente");
-		} else {
+		} else if(return_kernel == RESOURCE_NOT_FOUND){
+			log_error(logger, "Error al finalizar programa, recurso no encontrado. Código de error: %d", return_kernel);
+		}
+		else{
 			log_error(logger, "Error al finalizar programa. Código de error: %d", return_kernel);
 		}
 	}
+
 	terminar_programa(socket_kernel,logger,config);
 	EXIT_SUCCESS;
 }
@@ -93,10 +98,13 @@ int enviar_programa(t_buffer* buffer, int socket_kernel, int codigo, t_log* logg
 }
 
 t_buffer * serializar_programa(t_programa* programa, t_log* logger){
+
 	t_buffer* buffer;
 	t_buffer* instrucciones;
 	int offset = 0;
+
 	instrucciones = serializar_instrucciones(programa->instrucciones, logger); // 336 bytes = instrucciones + cant_instrucciones
+
 	buffer = crear_buffer();
 	// Tamaño total - Lista de instrucciones
 	buffer->size = instrucciones->size;

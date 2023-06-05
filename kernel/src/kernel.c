@@ -6,13 +6,14 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	char* config_path = argv[1];
-	if(argc < 1){
-		printf("Falta path a archivo de configuración.\n");
-		return EXIT_FAILURE;
-	}
+	char* config_path = "./kernel_hrrn.config";
+//	if(argc < 1){
+//		printf("Falta path a archivo de configuración.\n");
+//		return EXIT_FAILURE;
+//	}
 	t_config* config_kernel = iniciar_config(config_path);
 	cargar_config_kernel(config_kernel);
+
 
 	iniciar_recursos(kernel_config->RECURSOS,kernel_config->INSTANCIAS_RECURSOS);
 	iniciar_colas_planificacion();
@@ -50,14 +51,17 @@ int main(int argc, char **argv) {
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
 	log_info(logger, "Iniciada la conexión de Kernel como servidor: %d",socket_kernel);
 
+
     while(1) {
 
         log_info(logger, "Esperando conexión de consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
+
 //        log_info(logger, "Se conectó una consola con el socket: %d", socket_consola);
         int estado_socket = validar_conexion(socket_consola);
 		int modulo = recibir_operacion(socket_consola);
 //		log_info(logger, "Recibida op code: %d", modulo);
+
 			switch (modulo) {
 				case CONSOLA:
 
@@ -69,6 +73,7 @@ int main(int argc, char **argv) {
 					args->socket_cpu = socket_cpu;
 					args->log = logger;
 					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
+
 					//args->mutex = mutex;
 
 					int return_hilo = pthread_create(&hilo_consola, NULL, (void*) procesar_consola, (void*) args);

@@ -1,6 +1,4 @@
 #include "../include/i_console.h"
-
-
 void procesar_consola(void *args_hilo) {
 
 	t_args_hilo_cliente *args = (t_args_hilo_cliente*) args_hilo;
@@ -13,6 +11,7 @@ void procesar_consola(void *args_hilo) {
 
 	int estado_socket = validar_conexion(socket_consola);
 	int cod_op = recibir_operacion(socket_consola);
+
 	switch (cod_op) {
 		case PROGRAMA:
 			t_buffer* buffer = recibir_buffer_programa(socket_consola, logger);
@@ -20,7 +19,8 @@ void procesar_consola(void *args_hilo) {
 //			loggear_programa(programa,logger);
 			crear_proceso(programa, logger, socket_cpu);
 			respuesta_proceso(programa, logger, socket_consola);
-			//programa_destroy(programa);
+			loggear_resultado(logger);
+ 	//programa_destroy(programa);
 			break;
 		default:
 			log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO. %d", cod_op);
@@ -67,7 +67,8 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 
 void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 	t_pcb* pcb = crear_pcb(programa, nuevo_pid());
-	log_info(logger,"Se creo un pcb con %d instrucciones",list_size(pcb->instrucciones));
+	//test_timers(pcb);
+	//log_info(logger,"Se creo un pcb con %d instrucciones",list_size(pcb->instrucciones));
 	if (pthread_mutex_lock(&mutex_cola_new) != 0) {
 		log_error(logger, "Mutex no pudo lockear");
 	};
@@ -80,6 +81,7 @@ void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
 	sem_post(&sem_nuevo_proceso);
 }
+
 
 void respuesta_proceso(t_programa* programa,t_log* logger, int socket_consola) {
 	sem_wait(&sem_exit_proceso);
@@ -136,3 +138,55 @@ void loggear_return_kernel(int pid, int return_kernel, t_log* logger) {
 int nuevo_pid(void) {
 	return pid_contador++;
 }
+
+
+void loggear_resultado(t_log *logger) {
+	int control;
+	char *log_ejecucion = string_new();
+	sem_getvalue(&sem_grado_multiprogramacion, &control);
+	//log_info(logger, "Control value -> %d", control);
+	//log_info(logger, "Grado Value -> %d", kernel_config->GRADO_MAX_MULTIPROGRAMACION);
+	if (control == kernel_config->GRADO_MAX_MULTIPROGRAMACION) {
+		int pid;
+		int total_procesos = queue_size(colas_planificacion->log_ejecucion);
+		log_info(logger, "Procesos ejecutados: %d", total_procesos);
+		for (int j = 0; j < total_procesos; j++) {
+			//log_info(logger, "true: %d", j);
+			pid = (int) queue_pop(colas_planificacion->log_ejecucion);
+			if (pid >= 0) {
+				//log_info(logger, "%d", pid);
+				if (j != 0) {
+					string_append(&log_ejecucion, " -> ");
+				}
+				char *itoa = string_itoa(pid);
+				//log_info(logger, "itoa: %s", itoa);
+				string_append(&log_ejecucion, itoa);
+			}
+		}
+		log_info(logger, "RESULTADO -> Orden de ejecución: %s", log_ejecucion);
+		queue_clean(colas_planificacion->log_ejecucion);
+	}
+	free(log_ejecucion);
+}
+
+
+
+/*void test_timers(t_pcb* pcb) {
+	pcb->tiempo_llegada = temporal_create();
+	//temporal_resume(pcb->tiempo_llegada);
+	int i = 0;
+	while (true) {
+		if (i > 5) {
+			pcb->tiempo_llegada = temporal_create();
+			i = 0;
+		}
+		sleep(1);
+		log_info(logger, "Timer iniciado de PID %d: (%d) %ld - %d Time=> %d",
+				pcb->pid,
+				pcb->tiempo_llegada->status,
+				pcb->tiempo_llegada->elapsed_ms,
+				pcb->tiempo_llegada->current.tv_sec,
+				temporal_gettime(pcb->tiempo_llegada));
+		i++;
+	}
+};*/

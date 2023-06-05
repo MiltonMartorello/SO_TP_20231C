@@ -19,6 +19,8 @@ extern sem_t sem_nuevo_proceso;
 extern sem_t sem_ready_proceso;
 extern sem_t sem_exec_proceso;
 
+extern pthread_mutex_t mutex_cola_ready;
+
 extern t_list* lista_recursos;
 
 extern t_kernel_config* kernel_config;
@@ -33,7 +35,7 @@ void procesar_wait_recurso(void* vArgs);
 void procesar_signal_recurso(void* vArgs);
 void pasar_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger);
 char * recibir_recurso(void);
-
+t_pcb* proximo_proceso_hrrn(t_log* logger);
 void loggear_registros(t_registro registro, t_log* logger);
-
+bool comparador_hrrn(void* pcb1, void* pcb2);
 #endif /* PLANIFICADOR_CORTO_H_ */

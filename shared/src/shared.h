@@ -26,7 +26,7 @@ int recibir_operacion(int);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
 t_list* recibir_paquete(int, t_log*);
-
+void* serializar_paquete(t_paquete* paquete, int bytes);
 /*
  * CLIENTE
  * */
@@ -49,6 +49,7 @@ t_log* iniciar_logger(char*);
 void terminar_programa(int, t_log*, t_config*);
 t_programa* crear_programa(t_list*);
 void programa_destroy(t_programa*);
+int validar_conexion(int socket);
 char* nombre_de_instruccion(int cod_op);
 
 #endif /* SHARED_H_ */

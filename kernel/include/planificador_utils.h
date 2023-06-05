@@ -3,9 +3,11 @@
 
 #include <estructuras.h>
 #include <errno.h>
-#include <string.h>
+#include <commons/string.h>
 #include <stdlib.h>
 #include <semaphore.h>
+#include <stdio.h>
+#include <pthread.h>
 
 typedef enum{
 	NEW,
@@ -37,6 +39,7 @@ typedef struct {
 	t_queue* cola_exec;
 	t_queue* cola_block;
 	t_queue* cola_exit;
+	t_queue* log_ejecucion;
 } t_colas;
 
 typedef struct {
@@ -96,7 +99,7 @@ void pasar_a_cola_ready(t_pcb*, t_log*);
  * Activa Timer de ejecución
  * */
 void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparador)(t_pcb*, t_pcb*, t_log*));
-int comparador_hrrn(t_pcb*, t_pcb*, t_log*);
+
 void pasar_a_cola_exec(t_pcb*, t_log*);
 void pasar_a_cola_blocked(t_pcb*, t_log*,t_queue*);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
@@ -109,5 +112,5 @@ t_temporal* temporal_reset(t_temporal* temporal);
 
 void iniciar_recursos(char** recursos, char** instancias);
 int buscar_recurso(char* nombre, t_log* logger);
-
+double calcular_estimado_proxima_rafaga (t_pcb* pcb, t_log* logger);
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

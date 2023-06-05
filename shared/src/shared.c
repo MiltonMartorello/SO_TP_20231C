@@ -1,7 +1,7 @@
 #include "shared.h"
 #include <errno.h>
 
-t_log* logger; //TODO
+t_log* logger; //TODO se necesita aca?
 
 /*
  * SERVIDOR
@@ -299,6 +299,7 @@ void programa_destroy(t_programa* programa) {
 }
 
 int validar_conexion(int socket) {
+
 	int optval;
 	socklen_t optlen = sizeof(optval);
 	int err = getsockopt(socket, SOL_SOCKET, SO_ERROR, &optval, &optlen);

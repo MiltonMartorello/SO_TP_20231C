@@ -21,6 +21,7 @@ void buffer_destroy(t_buffer* buffer) {
 }
 
 t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
+
 	t_buffer* buffer; //buffer a retornar
 	int size_buffer = 0; // tamaño total del buffer a retornar
 	int cant_instrucciones = 0; // cantidad de instrucciones
@@ -341,7 +342,7 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);
 
-	log_info(logger, "Se recibio un proceso con PID: %d",proceso->pid);
+	//log_info(logger, "Se recibio un proceso con PID: %d",proceso->pid);
 	return proceso;
 }
 
