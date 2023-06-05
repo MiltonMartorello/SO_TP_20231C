@@ -90,9 +90,16 @@ typedef enum {
 	ci_DELETE_SEGMENT,
 	ci_MOV_IN,
 	ci_MOV_OUT,
-	ci_EXIT,
+	ci_EXIT
 } t_codigo_instruccion;
 
+typedef enum {
+	ABRIR,
+	CREAR,
+	TRUNCAR,
+	LEER,
+	ESCRIBIR
+} t_codigo_operacionfs;
 
 typedef struct {
 	t_codigo_instruccion codigo;

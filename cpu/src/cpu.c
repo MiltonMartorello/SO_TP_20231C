@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 	cpu_logger = iniciar_logger("cpu.log");
 	cargar_config(config_path);
 
-	//conexion_a_memoria(cpu_config->ip_memoria,cpu_config->puerto_memoria,cpu_logger);
+	conexion_a_memoria(cpu_config->ip_memoria,cpu_config->puerto_memoria,cpu_logger);
 
 	correr_servidor();
 

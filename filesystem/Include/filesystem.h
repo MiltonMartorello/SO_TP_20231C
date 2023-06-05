@@ -8,13 +8,16 @@
 #include <pthread.h>
 #include <shared.h>
 #include "estructuras.h"
+#include <fcntl.h>
+#include <sys/mman.h>
 
 /* -- ESTRUCTURAS -- */
 
 typedef struct {
     uint32_t block_size;
-    uint32_t block_count;
+    uint32_t block;
 } Superbloque;
+
 
 typedef struct {
     char nombre_archivo;
@@ -22,10 +25,6 @@ typedef struct {
     uint32_t puntero_directo;
     uint32_t puntero_indirecto;
 } FCB;
-
-typedef struct {
-    // Definir la estructura del Bitmap de Bloques
-} BitmapBloques;
 
 typedef struct {
     // Definir la estructura del Archivo de Bloques
@@ -41,6 +40,8 @@ typedef struct
     char* PATH_BLOQUES;
     char* PATH_FCB;
     int RETARDO_ACCESO_BLOQUE;
+    int BLOCK_COUNT;
+    int BLOCK_SIZE;
 
 } t_fs_config;
 
@@ -52,15 +53,26 @@ int socket_kernel;
 int socket_memoria;
 int estado_socket_mem;
 int estado_socket_kernel;
-
+char* superBloqueMap;
+Superbloque superbloque;
+t_bitarray* bitmap;
+ArchivoBloques archivoBloques;
+FCB fcb;
+char* mapBloques;
+char* mapBloquesOriginal;
 /* CONSTANTES */
+char* mapBitmap;
 
 #define PATH_CONFIG "file_system.config"
 
 /* -- FUNCIONES -- */
 
-void cargar_config_fs(t_config* config_fs);
-void inicializar_fs(Superbloque* sb, BitmapBloques* bitmap, ArchivoBloques* archivoBloques);
+void cargarConfigFS(t_config* config_fs);
+void inicializarFS();
+int existeFS();
+void inicializarSuperBloque();
+void finalizarFS(int conexion, t_log* logger, t_config* config);
+
 void conectar_con_memoria();
 void correr_servidor();
 void abrirArchivo(const char* nombreArchivo);
@@ -70,6 +82,6 @@ void leerArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccion
 void escribirArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
 void accederBitmap(uint32_t numeroBloque, int estado);
 void accederBloque(const char* nombreArchivo, uint32_t numeroBloqueArchivo, uint32_t numeroBloqueFS);
-void finalizar_fs(int conexion, t_log* logger, t_config* config);
+int existeArchivo(char* ruta);
 
 #endif /* FILESYSTEM_H_ */
