@@ -15,9 +15,6 @@ int main(void) {
     // Inicializar el File System
     inicializarFS();
 
-
-    int respuesta = abrirArchivo("Notas2doParcialK9999");
-
     // Iniciar file system como servidor de kernel
     correr_servidor();
 
