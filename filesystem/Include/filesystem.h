@@ -10,31 +10,26 @@
 #include "estructuras.h"
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <dirent.h>
 
 /* -- ESTRUCTURAS -- */
 
 typedef struct {
     uint32_t block_size;
-    uint32_t block;
+    uint32_t block_count;
 } Superbloque;
 
-
 typedef struct {
-    char nombre_archivo;
-    uint32_t tamanio_archivo;
-    uint32_t puntero_directo;
-    uint32_t puntero_indirecto;
+    char* NOMBRE_ARCHIVO; // Corregido: debe ser un array de caracteres para almacenar el nombre
+    int TAMANIO_ARCHIVO;
+    int PUNTERO_DIRECTO;
+    int PUNTERO_INDIRECTO;
 } FCB;
 
 typedef struct {
-    // Definir la estructura del Archivo de Bloques
-} ArchivoBloques;
-
-typedef struct
-{
-	char* IP_MEMORIA;
-	char* PUERTO_MEMORIA;
-	char* PUERTO_ESCUCHA;
+    char* IP_MEMORIA;
+    char* PUERTO_MEMORIA;
+    char* PUERTO_ESCUCHA;
     char* PATH_SUPERBLOQUE;
     char* PATH_BITMAP;
     char* PATH_BLOQUES;
@@ -42,7 +37,6 @@ typedef struct
     int RETARDO_ACCESO_BLOQUE;
     int BLOCK_COUNT;
     int BLOCK_SIZE;
-
 } t_fs_config;
 
 /* -- VARIABLES -- */
@@ -56,10 +50,10 @@ int estado_socket_kernel;
 char* superBloqueMap;
 Superbloque superbloque;
 t_bitarray* bitmap;
-ArchivoBloques archivoBloques;
-FCB fcb;
 char* mapBloques;
 char* mapBloquesOriginal;
+FCB* fcb;
+
 /* CONSTANTES */
 char* mapBitmap;
 
@@ -75,7 +69,7 @@ void finalizarFS(int conexion, t_log* logger, t_config* config);
 
 void conectar_con_memoria();
 void correr_servidor();
-void abrirArchivo(const char* nombreArchivo);
+int abrirArchivo(const char* nombreArchivo);
 void crearArchivo(const char* nombreArchivo);
 void truncarArchivo(const char* nombreArchivo, uint32_t nuevoTamano);
 void leerArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
