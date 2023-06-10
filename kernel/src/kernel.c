@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	char* config_path = "./kernel_hrrn.config";
+	char* config_path = argv[1];//"./kernel_hrrn.config";
 //	if(argc < 1){
 //		printf("Falta path a archivo de configuración.\n");
 //		return EXIT_FAILURE;
@@ -46,6 +46,13 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	pthread_detach(hilo_pcp);
+
+	// MANEJO DE MENSAJES KERNEL-CPU
+	if( pthread_create(&hilo_kernel_cpu, NULL, manejar_respuesta_cpu, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo KERNEL-CPU");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_kernel_cpu);
 
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);

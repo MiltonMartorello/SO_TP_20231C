@@ -27,11 +27,13 @@ int main(int argc, char **argv) {
 	correr_servidor();
 
 	terminar();
+	printf("CPU FINALIZADA.\n");
 	return EXIT_SUCCESS;
 }
 
 void terminar(void)
 {
+	log_info(cpu_logger,"Finalizando CPU...");
 	if(cpu_logger != NULL) {
 		log_destroy(cpu_logger);
 	}
@@ -69,12 +71,10 @@ void conexion_a_memoria(char* ip,char* puerto,t_log* logger){
 void correr_servidor(void){
 
 	socket_cpu = iniciar_servidor(cpu_config->puerto_escucha);
-
-	//TODO verificar socket != -1
 	log_info(cpu_logger, "Iniciada la conexión de servidor de cpu: %d",socket_cpu);
 
 	socket_kernel = esperar_cliente(socket_cpu, cpu_logger);
-	//TODO verificar socket != -1
+	int estado_socket = validar_conexion(socket_kernel);
 
 	int modulo = recibir_operacion(socket_kernel);
 
@@ -82,12 +82,16 @@ void correr_servidor(void){
 		case KERNEL:
 			log_info(cpu_logger, "Kernel Conectado.");
 			while(1){
-				recibir_operacion(socket_kernel);//pcb
-				t_contexto_proceso* proceso = recibir_contexto(socket_kernel, cpu_logger);
-
-				ciclo_de_instruccion(proceso,socket_kernel);
-				log_info(cpu_logger,"Se ejecuto un proceso");
-				liberar_proceso(proceso);
+				int operacion = recibir_operacion(socket_kernel);
+				if(operacion == CONTEXTO_PROCESO){ //TODO
+					t_contexto_proceso* proceso = recibir_contexto(socket_kernel, cpu_logger);
+					ciclo_de_instruccion(proceso,socket_kernel);
+					liberar_proceso(proceso);
+				}
+				else{
+					log_info(cpu_logger,"Kernel envió una operacion desconocida");
+					break;
+				}
 			}
 			break;
 		case -1:
@@ -106,7 +110,7 @@ void correr_servidor(void){
 void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 	bool fin_de_ciclo = false;
-	t_instruccion* una_instruccion = malloc(sizeof(t_instruccion));
+	t_instruccion* una_instruccion;
 
 	while(!fin_de_ciclo){
 
@@ -187,7 +191,7 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 	}
 
-	free(una_instruccion);
+	//free(una_instruccion);
 }
 
 void devolver_proceso(int socket,t_contexto_proceso* proceso,int codigo,t_log* logger){
@@ -291,14 +295,27 @@ void actualizar_registros_pcb(t_registro* registros) {
    // loggear_registros(registros);
 }
 
+void limpiar_registros_cpu(int tam,char registro[][tam]){
+
+	for(int i=0; i < (sizeof(registro)/sizeof(registro[0])) ;i++ ){
+		strcpy(registro[i],"");
+	}
+}
+
 
 void liberar_proceso(t_contexto_proceso* proceso){
+	limpiar_registros_cpu(4,registros_cpu.registros_4);
+	limpiar_registros_cpu(8,registros_cpu.registros_8);
+	limpiar_registros_cpu(16,registros_cpu.registros_16);
 
 	list_destroy_and_destroy_elements(proceso->instrucciones,(void*)liberar_parametros_instruccion);
+	free(proceso);
 }
 
 void liberar_parametros_instruccion(void* instruccion){
 	t_instruccion* una_instruccion = (t_instruccion*) instruccion;
 
 	list_destroy_and_destroy_elements(una_instruccion->parametros,(void*)free);
+
+	free(una_instruccion);
 }

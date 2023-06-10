@@ -91,7 +91,7 @@ void recibir_mensaje(int socket_cliente,t_log* logger)
 
 t_list* recibir_paquete(int socket_cliente, t_log* logger)
 {
-	int size = 0;;
+	int size = 0;
 	int desplazamiento = 0;
 	void * buffer;
 	t_list* valores = list_create();
@@ -266,7 +266,7 @@ t_log* iniciar_logger(char* path)
 		printf("No pude crear el logger \n");
 		exit(1);
 	}
-
+	free(nombre_log);
 	return nuevo_logger;
 }
 

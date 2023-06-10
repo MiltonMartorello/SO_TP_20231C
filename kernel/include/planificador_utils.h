@@ -14,6 +14,7 @@ typedef enum{
 	READY,
 	EXEC,
 	BLOCK,
+	BLOCK_RECURSO,
 	EXIT
 } t_estado;
 
@@ -110,6 +111,6 @@ t_registro crear_registro(void);
 t_temporal* temporal_reset(t_temporal* temporal);
 
 void iniciar_recursos(char** recursos, char** instancias);
-int buscar_recurso(char* nombre, t_log* logger);
+int buscar_recurso(char* nombre);
 double calcular_estimado_proxima_rafaga (t_pcb* pcb, t_log* logger);
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */
