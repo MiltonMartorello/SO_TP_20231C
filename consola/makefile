@@ -17,6 +17,8 @@ DEPS := $(OBJS:.o=.d)
 
 CONFIG := consola.config
 INSTRUCCIONES := instrucciones.txt
+INS_T1 := BASE_1
+INS_T2 := BASE_2
 
 TARGET := consola
 
@@ -36,3 +38,11 @@ clean:
 run: $(TARGET)
 	./$(TARGET) $(CONFIG) $(INSTRUCCIONES)
 
+valgrind: $(TARGET)
+	valgrind ./$(TARGET) $(CONFIG) $(INSTRUCCIONES)
+	
+test1: $(TARGET)
+	valgrind ./$(TARGET) $(CONFIG) $(INS_T1)
+
+test2: $(TARGET)
+	valgrind ./$(TARGET) $(CONFIG) $(INS_T2)

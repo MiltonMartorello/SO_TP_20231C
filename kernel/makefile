@@ -14,6 +14,9 @@ OBJ_DIR := Debug
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
+
+CONFIG := kernel.config
+
 TARGET := kernel
 
 .PHONY: all clean run valgrind

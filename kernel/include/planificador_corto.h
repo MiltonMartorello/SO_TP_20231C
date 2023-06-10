@@ -22,6 +22,8 @@ extern sem_t sem_exec_proceso;
 extern sem_t cpu_liberada;
 extern sem_t proceso_enviado;
 
+extern pthread_mutex_t mutex_cola_ready;
+
 extern t_list* lista_recursos;
 
 extern t_kernel_config* kernel_config;
