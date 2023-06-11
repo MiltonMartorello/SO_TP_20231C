@@ -34,12 +34,12 @@ typedef struct {
 } t_pcb;
 
 typedef struct {
-	t_queue* cola_ready;
-	t_queue* cola_new;
-	t_queue* cola_exec;
-	t_queue* cola_block;
-	t_queue* cola_exit;
-	t_queue* log_ejecucion;
+	t_squeue* cola_ready;
+	t_squeue* cola_new;
+	t_squeue* cola_exec;
+	t_squeue* cola_block;
+	t_squeue* cola_exit;
+	t_squeue* log_ejecucion;
 } t_colas;
 
 typedef struct {

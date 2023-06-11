@@ -20,15 +20,28 @@ char** indice_recursos;
 double alfa = 0.5;
 t_kernel_config* kernel_config;
 
+t_squeue* squeue_create() {
+	t_squeue* squeue = malloc (sizeof(t_squeue));
+	squeue->cola = queue_create();
+	squeue->mutex = pthread_mutex_init(&pthread_mutex_init, NULL);
+}
+
+void squeue_destroy(t_squeue* queue) {
+
+	pthread_mutex_destroy(queue->mutex);
+	queue_destroy(queue->cola);
+	free(queue);
+}
+
 void iniciar_colas_planificacion(void) {
 
 	colas_planificacion = malloc(sizeof(t_colas));
-	colas_planificacion->cola_block = queue_create();
-	colas_planificacion->cola_exec = queue_create();
-	colas_planificacion->cola_exit = queue_create();
-	colas_planificacion->cola_new = queue_create();
-	colas_planificacion->cola_ready = queue_create();
-	colas_planificacion->log_ejecucion = queue_create();
+	colas_planificacion->cola_block = squeue_create();
+	colas_planificacion->cola_exec = squeue_create();
+	colas_planificacion->cola_exit = squeue_create();
+	colas_planificacion->cola_new = squeue_create();
+	colas_planificacion->cola_ready = squeue_create();
+	colas_planificacion->log_ejecucion = squeue_create();
 }
 
 void destroy_colas_planificacion(void) {
@@ -39,6 +52,7 @@ void destroy_colas_planificacion(void) {
 	queue_destroy(colas_planificacion->cola_new);
 	queue_destroy(colas_planificacion->cola_ready);
 	queue_destroy(colas_planificacion->log_ejecucion);
+	pthread_mutex_destroy(&)
 	free(colas_planificacion);
 }
 

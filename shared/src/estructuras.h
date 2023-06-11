@@ -67,6 +67,10 @@ typedef struct {
 	t_config* config;
 } t_args_hilo_planificador;
 
+typedef struct {
+	t_queue* cola;
+	pthread_mutex_t mutex;
+} t_squeue;
 
 /*			// (void*)pcb,
 			// tiempo_bloqueo,
