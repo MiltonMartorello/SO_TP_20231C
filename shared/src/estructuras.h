@@ -69,7 +69,7 @@ typedef struct {
 
 typedef struct {
 	t_queue* cola;
-	pthread_mutex_t mutex;
+	pthread_mutex_t* mutex;
 } t_squeue;
 
 /*			// (void*)pcb,

@@ -69,7 +69,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 
 			log_info(logger, "P_CORTO -> Proceso desalojado por BLOQUEO");
 			log_info(logger, "PID: <%d> - Bloqueado por: <IO>",pcb->pid);
-
+			sleep(2);
 			int tiempo_bloqueo = recibir_operacion(socket_cpu);//CPU le manda el tiempo
 
 			log_info(logger,"El proceso %d debera bloquearse por %d milisegundos",pcb->pid,tiempo_bloqueo);
@@ -78,7 +78,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			args->tiempo_bloqueo = tiempo_bloqueo;
 			args->pcb = pcb;
 			args->logger = logger;
-			sleep(tiempo_bloqueo/2);
+			pcb->estimado_rafaga = pcb->nuevo_estimado;
+			pcb->nuevo_estimado = 0;
 			pthread_create(&thread_bloqueados, NULL, (void *)bloqueo_io, (void*) args);
 			pthread_detach(thread_bloqueados);
 
@@ -92,7 +93,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			args->nombre_recurso = nombre;
 			args->pcb = pcb;
 			args->logger = logger;
-
+			pcb->estimado_rafaga = pcb->nuevo_estimado;
+			pcb->nuevo_estimado = 0;
 			pthread_create(&thread_bloqueados, NULL, (void *)procesar_wait_recurso,(void*) args);
 			pthread_detach(thread_bloqueados);
 			break;
@@ -105,7 +107,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			args->nombre_recurso = nombre;
 			args->pcb = pcb;
 			args->logger = logger;
-
+			pcb->estimado_rafaga = pcb->nuevo_estimado;
+			pcb->nuevo_estimado = 0;
 			pthread_create(&thread_bloqueados, NULL, (void *)procesar_signal_recurso, (void *)args);
 			pthread_detach(thread_bloqueados);
 			break;
@@ -177,8 +180,8 @@ void procesar_signal_recurso(void* vArgs){
 		recurso->instancias++;
 		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",proceso->pid,nombre,recurso->instancias);
 
-		if(queue_size(recurso->cola_bloqueados) > 0){
-			pasar_segun_algoritmo(algoritmo, queue_pop(recurso->cola_bloqueados),logger);
+		if(queue_size(recurso->cola_bloqueados->cola) > 0){
+			pasar_segun_algoritmo(algoritmo, squeue_pop(recurso->cola_bloqueados),logger);
 		}
 
 		pasar_segun_algoritmo(algoritmo,proceso,logger);
@@ -191,7 +194,7 @@ void procesar_signal_recurso(void* vArgs){
 	free(nombre);
 }
 
-void pasar_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger){
+void pasar_segun_algoritmo(char* algoritmo, t_pcb* proceso, t_log* logger){
 	if(string_equals_ignore_case(algoritmo, "HRRN")) {
 		pasar_a_cola_ready_en_orden(proceso, logger, comparador_hrrn);
 	} else {
@@ -208,11 +211,11 @@ t_pcb* planificar(char* algoritmo, t_log* logger) {
 		//log_info(logger, "planificando con %s", algoritmo);
 		t_pcb* pcb = proximo_proceso_hrrn(logger);
 		//loggear_cola_ready(logger, algoritmo);
+		log_info(logger,"PID:%d ",pcb->pid);
 		pasar_a_cola_exec(pcb, logger);
-		//log_info(logger,"PID:%d ",pcb->pid);
 		return pcb;
 	} else if (string_equals_ignore_case(algoritmo, "FIFO")){
-		t_pcb* pcb = (t_pcb*)queue_peek(colas_planificacion->cola_ready);
+		t_pcb* pcb = (t_pcb*)squeue_peek(colas_planificacion->cola_ready);
 		pasar_a_cola_exec(pcb, logger);
 		//log_info(logger,"PID:%d ",pcb->pid);
 		return pcb;
@@ -232,16 +235,15 @@ char * recibir_recurso(void)
 }
 
 t_pcb* proximo_proceso_hrrn(t_log* logger) {
-	t_list* lista_ready = colas_planificacion->cola_ready->elements;
+	pthread_mutex_lock(colas_planificacion->cola_ready->mutex);
+	t_list* lista_ready = colas_planificacion->cola_ready->cola->elements;
+	pthread_mutex_unlock(colas_planificacion->cola_ready->mutex);
 	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 	if (list_size(lista_ready) > 1) {
 		list_sort(lista_ready, comparador_hrrn);
 	}
-	//colas_planificacion->cola_ready->elements = lista_ready;
-	pthread_mutex_lock(&mutex_cola_ready);
-	t_pcb* pcb = queue_peek(colas_planificacion->cola_ready);
-	pthread_mutex_unlock(&mutex_cola_ready);
-	//log_info(logger,"Candidato PID: %d", pcb->pid);
+	t_pcb* pcb = squeue_peek(colas_planificacion->cola_ready);
+	log_info(logger,"Candidato PID: %d", pcb->pid);
 	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 	return pcb;
 }
@@ -251,10 +253,11 @@ bool comparador_hrrn(void* pcb1, void* pcb2) {
 	t_pcb* pcb_nuevo = (t_pcb*) pcb1;
 	t_pcb* pcb_lista = (t_pcb*) pcb2;
 
-
 	double S_pcb_nuevo = calcular_estimado_proxima_rafaga(pcb_nuevo, logger);
 	double S_pcb_lista =  calcular_estimado_proxima_rafaga(pcb_lista, logger);
 
+	//log_info(logger, "Estimado anterior: %d", pcb_nuevo->estimado_rafaga);
+	//log_info(logger, "Estimado nuevo: %d", pcb_nuevo->nuevo_estimado);
 	int64_t W_pcb_nuevo =  temporal_gettime(pcb_nuevo->tiempo_llegada);
 	int64_t W_pcb_lista =  temporal_gettime(pcb_lista->tiempo_llegada);
 
