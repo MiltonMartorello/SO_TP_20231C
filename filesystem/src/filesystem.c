@@ -206,19 +206,19 @@ int operacion_fs(int op_cod, char* nombreArchivo) {
 
         switch (op_cod)
 		{
-            case ABRIR:
+            case F_OPEN:
                 operacionFs = abrirArchivo(nombreArchivo);
                 break;
-            case CREAR:
+            case F_CREATE:
                 crearArchivo(nombreArchivo);
                 break;
-            case TRUNCAR:
+            case F_TRUNCATE:
                 truncarArchivo(nombreArchivo, 0);
                 break;
-            case LEER:
+            case F_READ:
                 leerArchivo(nombreArchivo, 1, 1, 1);
                 break;
-            case ESCRIBIR:
+            case F_WRITE:
                 escribirArchivo(nombreArchivo, 1, 1, 1);
                 break;
             default:

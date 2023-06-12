@@ -12,6 +12,8 @@
 #include <estructuras.h>
 #include "planificador_utils.h"
 
+// SOCKETS
+extern int socket_file_system;
 extern t_colas* colas_planificacion;
 extern sem_t sem_grado_multiprogramacion;
 extern sem_t sem_nuevo_proceso;

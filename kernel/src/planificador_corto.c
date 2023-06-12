@@ -1,7 +1,6 @@
 #include "../include/planificador_corto.h"
 
 extern int socket_cpu;
-t_log* logger;
 
 int planificador_corto_plazo(void* args_hilo) {
 	t_args_hilo_planificador* args = (t_args_hilo_planificador*) args_hilo;

@@ -45,7 +45,15 @@ int esperar_cliente(int socket_servidor, t_log* logger)
 	return socket_cliente;
 }
 
-void enviar_handshake(int socket,int operacion ) {
+void enviar_handshake(int socket, int operacion) {
+    void *buffer = malloc(sizeof(int));
+    memcpy(buffer, &operacion, sizeof(int));
+    send(socket, buffer, sizeof(int), 0);
+
+    free(buffer);
+}
+
+void enviar_entero(int socket, int operacion) {
     void *buffer = malloc(sizeof(int));
     memcpy(buffer, &operacion, sizeof(int));
     send(socket, buffer, sizeof(int), 0);

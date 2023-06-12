@@ -1,5 +1,7 @@
 #include "../include/kernel.h"
 
+int socket_filesystem;
+
 int main(int argc, char **argv) {
 
 	logger = iniciar_logger("kernel.log");
@@ -27,7 +29,7 @@ int main(int argc, char **argv) {
 	//socket_memoria = conectar_con_memoria();
 
     /* -- CONEXIÓN CON FILESYSTEM -- */
-	//socket_filesystem = conectar_con_filesystem();
+	socket_filesystem = conectar_con_filesystem();
 
 	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
 	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG

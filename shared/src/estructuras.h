@@ -98,11 +98,11 @@ typedef enum {
 } t_codigo_instruccion;
 
 typedef enum {
-	ABRIR,
-	CREAR,
-	TRUNCAR,
-	LEER,
-	ESCRIBIR
+	F_OPEN,
+	F_CREATE,
+	F_TRUNCATE,
+	F_READ,
+	F_WRITE
 } t_codigo_operacionfs;
 
 typedef struct {

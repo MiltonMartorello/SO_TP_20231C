@@ -1,27 +1,38 @@
 #include "../include/planificador_utils.h"
 
+t_log* logger;
 
-t_colas* colas_planificacion;
+// SOCKETS
+int socket_file_system;
+
+// LARGO PLAZO
 sem_t sem_grado_multiprogramacion;
 sem_t sem_nuevo_proceso;
+
+// CORTO PLAZO
 sem_t cpu_liberada;
 sem_t proceso_enviado;
 
+// PLANIFICACIÓN
+double alfa = 0.5;
+t_colas* colas_planificacion;
+t_kernel_config* kernel_config;
+
+// COLAS
 sem_t sem_ready_proceso;
 sem_t sem_exec_proceso;
 sem_t sem_block_proceso;
 sem_t sem_exit_proceso;
-
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_ready;
 pthread_mutex_t mutex_cola_exec;
 pthread_mutex_t mutex_cola_exit;
 
+// FILE SYSTEM
+sem_t request_file_system;
 t_list* lista_recursos;
 char** indice_recursos;
 
-double alfa = 0.5;
-t_kernel_config* kernel_config;
 
 t_squeue* squeue_create(void) {
 	t_squeue* squeue = malloc (sizeof(t_squeue));
@@ -94,6 +105,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	pthread_mutex_init(&mutex_cola_ready, NULL);
 	pthread_mutex_init(&mutex_cola_exec, NULL);
 	pthread_mutex_init(&mutex_cola_exit, NULL);
+	sem_init(&request_file_system, 0, 0);
 }
 
 void destroy_semaforos(void) {

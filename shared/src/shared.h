@@ -22,6 +22,7 @@ extern t_log* logger;
 int iniciar_servidor(char*);
 int esperar_cliente(int,t_log*);
 void enviar_handshake(int, int);
+void enviar_entero(int, int);
 int recibir_operacion(int);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
