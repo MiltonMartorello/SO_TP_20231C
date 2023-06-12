@@ -41,7 +41,7 @@ void manejar_respuesta_cpu(void* args_hilo){
 
 	while(1){
 		sem_wait(&proceso_enviado);
-		t_pcb* pcb = (t_pcb*) queue_peek(colas_planificacion->cola_exec);
+		t_pcb* pcb = (t_pcb*) squeue_peek(colas_planificacion->cola_exec);
 		cod_op = recibir_operacion(socket_cpu);
 		contexto = recibir_contexto(socket_cpu, logger);
 		actualizar_pcb(pcb, contexto);
