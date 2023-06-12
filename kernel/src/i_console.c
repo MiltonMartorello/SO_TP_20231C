@@ -67,17 +67,7 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 
 void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 	t_pcb* pcb = crear_pcb(programa, nuevo_pid());
-	//test_timers(pcb);
-	//log_info(logger,"Se creo un pcb con %d instrucciones",list_size(pcb->instrucciones));
-	if (pthread_mutex_lock(&mutex_cola_new) != 0) {
-		log_error(logger, "Mutex no pudo lockear");
-	};
-
-	queue_push(colas_planificacion->cola_new, pcb);
-
-	if (pthread_mutex_unlock(&mutex_cola_new) != 0) {
-		log_error(logger, "Mutex no pudo unlockear");
-	};
+	squeue_push(colas_planificacion->cola_new, pcb);
 	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
 	sem_post(&sem_nuevo_proceso);
 }
@@ -85,13 +75,7 @@ void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 
 void respuesta_proceso(t_programa* programa,t_log* logger, int socket_consola) {
 	sem_wait(&sem_exit_proceso);
-	if (pthread_mutex_lock(&mutex_cola_exit) != 0) {
-		log_error(logger, "Mutex no pudo lockear");
-	};
-	t_pcb* pcb = queue_pop(colas_planificacion->cola_exit);
-	if (pthread_mutex_unlock(&mutex_cola_exit) != 0) {
-		log_error(logger, "Mutex no pudo unlockear");
-	};
+	t_pcb* pcb = squeue_pop(colas_planificacion->cola_exit);
 	loggear_return_kernel(pcb->pid, pcb->motivo, logger);
 	sem_post(&sem_grado_multiprogramacion);
 	enviar_handshake(socket_consola, pcb->motivo);
@@ -148,11 +132,11 @@ void loggear_resultado(t_log *logger) {
 	//log_info(logger, "Grado Value -> %d", kernel_config->GRADO_MAX_MULTIPROGRAMACION);
 	if (control == kernel_config->GRADO_MAX_MULTIPROGRAMACION) {
 		int pid;
-		int total_procesos = queue_size(colas_planificacion->log_ejecucion);
+		int total_procesos = queue_size(colas_planificacion->log_ejecucion->cola);
 		log_info(logger, "Procesos ejecutados: %d", total_procesos);
 		for (int j = 0; j < total_procesos; j++) {
 			//log_info(logger, "true: %d", j);
-			pid = (int) queue_pop(colas_planificacion->log_ejecucion);
+			pid = (int) squeue_pop(colas_planificacion->log_ejecucion);
 			if (pid >= 0) {
 				//log_info(logger, "%d", pid);
 				if (j != 0) {
@@ -164,7 +148,7 @@ void loggear_resultado(t_log *logger) {
 			}
 		}
 		log_info(logger, "RESULTADO -> Orden de ejecución: %s", log_ejecucion);
-		queue_clean(colas_planificacion->log_ejecucion);
+		queue_clean(colas_planificacion->log_ejecucion->cola);
 	}
 	free(log_ejecucion);
 }

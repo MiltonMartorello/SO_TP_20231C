@@ -93,15 +93,17 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 
 			pthread_t thread_bloqueados;
 			t_args_hilo_block* args = malloc(sizeof(t_args_hilo_block));
-
+		
 			int tiempo_bloqueo = recibir_operacion(socket_cpu);//CPU le manda el tiempo
 
 			args->algoritmo = algoritmo;
 			args->tiempo_bloqueo = tiempo_bloqueo;
 			args->pcb = pcb;
 			args->logger = logger;
-			pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
+			pcb->estimado_rafaga = pcb->nuevo_estimado;
+			pcb->nuevo_estimado = 0;
 
+      pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 			pthread_create(&thread_bloqueados, NULL, (void *)bloqueo_io, (void*) args);
 			pthread_detach(thread_bloqueados);
 
@@ -112,16 +114,16 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 
 			nombre = recibir_recurso();
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT de %s ", nombre); //TODO modificar log
-
 			procesar_wait_recurso(nombre,pcb,algoritmo,logger);
+
 			break;
 
 		case PROCESO_DESALOJADO_POR_SIGNAL:
 
 			nombre = recibir_recurso();
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar SIGNAL de %s ", nombre);
-
 			procesar_signal_recurso(nombre, pcb, algoritmo, logger);
+      
 			break;
 		default:
 			log_error(logger, "Error: La respuesta del CPU es innesperada. Cod: %d", cod_op);
@@ -181,8 +183,7 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",pcb->pid,nombre,recurso->instancias);
 
 		if(recurso->instancias <= 0){
-			t_pcb* proceso_bloqueado =  (t_pcb*) queue_pop(recurso->cola_bloqueados);
-			pasar_a_ready_segun_algoritmo(algoritmo,proceso_bloqueado,logger);
+			pasar_a_ready_segun_algoritmo(algoritmo, squeue_pop(recurso->cola_bloqueados),logger);
 		}
 		ejecutar_proceso(socket_cpu, pcb, logger);
 		//pasar_a_ready_segun_algoritmo(algoritmo,proceso,logger);
@@ -195,6 +196,7 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 
 	free(nombre);
 }
+
 
 void pasar_a_ready_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger){
 	if(string_equals_ignore_case(algoritmo, "HRRN")) {
@@ -213,11 +215,11 @@ t_pcb* planificar(char* algoritmo, t_log* logger) {
 		//log_info(logger, "planificando con %s", algoritmo);
 		t_pcb* pcb = proximo_proceso_hrrn(logger);
 		//loggear_cola_ready(logger, algoritmo);
+		log_info(logger,"PID:%d ",pcb->pid);
 		pasar_a_cola_exec(pcb, logger);
-		//log_info(logger,"PID:%d ",pcb->pid);
 		return pcb;
 	} else if (string_equals_ignore_case(algoritmo, "FIFO")){
-		t_pcb* pcb = (t_pcb*)queue_peek(colas_planificacion->cola_ready);
+		t_pcb* pcb = (t_pcb*)squeue_peek(colas_planificacion->cola_ready);
 		pasar_a_cola_exec(pcb, logger);
 		//log_info(logger,"PID:%d ",pcb->pid);
 		return pcb;
@@ -237,16 +239,15 @@ char * recibir_recurso(void)
 }
 
 t_pcb* proximo_proceso_hrrn(t_log* logger) {
-	t_list* lista_ready = colas_planificacion->cola_ready->elements;
+	pthread_mutex_lock(colas_planificacion->cola_ready->mutex);
+	t_list* lista_ready = colas_planificacion->cola_ready->cola->elements;
+	pthread_mutex_unlock(colas_planificacion->cola_ready->mutex);
 	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 	if (list_size(lista_ready) > 1) {
 		list_sort(lista_ready, comparador_hrrn);
 	}
-	//colas_planificacion->cola_ready->elements = lista_ready;
-	pthread_mutex_lock(&mutex_cola_ready);
-	t_pcb* pcb = queue_peek(colas_planificacion->cola_ready);
-	pthread_mutex_unlock(&mutex_cola_ready);
-	//log_info(logger,"Candidato PID: %d", pcb->pid);
+	t_pcb* pcb = squeue_peek(colas_planificacion->cola_ready);
+	log_info(logger,"Candidato PID: %d", pcb->pid);
 	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 	return pcb;
 }
@@ -256,10 +257,11 @@ bool comparador_hrrn(void* pcb1, void* pcb2) {
 	t_pcb* pcb_nuevo = (t_pcb*) pcb1;
 	t_pcb* pcb_lista = (t_pcb*) pcb2;
 
-
 	double S_pcb_nuevo = calcular_estimado_proxima_rafaga(pcb_nuevo, logger);
 	double S_pcb_lista =  calcular_estimado_proxima_rafaga(pcb_lista, logger);
 
+	//log_info(logger, "Estimado anterior: %d", pcb_nuevo->estimado_rafaga);
+	//log_info(logger, "Estimado nuevo: %d", pcb_nuevo->nuevo_estimado);
 	int64_t W_pcb_nuevo =  temporal_gettime(pcb_nuevo->tiempo_llegada);
 	int64_t W_pcb_lista =  temporal_gettime(pcb_lista->tiempo_llegada);
 

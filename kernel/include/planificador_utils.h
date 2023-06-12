@@ -35,12 +35,12 @@ typedef struct {
 } t_pcb;
 
 typedef struct {
-	t_queue* cola_ready;
-	t_queue* cola_new;
-	t_queue* cola_exec;
-	t_queue* cola_block;
-	t_queue* cola_exit;
-	t_queue* log_ejecucion;
+	t_squeue* cola_ready;
+	t_squeue* cola_new;
+	t_squeue* cola_exec;
+	t_squeue* cola_block;
+	t_squeue* cola_exit;
+	t_squeue* log_ejecucion;
 } t_colas;
 
 typedef struct {
@@ -50,7 +50,7 @@ typedef struct {
 typedef struct {
 	char* nombre;
 	int instancias;
-	t_queue* cola_bloqueados;
+	t_squeue* cola_bloqueados;
 } t_recurso;
 
 typedef struct {
@@ -100,11 +100,9 @@ void pasar_a_cola_ready(t_pcb*, t_log*);
  * Activa Timer de ejecución
  * */
 void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparador)(t_pcb*, t_pcb*, t_log*));
-
 void pasar_a_cola_exec(t_pcb*, t_log*);
-void pasar_a_cola_blocked(t_pcb*, t_log*,t_queue*);
+void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
-
 char* concatenar_pids(t_list*);
 void loggear_cola_ready(t_log* logger, char* algoritmo);
 char* estado_string(int);
@@ -114,4 +112,11 @@ t_temporal* temporal_reset(t_temporal* temporal);
 void iniciar_recursos(char** recursos, char** instancias);
 int buscar_recurso(char* nombre);
 double calcular_estimado_proxima_rafaga (t_pcb* pcb, t_log* logger);
+
+t_squeue* squeue_create(void);
+void squeue_destroy(t_squeue* queue);
+void* squeue_pop(t_squeue* queue);
+void squeue_push(t_squeue* queue, void* element);
+void* squeue_peek(t_squeue* queue);
+
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */
