@@ -48,6 +48,13 @@ int main(int argc, char **argv) {
 	}
 	pthread_detach(hilo_pcp);
 
+	// MANEJO DE MENSAJES KERNEL-CPU
+	if( pthread_create(&hilo_kernel_cpu, NULL, manejar_respuesta_cpu, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo KERNEL-CPU");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_kernel_cpu);
+
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
 	log_info(logger, "Iniciada la conexión de Kernel como servidor: %d",socket_kernel);

@@ -4,6 +4,8 @@
 t_colas* colas_planificacion;
 sem_t sem_grado_multiprogramacion;
 sem_t sem_nuevo_proceso;
+sem_t cpu_liberada;
+sem_t proceso_enviado;
 
 sem_t sem_ready_proceso;
 sem_t sem_exec_proceso;
@@ -12,6 +14,7 @@ sem_t sem_exit_proceso;
 
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_ready;
+pthread_mutex_t mutex_cola_exec;
 pthread_mutex_t mutex_cola_exit;
 
 t_list* lista_recursos;
@@ -85,8 +88,11 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_exec_proceso, 0, 0);
 	sem_init(&sem_block_proceso, 0, 0);
 	sem_init(&sem_exit_proceso, 0, 0);
+	sem_init(&cpu_liberada, 0, 1);
+	sem_init(&proceso_enviado, 0, 0);
 	pthread_mutex_init(&mutex_cola_new, NULL);
 	pthread_mutex_init(&mutex_cola_ready, NULL);
+	pthread_mutex_init(&mutex_cola_exec, NULL);
 	pthread_mutex_init(&mutex_cola_exit, NULL);
 }
 
@@ -98,6 +104,9 @@ void destroy_semaforos(void) {
 	sem_destroy(&sem_exec_proceso);
 	sem_destroy(&sem_block_proceso);
 	sem_destroy(&sem_exit_proceso);
+
+	sem_destroy(&cpu_liberada);
+	sem_destroy(&proceso_enviado);
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
@@ -148,6 +157,8 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 		case BLOCK:
 			pcb = squeue_pop(colas_planificacion->cola_block);
 			break;
+		case BLOCK_RECURSO:
+			break;
 		default:
 			log_error(logger, "Error, no es un estado válido");
 			EXIT_FAILURE;
@@ -172,6 +183,8 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 			break;
 		case BLOCK:
 			squeue_pop(colas_planificacion->cola_block);
+			break;
+		case BLOCK_RECURSO:
 			break;
 		default:
 			log_error(logger, "Error, no es un estado válido");
@@ -252,10 +265,17 @@ void pasar_a_cola_exec(t_pcb* pcb, t_log* logger) {
 }
 
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola) {
-
+  
+	temporal_stop(pcb->tiempo_ejecucion);
 	squeue_pop(colas_planificacion->cola_exec);
+
 	char* estado_anterior = estado_string(pcb->estado_actual);
-	pcb->estado_actual = BLOCK;
+	if(cola == colas_planificacion->cola_block){
+		pcb->estado_actual = BLOCK;
+	}else{
+		pcb->estado_actual = BLOCK_RECURSO;
+	}
+	//pcb->estado_actual = BLOCK;
 	//queue_push(colas_planificacion->cola_block, pcb);
 	squeue_push(cola, pcb);
 	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
@@ -287,7 +307,7 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	//log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
 	//log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
 	enviar_contexto(socket_cpu, contexto_pcb, CONTEXTO_PROCESO, logger);
-
+	sem_post(&proceso_enviado);
 	free(contexto_pcb);
 }
 
@@ -337,6 +357,8 @@ char* estado_string(int cod_op) {
 			return "BLOCK";
 			break;
 		case 4:
+			return "BLOCK_RECURSO";
+		case 5:
 			return "EXIT";
 			break;
 		default:
@@ -375,12 +397,12 @@ void iniciar_recursos(char** recursos, char** instancias){
 		recurso->cola_bloqueados = squeue_create();
 
 		list_add(lista_recursos, recurso);
-		printf("INDICE_RECURSOS[%d] : %s --------> ",i, indice_recursos[i]);
-		printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
+		//printf("INDICE_RECURSOS[%d] : %s --------> ",i, indice_recursos[i]);
+		//printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
 	}
 }
 
-int buscar_recurso(char* nombre, t_log* logger){
+int buscar_recurso(char* nombre){
 
 	for(int i=0;i< string_array_size(indice_recursos);i++){
 		if(strcmp(nombre,(char*)indice_recursos[i]) == 0){
