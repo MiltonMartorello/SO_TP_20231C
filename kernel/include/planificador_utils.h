@@ -4,6 +4,7 @@
 #include <estructuras.h>
 #include <errno.h>
 #include <commons/string.h>
+#include <commons/collections/list.h>
 #include <stdlib.h>
 #include <semaphore.h>
 #include <stdio.h>

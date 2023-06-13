@@ -10,6 +10,7 @@
 #include <estructuras.h>
 #include "planificador_largo.h"
 #include "planificador_corto.h"
+#include "i_cpu.h"
 
 extern t_kernel_config* kernel_config;
 

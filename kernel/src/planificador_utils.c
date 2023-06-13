@@ -167,7 +167,8 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 			}
 			break;
 		case BLOCK:
-			pcb = squeue_pop(colas_planificacion->cola_block);
+			//pcb = squeue_pop(colas_planificacion->cola_block);
+			list_remove_element(colas_planificacion->cola_block->cola->elements,pcb);
 			break;
 		case BLOCK_RECURSO:
 			break;
@@ -194,7 +195,8 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 			temporal_stop(pcb_nuevo->tiempo_ejecucion);
 			break;
 		case BLOCK:
-			squeue_pop(colas_planificacion->cola_block);
+			//squeue_pop(colas_planificacion->cola_block);
+			list_remove_element(colas_planificacion->cola_block->cola->elements,pcb_nuevo);
 			break;
 		case BLOCK_RECURSO:
 			break;

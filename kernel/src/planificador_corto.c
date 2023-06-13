@@ -29,25 +29,6 @@ int planificador_corto_plazo(void* args_hilo) {
 	return 1;
 }
 
-void manejar_respuesta_cpu(void* args_hilo){
-
-	t_args_hilo_planificador* args = (t_args_hilo_planificador*) args_hilo;
-	t_log* kernel_logger = args->log;
-	t_config* config = args->config;
-	char* algoritmo = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
-	op_code cod_op;
-	t_contexto_proceso* contexto;
-
-	while(1){
-		sem_wait(&proceso_enviado);
-		t_pcb* pcb = (t_pcb*) squeue_peek(colas_planificacion->cola_exec);
-		cod_op = recibir_operacion(socket_cpu);
-		contexto = recibir_contexto(socket_cpu, logger);
-		actualizar_pcb(pcb, contexto);
-		procesar_contexto(pcb, cod_op, algoritmo, logger);
-	}
-}
-
 void loggear_registros(t_registro registro, t_log* logger) {
     log_info(logger, "Valores del registro:");
     log_info(logger, "AX: %.*s", 4, registro.AX);
@@ -62,147 +43,6 @@ void loggear_registros(t_registro registro, t_log* logger) {
     log_info(logger, "RBX: %.*s", 16, registro.RBX);
     log_info(logger, "RCX: %.*s", 16, registro.RCX);
     log_info(logger, "RDX: %.*s", 16, registro.RDX);
-}
-
-void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto) {
-	pcb->registros = contexto->registros;
-	pcb->program_counter = contexto->program_counter;
-	//temporal_stop(pcb->tiempo_ejecucion);//TODO : EN CASO DE SIGNAL Y WAIT SU TEMPORAL NO DEBERIA PARAR
-}
-
-void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger) {
-	//log_info(logger, "Procesando contexto");
-	char* nombre;
-	switch(cod_op) {
-		case PROCESO_DESALOJADO_POR_YIELD:
-
-			log_info(logger, "P_CORTO -> Proceso desalojado por Yield");
-			pasar_a_cola_ready(pcb, logger);
-			sem_post(&cpu_liberada);
-			break;
-		case PROCESO_FINALIZADO:
-
-			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
-			pasar_a_cola_exit(pcb, logger, SUCCESS);
-			sem_post(&cpu_liberada);
-			break;
-		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
-			log_info(logger, "P_CORTO -> Proceso desalojado por BLOQUEO");
-			log_info(logger, "PID: <%d> - Bloqueado por: <IO>",pcb->pid);
-
-			pthread_t thread_bloqueados;
-			t_args_hilo_block* args = malloc(sizeof(t_args_hilo_block));
-		
-			int tiempo_bloqueo = recibir_operacion(socket_cpu);//CPU le manda el tiempo
-
-			args->algoritmo = algoritmo;
-			args->tiempo_bloqueo = tiempo_bloqueo;
-			args->pcb = pcb;
-			args->logger = logger;
-			pcb->estimado_rafaga = pcb->nuevo_estimado;
-			pcb->nuevo_estimado = 0;
-
-      pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
-			pthread_create(&thread_bloqueados, NULL, (void *)bloqueo_io, (void*) args);
-			pthread_detach(thread_bloqueados);
-
-			sem_post(&cpu_liberada);
-			//pasar_a_cola_blocked(pcb, logger);
-			break;
-		case PROCESO_DESALOJADO_POR_WAIT:
-
-			nombre = recibir_recurso();
-			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT de %s ", nombre); //TODO modificar log
-			procesar_wait_recurso(nombre,pcb,algoritmo,logger);
-
-			break;
-
-		case PROCESO_DESALOJADO_POR_SIGNAL:
-
-			nombre = recibir_recurso();
-			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar SIGNAL de %s ", nombre);
-			procesar_signal_recurso(nombre, pcb, algoritmo, logger);
-      
-			break;
-		default:
-			log_error(logger, "Error: La respuesta del CPU es innesperada. Cod: %d", cod_op);
-			EXIT_FAILURE;
-	}
-
-}
-
-void bloqueo_io(void* vArgs){
-
-	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
-	char* algoritmo = args->algoritmo;
-	int tiempo = args->tiempo_bloqueo;
-	t_log* logger = args->logger;
-	t_pcb* pcb = args->pcb;
-
-	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", pcb->pid, tiempo);
-	sleep(tiempo);
-	pasar_a_ready_segun_algoritmo(algoritmo,pcb,logger);
-}
-
-void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger) {
-
-	int pos = buscar_recurso(nombre);
-
-	if(pos != -1 ){
-		t_recurso* recurso = (t_recurso*)list_get(lista_recursos,pos);
-		recurso->instancias--;
-		log_info(logger,"PID: <%d> - Wait: <%s> - Instancias: <%d>",pcb->pid,recurso->nombre,recurso->instancias);
-		if(recurso->instancias < 0){
-			pasar_a_cola_blocked(pcb, logger, recurso->cola_bloqueados);
-			log_info(logger,"PID: <%d> - Bloqueado por: <%s>",pcb->pid,nombre);
-			sem_post(&cpu_liberada);
-		}
-		else{
-			//pasar_a_ready_segun_algoritmo(algoritmo,pcb,logger);
-			ejecutar_proceso(socket_cpu, pcb, logger);
-		}
-	}
-	else{
-		log_info(logger, "No se encontro recurso %s , pasando PROCESO <%d> a EXIT",nombre,pcb->pid);
-		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
-		sem_post(&cpu_liberada);
-	}
-
-	free(nombre);
-}
-
-void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger){
-
-	int pos = buscar_recurso(nombre);
-
-	if(pos != -1){
-
-		t_recurso* recurso = (t_recurso*)list_get(lista_recursos,pos);
-		recurso->instancias++;
-		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",pcb->pid,nombre,recurso->instancias);
-
-		if(recurso->instancias <= 0){
-			pasar_a_ready_segun_algoritmo(algoritmo, squeue_pop(recurso->cola_bloqueados),logger);
-		}
-		ejecutar_proceso(socket_cpu, pcb, logger);
-		//pasar_a_ready_segun_algoritmo(algoritmo,proceso,logger);
-	}
-	else{
-		log_info(logger, "No se encontro recurso, pasando a EXIT");
-		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
-		sem_post(&cpu_liberada);
-	}
-
-	free(nombre);
-}
-
-
-void pasar_a_ready_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger){
-	if(string_equals_ignore_case(algoritmo, "HRRN")) {
-		pasar_a_cola_ready_en_orden(proceso, logger, comparador_hrrn);
-	} else {
-		pasar_a_cola_ready(proceso, logger);
-	}
 }
 
 t_pcb* planificar(char* algoritmo, t_log* logger) {
@@ -226,15 +66,6 @@ t_pcb* planificar(char* algoritmo, t_log* logger) {
 		log_error(logger, "Error: No existe el algoritmo: %s", algoritmo);
 		EXIT_FAILURE;
 	}
-}
-
-char * recibir_recurso(void)
-{
-	recibir_operacion(socket_cpu); //MENSAJE
-	int size;
-	char* nombre_recurso = (char*) recibir_buffer(&size, socket_cpu);
-
-	return nombre_recurso;
 }
 
 t_pcb* proximo_proceso_hrrn(t_log* logger) {

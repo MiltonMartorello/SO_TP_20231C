@@ -31,9 +31,10 @@ void set_valor_registro(char* nombre_registro,char* valor);
 int posicion_registro(char* nombre_registro);
 void devolver_proceso(int,t_contexto_proceso*,int,t_log*);
 void actualizar_registros_pcb(t_registro* registros);
+void setear_registros_desde_proceso(t_contexto_proceso* proceso);
 void loggear_registros(t_registro* registro);
 
-
+char* obtener_parametro(t_list* parametros, int posicion);
 t_list* armar_instrucciones(void);
 void imprimir_registros(t_registro* registros);
 void terminar(void);

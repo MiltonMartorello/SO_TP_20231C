@@ -85,6 +85,7 @@ void correr_servidor(void){
 				int operacion = recibir_operacion(socket_kernel);
 				if(operacion == CONTEXTO_PROCESO){ //TODO
 					t_contexto_proceso* proceso = recibir_contexto(socket_kernel, cpu_logger);
+					setear_registros_desde_proceso(proceso);
 					ciclo_de_instruccion(proceso,socket_kernel);
 					liberar_proceso(proceso);
 				}
@@ -111,57 +112,91 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 	bool fin_de_ciclo = false;
 	t_instruccion* una_instruccion;
-
+	t_list* parametros;
 	while(!fin_de_ciclo){
 
 		una_instruccion = list_get(proceso->instrucciones, proceso->program_counter);
+		parametros = una_instruccion->parametros;
 		proceso->program_counter++;
+		char* nombre_archivo;
 		switch (una_instruccion->codigo)
 		{
 		case ci_SET:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",proceso->pid,obtener_parametro(parametros,0),obtener_parametro(parametros,1));
 			usleep(cpu_config->retardo_instruccion * 1000);
-			set_valor_registro((char *)list_get(una_instruccion->parametros,0),(char*)list_get(una_instruccion->parametros,1));
+			set_valor_registro((char *)list_get(una_instruccion->parametros,0),obtener_parametro(parametros,1));
 			break;
 		case ci_MOV_IN:
+
 			break;
 		case ci_MOV_OUT:
 			break;
 		case ci_F_OPEN:
+			nombre_archivo = obtener_parametro(parametros,0);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>",proceso->pid,nombre_archivo);
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_OPEN,cpu_logger);
+			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			break;
 		case ci_F_CLOSE:
+			nombre_archivo = obtener_parametro(parametros,0);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_CLOSE> - <%s>",proceso->pid,nombre_archivo);
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_CLOSE,cpu_logger);
+			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			break;
 		case ci_F_SEEK:
+			nombre_archivo = obtener_parametro(parametros,0);
+			int posicion = atoi(obtener_parametro(parametros,1));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_SEEK> - <%s> - <%d>",proceso->pid,nombre_archivo,posicion);
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_SEEK,cpu_logger);
+			enviar_mensaje(nombre_archivo, socket, cpu_logger);
+			enviar_entero(socket, posicion);
 			break;
 		case ci_F_READ:
+			nombre_archivo = obtener_parametro(parametros,0);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_READ> - <%s> - <%s> - <%s>",proceso->pid,nombre_archivo,obtener_parametro(parametros,1),obtener_parametro(parametros,2));
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_READ,cpu_logger);
+			enviar_mensaje(nombre_archivo, socket, cpu_logger);
+			enviar_entero(socket, atoi(obtener_parametro(parametros,1)));
+			enviar_entero(socket, atoi(obtener_parametro(parametros, 2)));
 			break;
 		case ci_F_WRITE:
+			nombre_archivo = obtener_parametro(parametros,0);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_WRITE> - <%s> - <%s> - <%s>",proceso->pid,nombre_archivo,obtener_parametro(parametros,1),obtener_parametro(parametros,2));
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_WRITE,cpu_logger);
+			enviar_mensaje(nombre_archivo, socket, cpu_logger);
+			enviar_entero(socket, atoi(obtener_parametro(parametros,1)));
+			enviar_entero(socket, atoi(obtener_parametro(parametros, 2)));
 			break;
 		case ci_F_TRUNCATE:
+			nombre_archivo = obtener_parametro(parametros,0);
+			int tamanio = atoi(obtener_parametro(parametros,1));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_TRUNCATE> - <%s> - <%d>",proceso->pid,nombre_archivo,posicion);
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE,cpu_logger);
+			enviar_mensaje(nombre_archivo, socket, cpu_logger);
+			enviar_entero(socket, posicion);
 			break;
 
 		case ci_IO: //TODO funcion para loguear instrucciones
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO> - <%s>",proceso->pid,obtener_parametro(parametros,0));
 			devolver_proceso(socket,proceso,PROCESO_BLOQUEADO,cpu_logger);
-			enviar_handshake(socket,atoi(list_get(una_instruccion->parametros,0)));
-
+			enviar_entero(socket, atoi(obtener_parametro(parametros,0)));
 			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_BLOQUEADO");
 			return;
 			break;
 
 		case ci_WAIT:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT> - <%s>",proceso->pid,obtener_parametro(parametros,0));
 			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_WAIT,cpu_logger);
-			enviar_mensaje(list_get(una_instruccion->parametros,0),socket,cpu_logger);
+			enviar_mensaje(obtener_parametro(parametros,0),socket,cpu_logger);
 
 			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
 			return;
 			break;
 
 		case ci_SIGNAL:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL> - <%s>",proceso->pid,(char*)list_get(una_instruccion->parametros,0));
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL> - <%s>",proceso->pid,obtener_parametro(parametros,0));
 			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_SIGNAL,cpu_logger);
-			enviar_mensaje(list_get(una_instruccion->parametros,0),socket,cpu_logger);
+			enviar_mensaje(obtener_parametro(parametros,0),socket,cpu_logger);
 
 			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
 			return;
@@ -190,8 +225,11 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 		}
 
 	}
-
 	//free(una_instruccion);
+}
+
+char* obtener_parametro(t_list* parametros, int posicion){
+	return (char*)list_get(parametros,posicion);
 }
 
 void devolver_proceso(int socket,t_contexto_proceso* proceso,int codigo,t_log* logger){
@@ -293,6 +331,23 @@ void actualizar_registros_pcb(t_registro* registros) {
 //    log_info(cpu_logger, "Registro RDX: %.16s, %s", registros->RDX, registros_cpu.registros_16[3]);
 
    // loggear_registros(registros);
+}
+
+void setear_registros_desde_proceso(t_contexto_proceso* proceso){
+	t_registro* registros = &proceso->registros;
+
+	strcpy(registros_cpu.registros_4[0], registros->AX );
+	strcpy(registros_cpu.registros_4[1], registros->BX );
+	strncpy(registros_cpu.registros_4[2], registros->CX, 5);
+	strncpy(registros_cpu.registros_4[3], registros->DX,  5);
+	strncpy(registros_cpu.registros_8[0], registros->EAX, 9);
+	strncpy(registros_cpu.registros_8[1], registros->EBX, 9);
+	strncpy(registros_cpu.registros_8[2], registros->ECX, 9);
+	strncpy(registros_cpu.registros_8[3], registros->EDX, 9);
+	strncpy(registros_cpu.registros_16[0], registros->RAX, 17);
+	strncpy(registros_cpu.registros_16[1], registros->RBX, 17);
+	strncpy(registros_cpu.registros_16[2], registros->RCX, 17);
+	strncpy(registros_cpu.registros_16[3], registros->RDX, 17);
 }
 
 void limpiar_registros_cpu(int tam,char registro[][tam]){
