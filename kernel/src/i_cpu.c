@@ -34,15 +34,6 @@ void pasar_a_ready_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger)
 	}
 }
 
-char * recibir_string(void)
-{
-	recibir_operacion(socket_cpu); //MENSAJE
-	int size;
-	char* string = (char*) recibir_buffer(&size, socket_cpu);
-
-	return string;
-}
-
 void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logger) {
 	char* nombre;
 	switch(cod_op) {
@@ -81,12 +72,12 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_DESALOJADO_POR_WAIT:
-			nombre = recibir_string();
+			nombre = recibir_string(socket_cpu);
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT de %s ", nombre); //TODO modificar log
 			procesar_wait_recurso(nombre,pcb,algoritmo,logger);
 			break;
 		case PROCESO_DESALOJADO_POR_SIGNAL:
-			nombre = recibir_string();
+			nombre = recibir_string(socket_cpu);
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar SIGNAL de %s ", nombre);
 			procesar_signal_recurso(nombre, pcb, algoritmo, logger);
 			break;
@@ -94,31 +85,37 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_OPEN");
 			procesar_f_open(pcb);
 			ejecutar_proceso(socket_cpu, pcb, logger);
+			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_CLOSE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_CLOSE");
 			procesar_f_close(pcb);
 			ejecutar_proceso(socket_cpu, pcb, logger);
+			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_SEEK:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_SEEK");
 			procesar_f_seek(pcb);
 			ejecutar_proceso(socket_cpu, pcb, logger);
+			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_READ:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_READ");
 			procesar_f_read(pcb);
 			sem_post(&cpu_liberada);
+			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_WRITE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_WRITE");
 			procesar_f_write(pcb);
 			sem_post(&cpu_liberada);
+			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_TRUNCATE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_TRUNCATE");
 			procesar_f_truncate(pcb);
 			sem_post(&cpu_liberada);
+			return;
 			break;
 		default:
 			log_error(logger, "Error: La respuesta del CPU es innesperada. Cod: %d", cod_op);
@@ -190,38 +187,41 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	free(nombre);
 }
 
-void procesar_f_open(t_pcb* pcb){
-	char* nombre_archivo = recibir_string();
-	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%d>",pcb->pid,nombre_archivo);
+void procesar_f_open(t_pcb* pcb) {
+	char* nombre_archivo = recibir_string(socket_cpu);
+	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
+	sleep(10);
 }
 
-void procesar_f_close(t_pcb* pcb){
-	char* nombre_archivo = recibir_string();
-	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%d>",pcb->pid,nombre_archivo);
+void procesar_f_close(t_pcb* pcb) {
+	char* nombre_archivo = recibir_string(socket_cpu);
+	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%s>", pcb->pid, nombre_archivo);
 }
 
-void procesar_f_seek(t_pcb* pcb){
-	char* nombre_archivo = recibir_string();
+void procesar_f_seek(t_pcb* pcb) {
+	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
 }
 
-void procesar_f_read(t_pcb* pcb){
-	char* nombre_archivo = recibir_string();
+void procesar_f_read(t_pcb* pcb) {
+	char* nombre_archivo = recibir_string(socket_cpu);
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Leer Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
 }
 
-void procesar_f_write(t_pcb* pcb){
-	char* nombre_archivo = recibir_string();
+void procesar_f_write(t_pcb* pcb) {
+	char* nombre_archivo = recibir_string(socket_cpu);
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Escrbir Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
 }
 
-void procesar_f_truncate(t_pcb* pcb){
-	char* nombre_archivo = recibir_string();
+void procesar_f_truncate(t_pcb* pcb) {
+	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
 }

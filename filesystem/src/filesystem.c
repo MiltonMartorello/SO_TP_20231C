@@ -10,10 +10,10 @@ int main(void) {
     cargarConfigFS(config_fs);
 
     // Conectarse con Memoria
-    conectar_con_memoria();
+   // conectar_con_memoria();
 
     // Inicializar el File System
-    inicializarFS();
+    //inicializarFS();
 
     // Iniciar file system como servidor de kernel
     correr_servidor();
@@ -309,6 +309,7 @@ void correr_servidor(void) {
             log_info(logger, "Kernel Conectado.");
             log_info(logger, "TODO: Recibir Operación FS");
             enviar_mensaje("TODO: Generico", socket_kernel, logger);
+            recibir_request_kernel(socket_kernel);
             break;
         case -1:
             log_error(logger, "Se desconectó el cliente.");
@@ -319,6 +320,22 @@ void correr_servidor(void) {
             break;
 
     }
+}
+
+void recibir_request_kernel(int socket_kernel) {
+	int cod_op = recibir_operacion(socket_kernel);
+	char* nombre_archivo;
+	switch (cod_op) {
+		case F_OPEN:
+			nombre_archivo = recibir_string(socket_kernel);
+			log_info(logger, "Se recibió un F_OPEN para el archivo %s", nombre_archivo);
+			break;
+		case F_CREATE:
+			nombre_archivo = recibir_string(socket_kernel);
+			log_info(logger, "Se recibió un F_CREATE para el archivo %s", nombre_archivo);
+		default:
+			break;
+	}
 }
 
 void finalizarFS(int socket_servidor, t_log* logger, t_config* config) {

@@ -8,8 +8,8 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	char* config_path = argv[1];
-	//char* config_path = "./kernel_hrrn.config";
+	//char* config_path = argv[1];
+	char* config_path = "./kernel_hrrn.config";
 //	if(argc < 1){
 //		printf("Falta path a archivo de configuración.\n");
 //		return EXIT_FAILURE;
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 	//socket_memoria = conectar_con_memoria();
 
     /* -- CONEXIÓN CON FILESYSTEM -- */
-	//socket_filesystem = conectar_con_filesystem();
+	socket_filesystem = conectar_con_filesystem();
 
 	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
 	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
@@ -56,6 +56,13 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	pthread_detach(hilo_kernel_cpu);
+
+	if( pthread_create(&hilo_kernel_fs, NULL, procesar_file_system, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo KERNEL-FS");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_kernel_cpu);
+
 
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);

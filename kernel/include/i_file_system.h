@@ -21,9 +21,7 @@ typedef struct {
     pthread_mutex_t* mutex;
 } t_archivo_abierto;
 
-t_list* archivos_abiertos;
-int file_id = 0;
-
+extern t_colas* colas_planificacion;
 extern int socket_filesystem;
 extern sem_t request_file_system;
 extern t_log* logger;
