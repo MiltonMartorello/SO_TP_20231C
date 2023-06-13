@@ -192,12 +192,12 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 
 void procesar_f_open(t_pcb* pcb){
 	char* nombre_archivo = recibir_string();
-	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%d>",pcb->pid,nombre_archivo);
+	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>",pcb->pid,nombre_archivo);
 }
 
 void procesar_f_close(t_pcb* pcb){
 	char* nombre_archivo = recibir_string();
-	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%d>",pcb->pid,nombre_archivo);
+	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%s>",pcb->pid,nombre_archivo);
 }
 
 void procesar_f_seek(t_pcb* pcb){
