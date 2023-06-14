@@ -136,12 +136,14 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>", proceso->pid, nombre_archivo);
 			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_OPEN, cpu_logger);
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
+			return;
 			break;
 		case ci_F_CLOSE:
 			nombre_archivo = obtener_parametro(parametros,0);
 			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_CLOSE> - <%s>",proceso->pid,nombre_archivo);
 			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_CLOSE,cpu_logger);
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
+			return;
 			break;
 		case ci_F_SEEK:
 			nombre_archivo = obtener_parametro(parametros,0);
@@ -150,6 +152,7 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_SEEK,cpu_logger);
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			enviar_entero(socket, posicion);
+			return;
 			break;
 		case ci_F_READ:
 			nombre_archivo = obtener_parametro(parametros,0);
@@ -158,6 +161,7 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			enviar_entero(socket, atoi(obtener_parametro(parametros,1)));
 			enviar_entero(socket, atoi(obtener_parametro(parametros, 2)));
+			return;
 			break;
 		case ci_F_WRITE:
 			nombre_archivo = obtener_parametro(parametros,0);
@@ -166,6 +170,7 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			enviar_entero(socket, atoi(obtener_parametro(parametros,1)));
 			enviar_entero(socket, atoi(obtener_parametro(parametros, 2)));
+			return;
 			break;
 		case ci_F_TRUNCATE:
 			nombre_archivo = obtener_parametro(parametros,0);
@@ -174,6 +179,7 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE,cpu_logger);
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			enviar_entero(socket, posicion);
+			return;
 			break;
 
 		case ci_IO: //TODO funcion para loguear instrucciones

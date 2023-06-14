@@ -187,12 +187,12 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	free(nombre);
 }
 
+
 void procesar_f_open(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
 	squeue_push(colas_planificacion->cola_archivos, pcb);
 	sem_post(&request_file_system);
-	sleep(10);
 }
 
 void procesar_f_close(t_pcb* pcb) {
