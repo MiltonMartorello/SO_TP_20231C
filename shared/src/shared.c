@@ -56,8 +56,8 @@ void enviar_handshake(int socket, int operacion) {
 void enviar_entero(int socket, int operacion) {
     void *buffer = malloc(sizeof(int));
     memcpy(buffer, &operacion, sizeof(int));
+    //printf("Se van a enviar un entero: %d\n", operacion);
     send(socket, buffer, sizeof(int), 0);
-
     free(buffer);
 }
 
@@ -68,6 +68,7 @@ int recibir_operacion(int socket_cliente){
 	    fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
 		return errno;
 	}
+	//printf("Recibida operación %d\n", cod_op);
 	return cod_op;
 }
 
@@ -83,6 +84,7 @@ void* recibir_buffer(int* size, int socket_cliente)
 		fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
 		return errno;
 	}
+	//printf("Shared -> Se va a recibir un String de %d bytes\n", size);
 	buffer = malloc(*size);
 	if (recv(socket_cliente, buffer, *size, MSG_WAITALL) < 0) {
 		close(socket_cliente);
@@ -99,6 +101,15 @@ void recibir_mensaje(int socket_cliente,t_log* logger)
 	char* buffer = recibir_buffer(&size, socket_cliente);
 	log_info(logger, "Me llego el mensaje %s", buffer);
 	free(buffer);
+}
+
+char * recibir_string(int socket_cliente)
+{
+	recibir_operacion(socket_cliente); //MENSAJE
+	int size;
+	char* string = (char*) recibir_buffer(&size, socket_cliente);
+
+	return string;
 }
 
 t_list* recibir_paquete(int socket_cliente, t_log* logger)

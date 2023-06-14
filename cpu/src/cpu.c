@@ -133,8 +133,8 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			break;
 		case ci_F_OPEN:
 			nombre_archivo = obtener_parametro(parametros,0);
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>",proceso->pid,nombre_archivo);
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_OPEN,cpu_logger);
+			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>", proceso->pid, nombre_archivo);
+			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_OPEN, cpu_logger);
 			enviar_mensaje(nombre_archivo, socket, cpu_logger);
 			return;
 			break;
