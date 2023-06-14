@@ -7,6 +7,8 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include <commons/collections/queue.h>
+#include "estructuras.h"
+#include "file_parser.h"
 
 #define PATH_LOG "consola.log"
 
@@ -23,6 +25,6 @@ int conexion_a_kernel(char*, char*, t_log*);
  */
 
 t_buffer* serializar_programa(t_programa*, t_log*);
-t_buffer* serializar_instrucciones(t_list*, t_log*);
+
 int enviar_programa(t_buffer*, int, int, t_log*);
 #endif /* CONSOLA_H_ */

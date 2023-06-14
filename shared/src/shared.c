@@ -1,7 +1,7 @@
 #include "shared.h"
 #include <errno.h>
 
-t_log* logger;
+t_log* logger; //TODO se necesita aca?
 
 /*
  * SERVIDOR
@@ -45,11 +45,19 @@ int esperar_cliente(int socket_servidor, t_log* logger)
 	return socket_cliente;
 }
 
-void enviar_handshake(int socket,int operacion ) {
+void enviar_handshake(int socket, int operacion) {
     void *buffer = malloc(sizeof(int));
     memcpy(buffer, &operacion, sizeof(int));
     send(socket, buffer, sizeof(int), 0);
 
+    free(buffer);
+}
+
+void enviar_entero(int socket, int operacion) {
+    void *buffer = malloc(sizeof(int));
+    memcpy(buffer, &operacion, sizeof(int));
+    //printf("Se van a enviar un entero: %d\n", operacion);
+    send(socket, buffer, sizeof(int), 0);
     free(buffer);
 }
 
@@ -60,7 +68,12 @@ int recibir_operacion(int socket_cliente){
 	    fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
 		return errno;
 	}
+	//printf("Recibida operación %d\n", cod_op);
 	return cod_op;
+}
+
+int recibir_entero(int socket){
+	return recibir_operacion(socket);
 }
 
 void* recibir_buffer(int* size, int socket_cliente)
@@ -71,6 +84,7 @@ void* recibir_buffer(int* size, int socket_cliente)
 		fprintf(stderr, "recv: %s (%d)\n", strerror(errno), errno);
 		return errno;
 	}
+	//printf("Shared -> Se va a recibir un String de %d bytes\n", size);
 	buffer = malloc(*size);
 	if (recv(socket_cliente, buffer, *size, MSG_WAITALL) < 0) {
 		close(socket_cliente);
@@ -89,9 +103,18 @@ void recibir_mensaje(int socket_cliente,t_log* logger)
 	free(buffer);
 }
 
+char * recibir_string(int socket_cliente)
+{
+	recibir_operacion(socket_cliente); //MENSAJE
+	int size;
+	char* string = (char*) recibir_buffer(&size, socket_cliente);
+
+	return string;
+}
+
 t_list* recibir_paquete(int socket_cliente, t_log* logger)
 {
-	int size = 0;;
+	int size = 0;
 	int desplazamiento = 0;
 	void * buffer;
 	t_list* valores = list_create();
@@ -207,14 +230,29 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 
 void enviar_paquete(t_paquete* paquete, int socket_cliente)
 {
-	int bytes = paquete->buffer->size + 2*sizeof(int);
-	void* a_enviar = serializar_paquete(paquete, bytes);
+    // Cod Operacion + Size Paquete
+    int bytes = paquete->buffer->size + 2 * sizeof(int);
+//    printf("Bytes a enviar: %d\n", bytes);
+    void* a_enviar = serializar_paquete(paquete, bytes);
 
-	send(socket_cliente, a_enviar, bytes, 0);
+    if (a_enviar == NULL)
+    {
+        printf("Error al serializar el paquete.\n");
+        return; // O manejar el error de acuerdo a tu lógica
+    }
 
-	free(a_enviar);
+    int bytes_enviados = send(socket_cliente, a_enviar, bytes, 0);
+
+    if (bytes_enviados == -1)
+    {
+        printf("Error al enviar el paquete.\n");
+        free(a_enviar);
+        return; // O manejar el error de acuerdo a tu lógica
+    }
+
+//    printf("Bytes enviados: %d\n", bytes_enviados);
+    free(a_enviar);
 }
-
 
 void eliminar_paquete(t_paquete* paquete)
 {
@@ -251,7 +289,7 @@ t_log* iniciar_logger(char* path)
 		printf("No pude crear el logger \n");
 		exit(1);
 	}
-
+	free(nombre_log);
 	return nuevo_logger;
 }
 
@@ -284,6 +322,7 @@ void programa_destroy(t_programa* programa) {
 }
 
 int validar_conexion(int socket) {
+
 	int optval;
 	socklen_t optlen = sizeof(optval);
 	int err = getsockopt(socket, SOL_SOCKET, SO_ERROR, &optval, &optlen);
@@ -356,38 +395,4 @@ char* nombre_de_instruccion(int cod_op) {
 			EXIT_FAILURE;
 	}
 	return NULL;
-}
-
-t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
-	t_pcb* pcb = malloc(sizeof(t_pcb));
-	pcb->instrucciones = programa->instrucciones;
-	pcb->estado_actual = NEW;
-	pcb->estimado_rafaga = 0;
-	pcb->pid = pid_asignado;
-	pcb->program_counter = 0;
-	pcb->registros = crear_registro();
-	pcb->tabla_archivos_abiertos = list_create();
-	pcb->tabla_segmento = list_create();
-	pcb->tiempo_llegada = temporal_create();
-
-	return pcb;
-}
-
-void destroy_pcb(t_pcb* pcb) {
-	list_destroy(pcb->instrucciones);
-	list_destroy(pcb->tabla_archivos_abiertos);
-	list_destroy(pcb->tabla_segmento);
-	temporal_destroy(pcb->tiempo_llegada);
-	free(pcb);
-}
-
-//TODO revisar
-t_registro crear_registro(void) {
-
-	t_registro registro;
-	return registro;
-}
-
-void iniciar_colas(void) {
-
 }

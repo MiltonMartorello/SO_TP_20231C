@@ -8,31 +8,21 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include <estructuras.h>
+#include "planificador_largo.h"
+#include "planificador_corto.h"
+#include "i_cpu.h"
+#include "i_file_system.h"
 
-/* -- ESTRUCTURAS -- */
-typedef struct
-{
-	char* IP_MEMORIA;
-	char* PUERTO_MEMORIA;
-	char* IP_FILESYSTEM;
-	char* PUERTO_FILESYSTEM;
-	char* IP_CPU;
-	char* PUERTO_CPU;
-	char* PUERTO_ESCUCHA;
-    char* ALGORITMO_PLANIFICACION;
-    int ESTIMACION_INICIAL;
-    int HRRN_ALFA;
-    int GRADO_MAX_MULTIPROGRAMACION;
-    char** RECURSOS;
-    char** INSTANCIAS_RECURSOS;
+extern t_kernel_config* kernel_config;
 
-} t_kernel_config;
-
-t_kernel_config* kernel_config;
-
+// SE CREAN COMO ESTRUCTURAS. SI SE UTILIZAN EN HILOS RECORDAR DE PASAR COMO REFERENCIA CON -> &
+pthread_t hilo_plp; //PLANIFICADOR DE LARGO PLAZO
+pthread_t hilo_pcp; // PLANIFICADOR DE CORTO PLAZO
+pthread_t hilo_kernel_cpu; // MANEJO DE INTERFAZ CON LA CPU
+pthread_t hilo_kernel_fs; // MANEJO DE INTERFAZ CON FILE SYSTEM
 /* -- VARIABLES -- */
 int socket_cpu;
-int socket_filesystem;
+extern int socket_filesystem;
 int socket_memoria;
 int socket_kernel;
 int socket_consola;
@@ -42,7 +32,7 @@ int conectar_con_cpu();
 int conectar_con_memoria();
 int conectar_con_filesystem();
 void cargar_config_kernel();
-void finalizar_kernel(int socket_servidor, t_log* logger, t_config* config);
-int procesar_consola(void *args_hilo);
+void finalizar_kernel(int , t_log* , t_config*);
+int procesar_consola(void *);
 
 #endif

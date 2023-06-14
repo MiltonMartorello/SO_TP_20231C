@@ -21,13 +21,15 @@ extern t_log* logger;
  * */
 int iniciar_servidor(char*);
 int esperar_cliente(int,t_log*);
-void enviar_handshake(int,int);
+void enviar_handshake(int, int);
+void enviar_entero(int, int);
 int recibir_operacion(int);
+int recibir_entero(int socket);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
+char * recibir_string(int socket_cliente);
 t_list* recibir_paquete(int, t_log*);
-
-
+void* serializar_paquete(t_paquete* paquete, int bytes);
 /*
  * CLIENTE
  * */
@@ -50,10 +52,7 @@ t_log* iniciar_logger(char*);
 void terminar_programa(int, t_log*, t_config*);
 t_programa* crear_programa(t_list*);
 void programa_destroy(t_programa*);
+int validar_conexion(int socket);
 char* nombre_de_instruccion(int cod_op);
-t_pcb* crear_pcb(t_programa*, int );
-void destroy_pcb(t_pcb*);
-t_registro crear_registro(void);
-
 
 #endif /* SHARED_H_ */

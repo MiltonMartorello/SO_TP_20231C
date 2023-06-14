@@ -1,53 +1,96 @@
 #include "../include/kernel.h"
-#include "../include/planificador_largo.h"
 
-int main(void) {
+int socket_filesystem;
+
+int main(int argc, char **argv) {
 
 	logger = iniciar_logger("kernel.log");
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	t_config* config_kernel = iniciar_config("./kernel.config");
+	//char* config_path = argv[1];
+	char* config_path = "./kernel_hrrn.config";
+//	if(argc < 1){
+//		printf("Falta path a archivo de configuración.\n");
+//		return EXIT_FAILURE;
+//	}
+	t_config* config_kernel = iniciar_config(config_path);
 	cargar_config_kernel(config_kernel);
 
+
+	iniciar_recursos(kernel_config->RECURSOS,kernel_config->INSTANCIAS_RECURSOS);
 	iniciar_colas_planificacion();
+	iniciar_semaforos(kernel_config->GRADO_MAX_MULTIPROGRAMACION);
 
 	/* -- CONEXIÓN CON CPU -- */
-	//socket_cpu = conectar_con_cpu();
+	socket_cpu = conectar_con_cpu();
 
     /* -- CONEXIÓN CON MEMORIA -- */
 	//socket_memoria = conectar_con_memoria();
 
     /* -- CONEXIÓN CON FILESYSTEM -- */
-	//socket_filesystem = conectar_con_filesystem();
+	socket_filesystem = conectar_con_filesystem();
 
-//	PLANIFICACOR DE LARGO PLAZO
-	pthread_t hilo_plp;
-	int return_plp = pthread_create(&hilo_plp, NULL, (int*) planificador_largo_plazo, NULL);
+	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
+	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+	args->log = logger;
+	args->config = config_kernel;
+
+	//	PLANIFICACOR DE LARGO PLAZO
+	if( pthread_create(&hilo_plp, NULL, planificador_largo_plazo, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo Planificador de Largo Plazo");
+		exit(EXIT_FAILURE);
+	}
 	pthread_detach(hilo_plp);
+
+	//	PLANIFICACOR DE CORTO PLAZO
+	if( pthread_create(&hilo_pcp, NULL, planificador_corto_plazo, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo Planificador de Corto Plazo");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_pcp);
+
+	// MANEJO DE MENSAJES KERNEL-CPU
+	if( pthread_create(&hilo_kernel_cpu, NULL, manejar_respuesta_cpu, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo KERNEL-CPU");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_kernel_cpu);
+
+	if( pthread_create(&hilo_kernel_fs, NULL, procesar_file_system, (void*) args)  != 0) {
+		log_error(logger, "Error al inicializar el Hilo KERNEL-FS");
+		exit(EXIT_FAILURE);
+	}
+	pthread_detach(hilo_kernel_cpu);
+
 
 	/* -- INICIAR KERNEL COMO SERVIDOR DE CONSOLAS -- */
     socket_kernel = iniciar_servidor(kernel_config->PUERTO_ESCUCHA);
 	log_info(logger, "Iniciada la conexión de Kernel como servidor: %d",socket_kernel);
 
+
     while(1) {
 
-//        log_info(logger, "Esperando un cliente nuevo de la consola...");
+        log_info(logger, "Esperando conexión de consola...");
         int socket_consola = esperar_cliente(socket_kernel, logger);
-//        log_info(logger, "Entró una consola con el socket: %d", socket_consola);
+
+//        log_info(logger, "Se conectó una consola con el socket: %d", socket_consola);
         int estado_socket = validar_conexion(socket_consola);
 		int modulo = recibir_operacion(socket_consola);
 //		log_info(logger, "Recibida op code: %d", modulo);
+
 			switch (modulo) {
 				case CONSOLA:
 
-					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
 					pthread_t hilo_consola;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
 					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
 					args->socket = socket_consola;
+					args->socket_cpu = socket_cpu;
 					args->log = logger;
+					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
+
 					//args->mutex = mutex;
 
 					int return_hilo = pthread_create(&hilo_consola, NULL, (void*) procesar_consola, (void*) args);
@@ -55,9 +98,9 @@ int main(void) {
 						log_info(logger, "Terminando proceso con exit code de hilo: %d", return_hilo);
 						return -1;
 					}
-					pthread_join(hilo_consola, NULL);
+					pthread_detach(hilo_consola);
 
-					free(args);
+					//free(args);
 					break;
 
 				default:
@@ -68,6 +111,7 @@ int main(void) {
 
 	/* -- FINALIZAR PROGRAMA -- */
 	destroy_colas_planificacion();
+	destroy_semaforos();
 	finalizar_kernel(socket_kernel, logger, config_kernel);
 	return EXIT_SUCCESS;
 }
@@ -107,14 +151,13 @@ int conectar_con_memoria(){
 	return socket_memoria;
 }
 
-int conectar_con_cpu(){
+int conectar_con_cpu() {
 
 	log_info(logger, "Iniciando la conexión con CPU [IP %s] y [PUERTO:%s]", kernel_config->IP_CPU, kernel_config->PUERTO_CPU);
 
 	socket_cpu = crear_conexion(kernel_config->IP_CPU, kernel_config->PUERTO_CPU);
 	enviar_handshake(socket_cpu, KERNEL);
-	recibir_operacion(socket_cpu);
-	recibir_mensaje(socket_cpu, logger);
+
 	return socket_cpu;
 }
 

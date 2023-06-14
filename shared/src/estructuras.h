@@ -5,21 +5,49 @@
 #include <commons/bitarray.h>
 #include <commons/log.h>
 #include <commons/collections/queue.h>
+#include <commons/config.h>
+
 /*
  * GENERAL
  * */
 
 typedef enum
 {
-	MENSAJE,
+	// GENERAL
+	MENSAJE = 1,
 	PAQUETE,
-	KERNEL,
+	// HANDSHAKES
+	KERNEL = 10,
 	CPU,
 	FILESYSTEM,
 	CONSOLA,
-	PROGRAMA,
-	PROGRAMA_FINALIZADO
+	// CONSOLA-KERNEL
+	PROGRAMA = 20,
+	PROGRAMA_FINALIZADO,
+	// KERNEL-CPU
+	CONTEXTO_PROCESO = 30, //TODO
+	PROCESO_DESALOJADO_POR_YIELD,
+	PROCESO_FINALIZADO,
+	PROCESO_BLOQUEADO,
+	PROCESO_DESALOJADO_POR_WAIT,
+	PROCESO_DESALOJADO_POR_SIGNAL,
+	PROCESO_DESALOJADO_POR_F_OPEN,
+	PROCESO_DESALOJADO_POR_F_CLOSE,
+	PROCESO_DESALOJADO_POR_F_SEEK,
+	PROCESO_DESALOJADO_POR_F_READ,
+	PROCESO_DESALOJADO_POR_F_WRITE,
+	PROCESO_DESALOJADO_POR_F_TRUNCATE,
 } op_code;
+
+typedef enum
+{
+	// RETURN CODES DE KERNEL A CONSOLA
+	SUCCESS = 1,
+	SEG_FAULT,
+	OUT_OF_MEMORY,
+	NOT_DEFINED,
+	RESOURCE_NOT_FOUND
+} return_code;
 
 typedef struct
 {
@@ -33,18 +61,29 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-
 typedef struct {
 	int socket;
-	t_log *log;
+	int socket_cpu;
+	t_log* log;
 	pthread_mutex_t* mutex;
 } t_args_hilo_cliente;
 
-/*
- * PROGRAMA E INSTRUCCIONES
- * CONSOLA - KERNEL
- * */
+typedef struct {
+	t_log* log;
+	t_config* config;
+} t_args_hilo_planificador;
 
+typedef struct {
+	t_queue* cola;
+	pthread_mutex_t* mutex;
+} t_squeue;
+
+/*			// (void*)pcb,
+			// tiempo_bloqueo,
+			// (void*) algoritmo*/
+
+
+/*CODIGO DE INSTRUCCION*/
 typedef enum {
 	ci_SET = 1,
 	ci_WAIT,
@@ -61,9 +100,17 @@ typedef enum {
 	ci_DELETE_SEGMENT,
 	ci_MOV_IN,
 	ci_MOV_OUT,
-	ci_EXIT,
+	ci_EXIT
 } t_codigo_instruccion;
 
+typedef enum {
+	F_OPEN,
+	F_CREATE,
+	F_TRUNCATE,
+	F_READ,
+	F_WRITE,
+	FILE_NOT_EXISTS
+} t_codigo_operacionfs;
 
 typedef struct {
 	t_codigo_instruccion codigo;
@@ -76,58 +123,36 @@ typedef struct {
 	t_list* instrucciones;
 } t_programa;
 
-
-/*
- * PLANIFICACION
- * */
-
 // REGISTROS CPU
-// TODO REFACTORIZAR LOS REGISTROS A 4-8-16 BYTES
-typedef union {
-    char* AX;
-    char* BX;
-    char* CX;
-    char* DX;
-    char* EAX;
-    char* EBX;
-    char* ECX;
-    char* EDX;
-    char* RAX;
-    char* RBX;
-    char* RCX;
-    char* RDX;
+typedef struct {
+    char AX[5];
+    char BX[5];
+    char CX[5];
+    char DX[5];
+    char EAX[9];
+    char EBX[9];
+    char ECX[9];
+    char EDX[9];
+    char RAX[17];
+    char RBX[17];
+    char RCX[17];
+    char RDX[17];
 } t_registro;
 
-typedef enum{
-	NEW,
-	READY,
-	EXEC,
-	BLOCK,
-	EXIT
-} t_estado;
-
-typedef struct {
-	t_queue* cola_ready;
-	t_queue* cola_new;
-	t_queue* cola_exec;
-	t_queue* cola_block;
-	t_queue* cola_exit;
-} t_colas;
-
-// PCB
-typedef struct {
+typedef struct{
 	int pid;
-	t_list* instrucciones;
 	int program_counter;
+	t_list* instrucciones;
 	t_registro registros;
-	int estimado_rafaga;
-	t_temporal* tiempo_llegada;
-	t_estado estado_actual;
-	t_list* tabla_archivos_abiertos;
-	t_list* tabla_segmento;
-} t_pcb;
+	//t_list* tabla_segmentos;
+}t_contexto_proceso;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);
+t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger);
+t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger);
+void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger);
+t_contexto_proceso* recibir_contexto(int socket,t_log* logger);
+int size_of_registros(t_contexto_proceso* contexto);
 
 #endif /* SRC_ESTRUCTURAS_H_ */
