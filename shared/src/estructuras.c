@@ -181,6 +181,10 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger) {
 	return instrucciones;
 }
 
+t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos) {
+
+}
+
 void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log* logger){
 
 	t_paquete* paquete = crear_paquete(codigo);
