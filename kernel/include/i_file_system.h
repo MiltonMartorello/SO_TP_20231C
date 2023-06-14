@@ -28,13 +28,13 @@ extern t_log* logger;
 
 //Interface
 t_archivo_abierto* fs_crear_archivo(char* nombre_archivo);
+void enviar_request_fs(t_instruccion* instruccion, char* nombre_archivo);
 
 //Internos
 void procesar_file_system(void);
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);
 char* obtener_nombre_archivo(t_pcb* pcb);
 t_instruccion* obtener_instruccion(t_pcb* pcb);
-void  serializar_instruccion_fs(t_instruccion* instruccion);
 // Estructuras
 void iniciar_tablas_archivos_abiertos(void);
 void destroy_tablas_archivos_abiertos(void);

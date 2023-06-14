@@ -301,14 +301,11 @@ void correr_servidor(void) {
 
     // Quedar a la espera de la conexión por parte del Kernel
     socket_kernel = esperar_cliente(socket_fs, logger);
-
     int modulo = recibir_operacion(socket_kernel);
 
     switch (modulo) {
         case KERNEL:
             log_info(logger, "Kernel Conectado.");
-            log_info(logger, "TODO: Recibir Operación FS");
-            enviar_mensaje("TODO: Generico", socket_kernel, logger);
             recibir_request_kernel(socket_kernel);
             break;
         case -1:
@@ -323,19 +320,81 @@ void correr_servidor(void) {
 }
 
 void recibir_request_kernel(int socket_kernel) {
-	int cod_op = recibir_operacion(socket_kernel);
-	char* nombre_archivo;
-	switch (cod_op) {
-		case F_OPEN:
-			nombre_archivo = recibir_string(socket_kernel);
-			log_info(logger, "Se recibió un F_OPEN para el archivo %s", nombre_archivo);
-			break;
-		case F_CREATE:
-			nombre_archivo = recibir_string(socket_kernel);
-			log_info(logger, "Se recibió un F_CREATE para el archivo %s", nombre_archivo);
-		default:
-			break;
-	}
+    while(true) {
+		int cod_op = recibir_operacion(socket_kernel); // t_codigo_operacionfs
+		log_info(logger, "Recibida operación %d: %s", cod_op, nombre_de_instruccion(cod_op));
+		char* nombre_archivo = recibir_string(socket_kernel); //SE RECIBE TAMBIÉN EL NOMBRE DEL ARCHIVO YA QUE ES EL PRIMER PARAMETRO SIEMPRE
+		log_info(logger, "Recibido Archivo %s", nombre_archivo);
+		switch (cod_op) {
+			case F_OPEN:
+				//TODO
+				log_info(logger, "F_OPEN!");
+				  if (existe_archivo(nombre_archivo)) {
+					log_info(logger, "TRUE");
+					procesar_f_open(nombre_archivo);
+				  } else {
+					log_info(logger, "FALSE");
+					// Si no existe el archivo, el kernel debe decidir si se crea enviando un F_CREATE
+					enviar_entero(socket_kernel, FILE_NOT_EXISTS);
+				  }
+				log_info(logger, "Se recibió un F_OPEN para el archivo %s", nombre_archivo);
+				break;
+			case F_CREATE:
+				log_info(logger, "Se recibió un F_CREATE para el archivo %s", nombre_archivo);
+				procesar_f_create(nombre_archivo); //Respuesta a kernel puede estar dentro de la función o acá abajo
+				break;
+			case F_TRUNCATE:
+				//TODO
+				log_info(logger, "Se recibió un F_TRUNCATE para el archivo %s", nombre_archivo);
+				procesar_f_truncate(nombre_archivo);
+				break;
+			case F_READ:
+				//TODO
+				log_info(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
+				procesar_f_read(nombre_archivo);
+				break;
+			case F_WRITE:
+				//TODO
+				log_info(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
+				procesar_f_write(nombre_archivo);
+				break;
+			default:
+				break;
+		}
+    }
+}
+
+bool existe_archivo(char* nombre_archivo) {
+	//TODO
+	return true;
+}
+
+void procesar_f_open(char * nombre_archivo) {
+	//TODO
+	// tal vez no haya que hacer nada acá
+}
+
+void procesar_f_create(char * nombre_archivo) {
+	crearArchivo(nombre_archivo);
+	//TODO
+}
+
+void procesar_f_truncate(char * nombre_archivo) {
+	char* tamanio = recibir_string(socket_kernel);
+	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
+	// Ej: int tamanio_int = atoi(tamanio);
+}
+void procesar_f_read(char * nombre_archivo) {
+	char* direccion_logica = recibir_string(socket_kernel);
+	char* cantidad_de_bytes = recibir_string(socket_kernel);
+	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
+	// Ej: int tamanio_int = atoi(tamanio);
+}
+void procesar_f_write(char * nombre_archivo) {
+	char* direccion_logica = recibir_string(socket_kernel);
+	char* cantidad_de_bytes = recibir_string(socket_kernel);
+	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
+	// Ej: int tamanio_int = atoi(tamanio);
 }
 
 void finalizarFS(int socket_servidor, t_log* logger, t_config* config) {

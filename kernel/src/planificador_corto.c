@@ -25,6 +25,7 @@ int planificador_corto_plazo(void* args_hilo) {
 //		actualizar_pcb(pcb, contexto);
 		//log_info(logger, "P_CORTO -> Program Counter actualizado a %d", pcb->program_counter);
 //		procesar_contexto(pcb, cod_op, algoritmo, logger);
+		sleep(15);
 	}
 	return 1;
 }
