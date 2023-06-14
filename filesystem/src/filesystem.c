@@ -323,18 +323,17 @@ void correr_servidor(void) {
 void recibir_request_kernel(int socket_kernel) {
     while(true) {
 		int cod_op = recibir_operacion(socket_kernel); // t_codigo_operacionfs
-		log_info(logger, "Recibida operación %d: %s", cod_op, nombre_de_instruccion(cod_op));
+		log_info(logger, "Recibida operación %d", cod_op);
 		char* nombre_archivo = recibir_string(socket_kernel); //SE RECIBE TAMBIÉN EL NOMBRE DEL ARCHIVO YA QUE ES EL PRIMER PARAMETRO SIEMPRE
 		log_info(logger, "Recibido Archivo %s", nombre_archivo);
 		switch (cod_op) {
 			case F_OPEN:
 				//TODO
-				log_info(logger, "F_OPEN!");
 				  if (existe_archivo(nombre_archivo)) {
-					log_info(logger, "TRUE");
+//					log_info(logger, "TRUE");
 					procesar_f_open(nombre_archivo);
 				  } else {
-					log_info(logger, "FALSE");
+//					log_info(logger, "FALSE");
 					// Si no existe el archivo, el kernel debe decidir si se crea enviando un F_CREATE
 					enviar_entero(socket_kernel, FILE_NOT_EXISTS);
 				  }
@@ -367,7 +366,7 @@ void recibir_request_kernel(int socket_kernel) {
 
 bool existe_archivo(char* nombre_archivo) {
 	//TODO
-	return true;
+	return false;
 }
 
 void procesar_f_open(char * nombre_archivo) {
@@ -377,6 +376,12 @@ void procesar_f_open(char * nombre_archivo) {
 
 void procesar_f_create(char * nombre_archivo) {
 	crearArchivo(nombre_archivo);
+	char* respuesta_mock = malloc(strlen("/mock/resources/") + strlen(nombre_archivo) + 1); //MOCK
+	strcpy(respuesta_mock, "/mock/resources/"); //MOCK
+	strcat(respuesta_mock, nombre_archivo);  //MOCK
+	log_info(logger, "Creando Archivo en %s", respuesta_mock);  //MOCK
+	enviar_mensaje(respuesta_mock, socket_kernel, logger);  //MOCK
+	free(respuesta_mock); //MOCK
 	//TODO
 }
 

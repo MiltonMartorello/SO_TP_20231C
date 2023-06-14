@@ -21,15 +21,24 @@ void procesar_file_system(void) {
 	    log_info(logger, "FS_THREAD -> Llamando a FS por la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
 
 	    // TODO: EN BASE A LA FUNCION DE ARCHIVO QUE SEA, ENVIAR DISTINTOS MÉTODOS. TAL VEZ CONVENGA TENER EL F_FUNCTION EN EL PCB.
-	    if (archivo == NULL) {
+	    /*if (archivo == NULL) {
 	        // El archivo no está abierto, enviar mensaje al sistema de archivos para crearlo
 	    	log_info(logger, "FS_THREAD -> El archivo NO existe. Se Solicitará a File System crearlo");
 	    	archivo = fs_crear_archivo(nombre_archivo);
 	    } else {
 	    	log_info(logger, "FS_THREAD -> El archivo existe");
-	    }
+	    }*/
 	    enviar_request_fs(instruccion, nombre_archivo);
-
+	    int cod_respuesta = recibir_entero(socket_filesystem);
+	    switch (cod_respuesta) {
+			case FILE_NOT_EXISTS:
+				log_info(logger, "El Archivo que se intentó abrir no existe. Enviando F_CREATE %s", nombre_archivo);
+				t_archivo_abierto* archivo = fs_crear_archivo(nombre_archivo);
+				log_info(logger, "Se creó el archivo %s en el path: %s", archivo->nombre, archivo->path);
+				break;
+			default:
+				break;
+		}
 	}
 }
 
