@@ -1,17 +1,32 @@
 #include "../Include/memoria.h"
 
+t_espacio_usuario* espacio_usuario;
+t_memoria_config* memoria_config;
+
 int main(void) {
 
 	t_log *logger = iniciar_logger("memoria.log");
 
 	log_info(logger, "MODULO MEMORIA");
 
-	t_memoria_config* memoria_config = leer_config("memoria.config");
+	memoria_config = leer_config("memoria.config");
 
 	correr_servidor(logger, memoria_config->puerto_escucha);
 
+	iniciar_estructuras();
+
 	return EXIT_SUCCESS;
 }
+
+
+void iniciar_estructuras () {
+
+	espacio_usuario->espacio_usuario = malloc(memoria_config->tam_memoria);
+	log_info(logger, "Iniciado espacio de usuario con %d bytes", sizeof(espacio_usuario->espacio_usuario));
+
+
+}
+
 
 t_memoria_config* leer_config(char *path) {
 

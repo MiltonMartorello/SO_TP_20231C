@@ -18,6 +18,20 @@ typedef struct{
 	char* algoritmo_asignacion;
 }t_memoria_config;
 
+typedef struct {
+	int inicio;
+	int fin;
+	void* valor;
+}t_segmento;
+
+typedef struct {
+	void* espacio_usuario;
+	t_list* segmentos_activos;
+	t_list* huecos_libres;
+	t_segmento segmento_0;
+}t_espacio_usuario;
+
+
 t_memoria_config* leer_config(char *path);
 void correr_servidor(t_log *logger, char *puerto) ;
 int escuchar_clientes(int server_fd, t_log *logger);
