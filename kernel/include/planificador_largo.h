@@ -14,6 +14,7 @@
 
 // SOCKETS
 extern int socket_file_system;
+extern int socket_memoria;
 extern t_colas* colas_planificacion;
 extern sem_t sem_grado_multiprogramacion;
 extern sem_t sem_nuevo_proceso;

@@ -14,6 +14,8 @@ int planificador_largo_plazo(void* args_hilo) {
 		sem_wait(&sem_grado_multiprogramacion);
 		t_pcb* pcb = (t_pcb*)squeue_peek(colas_planificacion->cola_new);
 		log_info(logger, "P_LARGO -> Se va a Encolar un nuevo proceso %d", pcb->pid);
+		validar_conexion(socket_memoria);
+		enviar_entero(socket_memoria, MEMORY_CREATE_SEGMENT);
 //		log_info(logger,"Se paso un pcb con %d instrucciones -- planificador",list_size(pcb->instrucciones));
 		pasar_a_cola_ready(pcb, logger);
 //		log_info(logger,"Se paso un pcb con %d instrucciones -- planificador",list_size(pcb->instrucciones));
