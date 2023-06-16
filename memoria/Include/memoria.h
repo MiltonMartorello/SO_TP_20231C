@@ -19,25 +19,39 @@ typedef struct{
 }t_memoria_config;
 
 typedef struct {
+	int id;
 	int inicio;
-	int fin;
+	int tam_segmento;
 	void* valor;
 }t_segmento;
+
+typedef struct {
+	int inicio;
+	int fin;
+}t_hueco;
 
 typedef struct {
 	void* espacio_usuario;
 	t_list* segmentos_activos;
 	t_list* huecos_libres;
-	t_segmento segmento_0;
+	//t_segmento segmento_0;
 }t_espacio_usuario;
 
+t_log * logger;
+int id = 0;
+
+t_segmento* crear_segmento(int tam_segmento);
+void destroy_segmento(int id);
+t_hueco* crear_hueco(int inicio, int fin);
+void actualizar_hueco(t_hueco* hueco, int nuevo_piso);
 
 t_memoria_config* leer_config(char *path);
-void correr_servidor(t_log *logger, char *puerto) ;
+void correr_servidor(t_log *logger, char *puerto);
 int escuchar_clientes(int server_fd, t_log *logger);
 int aceptar_cliente(int socket_servidor);
 void procesar_cliente(void *args_hilo);
-void terminar_programa(int conexion, t_log* logger, t_config* config);
+void iniciar_estructuras(void);
+void destroy_estructuras(void);
 
 
 #endif
