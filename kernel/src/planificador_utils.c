@@ -77,6 +77,7 @@ void iniciar_colas_planificacion(void) {
 	colas_planificacion->cola_exit = squeue_create();
 	colas_planificacion->cola_new = squeue_create();
 	colas_planificacion->cola_ready = squeue_create();
+	colas_planificacion->cola_archivos = squeue_create();
 	colas_planificacion->log_ejecucion = squeue_create();
 }
 
@@ -87,6 +88,7 @@ void destroy_colas_planificacion(void) {
 	squeue_destroy(colas_planificacion->cola_exit);
 	squeue_destroy(colas_planificacion->cola_new);
 	squeue_destroy(colas_planificacion->cola_ready);
+	squeue_destroy(colas_planificacion->cola_archivos);
 	squeue_destroy(colas_planificacion->log_ejecucion);
 	free(colas_planificacion);
 }

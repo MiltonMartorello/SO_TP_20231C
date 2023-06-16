@@ -27,6 +27,7 @@ int recibir_operacion(int);
 int recibir_entero(int socket);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
+char * recibir_string(int socket_cliente);
 t_list* recibir_paquete(int, t_log*);
 void* serializar_paquete(t_paquete* paquete, int bytes);
 /*

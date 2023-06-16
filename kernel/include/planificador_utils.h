@@ -41,6 +41,7 @@ typedef struct {
 	t_squeue* cola_exec;
 	t_squeue* cola_block;
 	t_squeue* cola_exit;
+	t_squeue* cola_archivos;
 	t_squeue* log_ejecucion;
 } t_colas;
 
