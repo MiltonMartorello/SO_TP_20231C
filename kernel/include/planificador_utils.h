@@ -59,9 +59,8 @@ typedef struct {
 	t_pcb* pcb;
 	int tiempo_bloqueo;
 	char* algoritmo;
-	char* nombre_recurso;
 	t_log* logger;
-} t_args_hilo_block;
+} t_args_hilo_block_io;
 
 /* -- ESTRUCTURAS -- */
 typedef struct

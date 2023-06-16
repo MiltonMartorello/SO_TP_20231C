@@ -37,6 +37,12 @@ typedef enum
 	PROCESO_DESALOJADO_POR_F_READ,
 	PROCESO_DESALOJADO_POR_F_WRITE,
 	PROCESO_DESALOJADO_POR_F_TRUNCATE,
+	PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
+	PROCESO_DESALOJADO_POR_DELETE_SEGMENT,
+	PROCESO_DESALOJADO_POR_SEG_FAULT,
+	//CPU - MEMORIA
+	LEER_DIRECCION = 50,
+	ESCRIBIR_DIRECCION
 } op_code;
 
 typedef enum
@@ -144,7 +150,7 @@ typedef struct{
 	int program_counter;
 	t_list* instrucciones;
 	t_registro registros;
-	//t_list* tabla_segmentos;
+	t_list* tabla_segmentos;
 }t_contexto_proceso;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);

@@ -277,7 +277,7 @@ void pasar_a_cola_exec(t_pcb* pcb, t_log* logger) {
 	squeue_push(colas_planificacion->cola_exec, pcb);
 	squeue_push(colas_planificacion->log_ejecucion, pcb->pid);
 	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	sem_post(&sem_exec_proceso);
+	sem_post(&sem_exec_proceso); //TODO : para que se usa este semforo?
 }
 
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola) {
@@ -319,6 +319,7 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	contexto_pcb->program_counter = pcb->program_counter;
 	contexto_pcb->instrucciones = pcb->instrucciones;
 	contexto_pcb->registros = pcb->registros;
+	contexto_pcb->tabla_segmentos = pcb->tabla_segmento;
 	//log_info(logger,"El pcb tiene el PC en %d ",pcb->program_counter);
 	//log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
 	//log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
