@@ -22,7 +22,7 @@ int main(void) {
 t_segmento* crear_segmento(int tam_segmento) {
     t_segmento* segmento = malloc(sizeof(t_segmento));
     segmento->valor = malloc(tam_segmento);  // Este valor lo seteará CPU de ser necesario
-    segmento->id = id++; // id autoincremental de sistema (Descriptor)
+    segmento->segmento_id = id++; // id autoincremental de sistema (Descriptor)
 	segmento->tam_segmento = tam_segmento; // Con la base + el tamaño se calcula la posición final
 	log_info(logger, "Creando segmento con tamaño %d" ,tam_segmento);
 
@@ -43,7 +43,7 @@ t_segmento* crear_segmento(int tam_segmento) {
 	// Agregamos el segmento a la lista de segmentos activos
 	list_add(espacio_usuario->segmentos_activos, segmento);
 
-	log_info(logger, "Creado Segmento %d", segmento->id);
+	log_info(logger, "Creado Segmento %d", segmento->segmento_id);
 
 	return segmento;
 }
@@ -53,7 +53,7 @@ void destroy_segmento(int id) {
 	// Lambda
     bool encontrar_por_id(void* elemento) {
         t_segmento* segmento = (t_segmento*)elemento;
-        return segmento->id == id;
+        return segmento->segmento_id == id;
     }
     log_info(logger, "Eliminando segmento %d...", id);
     t_segmento* segmento = list_find(espacio_usuario->segmentos_activos, encontrar_por_id);
@@ -62,7 +62,7 @@ void destroy_segmento(int id) {
 		return;
 	}
     int tamanio = segmento->tam_segmento;
-    int inicio_segmento = segmento->id;
+    int inicio_segmento = segmento->segmento_id;
     free(segmento->valor);
     free(segmento);
     log_info(logger, "Eliminado Segmento %d de %d Bytes", id, tamanio);

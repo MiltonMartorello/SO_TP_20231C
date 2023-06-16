@@ -147,6 +147,15 @@ typedef struct{
 	//t_list* tabla_segmentos;
 }t_contexto_proceso;
 
+/*
+ * KERNEL - MEMORIA
+ * */
+typedef struct {
+	int segmento_id;
+	int inicio;
+	int tam_segmento;
+}t_segmento_tabla;
+
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);
 t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger);

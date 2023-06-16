@@ -8,7 +8,7 @@
 #include <commons/txt.h>
 #include "estructuras.h"
 
-typedef struct{
+typedef struct {
 	char* puerto_escucha;
 	uint32_t tam_memoria;
 	uint32_t tam_segmento_0;
@@ -19,11 +19,29 @@ typedef struct{
 }t_memoria_config;
 
 typedef struct {
-	int id;
+	int segmento_id;
 	int inicio;
 	int tam_segmento;
 	void* valor;
 }t_segmento;
+
+typedef struct {
+	int pid;
+	t_list* t_segmento_tabla;
+}t_tabla_segmento;
+/*
+ * PCB
+ * PID -> 1
+ * TABLA_ARCHIVOS BLA
+ * TABLA_DE_SEGMENTO {
+	 * SEGMENTO_0 {
+	 * 		SEGMENTO_ID
+	 * 		INICIO
+	 *
+	 * }, <-- EXISTE SIEMPRE ESC OMPARTIDO
+	 * SEGMENTO_1, <-- MEDIANTE CREATE_SEGMENT
+ * }
+ * */
 
 typedef struct {
 	int inicio;
