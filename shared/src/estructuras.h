@@ -126,7 +126,10 @@ typedef enum {
 	F_TRUNCATE,
 	F_READ,
 	F_WRITE,
-	FILE_NOT_EXISTS
+	F_NOT_EXISTS,
+	F_EXISTS,
+	F_OP_OK,
+	F_OP_ERROR
 } t_codigo_operacionfs;
 
 typedef struct {
