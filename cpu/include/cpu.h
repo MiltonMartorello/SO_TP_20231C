@@ -12,9 +12,9 @@ typedef struct{
 } t_cpu_config;
 
 typedef struct{
-    char registros_4[4][5];
-    char registros_8[4][9];
-    char registros_16[4][17];
+    char registros_4[4][4];
+    char registros_8[4][8];
+    char registros_16[4][16];
 } t_reg;
 
 void terminar(void);

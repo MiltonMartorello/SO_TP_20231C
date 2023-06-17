@@ -86,11 +86,6 @@ void procesar_kernel(int socket_kernel) {
 			case MEMORY_CREATE_TABLE:
 				int pid = recibir_entero(socket_kernel);
 				log_info(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
-				/*
-				 * typedef struct {
-						int pid;
-						t_list* tabla; // t_segmento_tabla
-					}t_tabla_segmento;*/
 				t_tabla_segmento* tabla_segmento = create_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento);
 				break;

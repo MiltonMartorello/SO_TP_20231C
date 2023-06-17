@@ -18,6 +18,7 @@ void manejar_respuesta_cpu(void* args_hilo){
 		contexto = recibir_contexto(socket_cpu, kernel_logger);
 		actualizar_pcb(pcb, contexto);
 		procesar_contexto(pcb, cod_op, algoritmo, kernel_logger);
+		//loggear_registros(pcb->registros, logger);
 	}
 }
 
