@@ -98,6 +98,12 @@ void procesar_kernel(int socket_kernel) {
 	}
 }
 
+void enviar_segmento(int socket_kernel, t_segmento *segmento_aux) {
+	enviar_entero(socket_kernel, segmento_aux->segmento_id); // SEGMENTO_ID
+	enviar_entero(socket_kernel, segmento_aux->inicio); // INICIO
+	enviar_entero(socket_kernel, segmento_aux->tam_segmento); // TAMAÑO SEGMENTO
+}
+
 void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento) {
 	enviar_entero(socket_kernel, MEMORY_SEGMENT_CREATED);
 	enviar_entero(socket_kernel, tabla_segmento->pid); // PID
@@ -105,8 +111,6 @@ void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento) 
 	int cant_segmentos = list_size(tabla_segmento->tabla);
 	for (int i = 0; i < cant_segmentos; ++i) { // TABLA DE SEGMENTOS
 		t_segmento* segmento_aux = list_get(tabla_segmento->tabla, i);
-		enviar_entero(socket_kernel, segmento_aux->segmento_id); // SEGMENTO_ID
-		enviar_entero(socket_kernel, segmento_aux->inicio); // INICIO
-		enviar_entero(socket_kernel, segmento_aux->tam_segmento); // TAMAÑO SEGMENTO
+		enviar_segmento(socket_kernel, segmento_aux);
 	}
 }
