@@ -16,7 +16,6 @@ int planificador_corto_plazo(void* args_hilo) {
 		t_pcb* pcb = planificar(algoritmo, logger);
 		//loggear_registros(pcb->registros, logger);
 		ejecutar_proceso(socket_cpu, pcb, logger);
-		//TODO RECIBIR UN SIGNAL EN PARTICULAR => MOTIVO
 //		op_code cod_op = recibir_operacion(socket_cpu);//pcb
 		//log_info(logger, "Recibida operación: %d", cod_op);
 //		t_contexto_proceso* contexto = recibir_contexto(socket_cpu, logger);
@@ -47,14 +46,9 @@ void loggear_registros(t_registro registro, t_log* logger) {
 
 t_pcb* planificar(char* algoritmo, t_log* logger) {
 	if (string_equals_ignore_case(algoritmo, "HRRN")) {
-		//t_list* lista_ordenada = list_sorted(colas_planificacion->cola_ready->elements, (bool (*)(void *, void *))comparador_hrrn);
-		//t_pcb* pcb = (t_pcb*)queue_peek(colas_planificacion->cola_ready);
-		// "FIFO"
-		// TODO: evaluar cola y tomar candidato
 		//log_info(logger, "planificando con %s", algoritmo);
 		t_pcb* pcb = proximo_proceso_hrrn(logger);
 		//loggear_cola_ready(logger, algoritmo);
-		log_info(logger,"PID:%d ",pcb->pid);
 		pasar_a_cola_exec(pcb, logger);
 		return pcb;
 	} else if (string_equals_ignore_case(algoritmo, "FIFO")){
@@ -77,7 +71,7 @@ t_pcb* proximo_proceso_hrrn(t_log* logger) {
 		list_sort(lista_ready, comparador_hrrn);
 	}
 	t_pcb* pcb = squeue_peek(colas_planificacion->cola_ready);
-	log_info(logger,"Candidato PID: %d", pcb->pid);
+	//log_info(logger,"Candidato PID: %d", pcb->pid);
 	loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 	return pcb;
 }

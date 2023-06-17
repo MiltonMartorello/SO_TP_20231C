@@ -163,7 +163,7 @@ typedef struct {
 	int segmento_id;
 	int inicio;
 	int tam_segmento;
-}t_segmento_tabla;
+}t_segmento;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);
