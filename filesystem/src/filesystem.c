@@ -58,6 +58,7 @@ void inicializarFS() {
         inicializarSuperBloque();
         inicializarBloques();
         inicializarBitmap();
+        truncarArchivo("ARCHIVO");
     }
 	else {
         log_info(logger, "File System NO encontrado, generando...");
@@ -88,33 +89,58 @@ void inicializarSuperBloque() {
     log_info(logger, "ARCHIVO %s LEIDO", fs_config->PATH_SUPERBLOQUE);
 }
 
-void inicializarBloques() {
+void inicializarBloques(void) {
     char* rutaBloques = fs_config->PATH_BLOQUES;
     int fd = open(rutaBloques, O_CREAT | O_RDWR, 0777);
+    FILE* archivo_bloques = fopen(rutaBloques, "rb");
     if (fd == -1) {
         log_error(logger, "No se pudo abrir el archivo bloques");
         exit(1);
     }
-    close(fd);
+    // cantidad_bloques * tamaño_bloque = tamaño_bytes
+    log_info(logger, "BLOCK_COUNT %d", fs_config->BLOCK_COUNT);
+    log_info(logger, "BLOCK_SIZE %d", fs_config->BLOCK_SIZE);
+    fseek(archivo_bloques, 0L, SEEK_END);
+    int size_archivo = ftell(archivo_bloques);
+    log_info(logger, "Posicion del archivo: %d", size_archivo);
+    if (size_archivo > 0) {
+		size_t size = (fs_config->BLOCK_COUNT * fs_config->BLOCK_SIZE); // N * 64
+		log_info(logger, "Size de %d ", size);
+
+		bloques = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+		if (bloques == NULL) {
+			log_error(logger, "El archivo de bloques esta vacío");
+		}
+		log_info(logger,"%s", (char*)bloques);
+		//t_bitarray* bloques_bitarray = bitarray_create(mapBitmap, size);
+
+    } else {
+    	bloques = NULL;
+    }
+	close(fd);
+	fclose(archivo_bloques);
     log_info(logger, "ARCHIVO %s LEIDO", rutaBloques);
 }
 
 void inicializarBitmap() {
     char* rutaBitmap = fs_config->PATH_BITMAP;
     int fd = open(rutaBitmap, O_CREAT | O_RDWR, 0777);
+    FILE* archivo_bitmap = fopen(rutaBitmap, "rb");
     if (fd == -1) {
         log_error(logger, "No se pudo abrir el archivo bitmap");
         exit(1);
     }
-
-    int cantidadBloques;
+    int cantidadBloques; // 65536 -> tengo 65536 bloques
     if ((fs_config->BLOCK_COUNT % 8) == 0) {
         cantidadBloques = fs_config->BLOCK_COUNT / 8;
     } else {
         cantidadBloques = (fs_config->BLOCK_COUNT / 8) + 1;
     }
 
-    ftruncate(fd, cantidadBloques / 8);
+//    fseek(archivo_bitmap, 0L, SEEK_END);
+//    int size_archivo = ftell(archivo_bitmap);
+//    if ()
+    ftruncate(fd, cantidadBloques);
 
     mapBitmap = mmap(NULL, cantidadBloques, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
@@ -123,19 +149,23 @@ void inicializarBitmap() {
         exit(1);
     }
 
-    memcpy(mapBitmap, &fs_config->BLOCK_SIZE, sizeof(uint32_t));
-    memcpy(mapBitmap + sizeof(uint32_t), &fs_config->BLOCK_COUNT, sizeof(uint32_t));
-    msync(mapBitmap, sizeof(uint32_t), MS_SYNC);
+//    memcpy(mapBitmap, &fs_config->BLOCK_SIZE, sizeof(uint32_t));
+//    memcpy(mapBitmap + sizeof(uint32_t), &fs_config->BLOCK_COUNT, sizeof(uint32_t));
+      msync(mapBitmap, sizeof(uint32_t), MS_SYNC);
 
-    bitmap = bitarray_create_with_mode(mapBitmap + sizeof(uint32_t) * 2, cantidadBloques * 8, LSB_FIRST);
+    bitmap = bitarray_create_with_mode(mapBitmap , cantidadBloques , LSB_FIRST);
 
     log_info(logger, "El tamaño del bitmap creado es de %d bits.", bitarray_get_max_bit(bitmap));
-
-//    for (int i = 0; i < fs_config->BLOCK_COUNT/8; i++) {
+//    for (int i = 0; i < bitarray_get_max_bit(bitmap); i++) {
+//    	log_info(logger, "%d" , bitarray_test_bit(bitmap,i));
 //    	bitarray_clean_bit(bitmap, i);
+//    	if (i >= 100) {
+//    		break;
+//    	}
 //	}
 
 	close(fd);
+	fclose(archivo_bitmap);
 	log_info(logger, "ARCHIVO %s LEIDO", rutaBitmap);
 }
 
@@ -187,7 +217,6 @@ void recibir_request_kernel(int socket_kernel) {
     while(true) {
 
     	int resultado;
-
     	int cod_op = recibir_operacion(socket_kernel); // t_codigo_operacionfs
 
     	log_info(logger, "Recibida operación %d", cod_op);
@@ -284,8 +313,8 @@ int crearArchivo(const char* nombreArchivo) {
 
     fprintf(archivo, "NOMBRE_ARCHIVO=%s\n", nombreArchivo);
     fprintf(archivo, "TAMANIO_ARCHIVO=%d\n", tamanioArchivo);
-    fprintf(archivo, "PUNTERO_DIRECTO=%s\n", "0");
-    fprintf(archivo, "PUNTERO_INDIRECTO=%s\n", "0");
+    fprintf(archivo, "PUNTERO_DIRECTO=%s\n", "");
+    fprintf(archivo, "PUNTERO_INDIRECTO=%s\n", "");
 
     fclose(archivo); // Cerrar el archivo
     log_info(logger,"Archivo creado exitosamente.");
@@ -293,18 +322,26 @@ int crearArchivo(const char* nombreArchivo) {
 }
 
 int truncarArchivo(const char* nombreArchivo) {
-	char* paramTamanio = recibir_string(socket_kernel);
+	//char* paramTamanio = recibir_string(socket_kernel);
+	char* paramTamanio = "10";
 	uint32_t nuevoTamanio = atoi(paramTamanio);
 	int cantidadBloques = nuevoTamanio/fs_config->BLOCK_SIZE;
 	levantarFCB(nombreArchivo);
-	int nuevoP_directo;
-	int nuevoP_indirecto;
+	int nuevoP_directo = fcb->PUNTERO_DIRECTO;
+	int nuevoP_indirecto = fcb->PUNTERO_INDIRECTO;
 
 	log_info(logger, "Truncar Archivo: %s - Tamaño: %d\n", nombreArchivo, nuevoTamanio);
 
-    if (nuevoTamanio > fcb->TAMANIO_ARCHIVO) {
-        if(fcb->PUNTERO_DIRECTO == 0){
-        	nuevoP_directo = obtenerPosIniDeNBloquesLibresEnBitmap(cantidadBloques);
+    if (nuevoTamanio > fcb->TAMANIO_ARCHIVO) {  // CASO DE 0 BLOQUES PRE-EXISTENTES
+        if(nuevoP_directo == NULL){
+        	// bloques
+        	int bloque_index = obtener_bloque_libre();
+        	log_info(logger, "Bloque índice encontrado: %d",bloque_index);
+        	t_bloque* bloque_dato = crear_bloque(bloque_index);
+        	bloque_index = obtener_bloque_libre();
+        	log_info(logger, "Bloque índice encontrado: %d",bloque_index);
+        	t_bloque* bloque_indice = crear_bloque(bloque_index);
+        	//nuevoP_directo = obtenerPosIniDeNBloquesLibresEnBitmap(cantidadBloques);
         	//	obtenerPosicioBloqueLibre();
         	//	bitarray_set_bit(t_bitarray*, off_t bit_index); //si no tiene valor busco el primero disponible
         }
@@ -317,8 +354,20 @@ int truncarArchivo(const char* nombreArchivo) {
     }
 
     actualizarFCB(fcb, nuevoTamanio, nuevoP_directo, nuevoP_indirecto);
-    persistirFCB(fcb, nombreArchivo);
+    //persistirFCB(fcb, nombreArchivo);
     return F_OP_OK;
+}
+
+t_bloque* crear_bloque(int bloque_index) {
+	int posicion_archivo = bloque_index * fs_config->BLOCK_SIZE;
+	t_bloque* bloque = malloc(sizeof(t_bloque));
+	bloque->datos = malloc(fs_config->BLOCK_SIZE);
+	bloque->inicio = posicion_archivo;
+	bloque->fin = posicion_archivo + fs_config->BLOCK_SIZE - 1;
+	log_info(logger, "Creado bloque [%d - %d]", bloque->inicio, bloque->fin);
+	bitarray_set_bit(bitmap, bloque_index);
+	//log_info(logger, "Seteado bit %d en %d", bloque_index, bitarray_test_bit(bitmap, bloque_index));
+	return bloque;
 }
 
 void levantarFCB(const char* nombreArchivo){
@@ -340,17 +389,15 @@ void persistirFCB(FCB* archivo, const char* nombre_archivo) {
     fclose(archivo_salida);
 }
 
-int obtenerPosIniDeNBloquesLibresEnBitmap(int cantidadBloques){
-
-	int pos = 0;
+int obtener_bloque_libre(void) {
 
 	//recorrer el bitmap hasta encontrar N posiciones contiguas
 	for(int i = 0; i < fs_config->BLOCK_COUNT; i++){
-			if(!bitarray_test_bit(bitmap, i)){ // Bloque disponible
-				pos = i;
-			}
+		if(!bitarray_test_bit(bitmap, i)){ // Bloque disponible
+			//log_info(logger, "testeando bit %d", i);
+			return i;
 		}
-
-	return pos;
+	}
+	return -1;
 }
 

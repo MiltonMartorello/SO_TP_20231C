@@ -29,6 +29,12 @@ typedef struct {
 } FCB;
 
 typedef struct {
+	void* datos;
+	int inicio;
+	int fin;
+}t_bloque;
+
+typedef struct {
     char* IP_MEMORIA;
     char* PUERTO_MEMORIA;
     char* PUERTO_ESCUCHA;
@@ -57,7 +63,8 @@ FCB* fcb;
 
 /* CONSTANTES */
 char* mapBitmap;
-
+void* bloques;
+t_bitarray* bloques_bitarray;
 
 /* -- FUNCIONES -- */
 
@@ -85,12 +92,12 @@ int truncarArchivo(const char* nombreArchivo);
 void levantarFCB(const char* nombreArchivo);
 void persistirFCB(FCB* archivo, const char* nombre_archivo);
 void actualizarFCB(FCB* archivo, int nuevo_tamanio, int nuevo_directo, int nuevo_indirecto);
-int obtenerPosIniDeNBloquesLibresEnBitmap(int cantidadBloques);
+int obtener_bloque_libre(void);
 void inicializarSuperBloque();
 void inicializarBloques();
 void inicializarBitmap();
 void crearDirectorio(char* path);
-
+t_bloque* crear_bloque(int bloque_index);
 void recibir_request_kernel(int socket_kernel);
 
 #endif /* FILESYSTEM_H_ */

@@ -47,7 +47,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_FINALIZADO:
 			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
-
+			sleep(15); //TODO QUITAR;
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
@@ -223,7 +223,7 @@ void procesar_f_close(t_pcb* pcb) {
 void procesar_f_seek(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
-	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
+	log_info(kernel_logger,"PID: <%dprocesar_f_truncate> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
 }
 
 void procesar_f_read(t_pcb* pcb) {
@@ -244,6 +244,8 @@ void procesar_f_truncate(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
 }
 
 void procesar_create_segment(t_pcb* pcb) {

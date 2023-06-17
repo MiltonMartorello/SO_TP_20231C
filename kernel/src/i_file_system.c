@@ -17,25 +17,22 @@ void procesar_file_system(void) {
 	    log_info(logger, "FS_THREAD -> Request de pid %d para el archivo %s",pid, nombre_archivo);
 	    t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
 	    t_instruccion* instruccion = obtener_instruccion(pcb);
-	    log_info(logger, "FS_THREAD -> Recibido PID con PC en %d", pcb->program_counter);
+	   // log_info(logger, "FS_THREAD -> Recibido PID con PC en %d", pcb->program_counter);
 	    log_info(logger, "FS_THREAD -> Llamando a FS por la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
 
-	    // TODO: EN BASE A LA FUNCION DE ARCHIVO QUE SEA, ENVIAR DISTINTOS MÉTODOS. TAL VEZ CONVENGA TENER EL F_FUNCTION EN EL PCB.
-	    /*if (archivo == NULL) {
-	        // El archivo no está abierto, enviar mensaje al sistema de archivos para crearlo
-	    	log_info(logger, "FS_THREAD -> El archivo NO existe. Se Solicitará a File System crearlo");
-	    	archivo = fs_crear_archivo(nombre_archivo);
-	    } else {
-	    	log_info(logger, "FS_THREAD -> El archivo existe");
-	    }*/
 	    enviar_request_fs(instruccion, nombre_archivo);
 	    int cod_respuesta = recibir_entero(socket_filesystem);
 	    switch (cod_respuesta) {
 			case F_NOT_EXISTS:
 				log_info(logger, "El Archivo que se intentó abrir no existe. Enviando F_CREATE %s", nombre_archivo);
 				t_archivo_abierto* archivo = fs_crear_archivo(nombre_archivo);
-				log_info(logger, "Se creó el archivo %s en el path: %s", archivo->nombre, archivo->path);
 				break;
+			case F_OP_OK:
+				// TODO: ALGO CON EL ARCHIVO;
+				// TODO: ALGO CON EL PROCESO BLOQUEADO
+				break;
+			case F_OP_ERROR:
+				log_error(logger, "FS_THREAD -> Error al enviar la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
 			default:
 				break;
 		}
@@ -92,11 +89,11 @@ t_archivo_abierto* fs_crear_archivo(char* nombre_archivo) {
 		log_error(logger, "FS_THREAD -> Error al crear archivo %s. Cod op recibido: %d", nombre_archivo, cod_op);
 		return EXIT_FAILURE;
 	}
-	int size_buffer = recibir_entero(socket_filesystem);
-	char* path = (char*)recibir_buffer(&size_buffer, socket_filesystem);
-	t_archivo_abierto* archivo = crear_archivo_abierto();
+	//int size_buffer = recibir_entero(socket_filesystem);
+	//char* path = (char*)recibir_buffer(&size_buffer, socket_filesystem);
+	t_archivo_abierto* archivo = crear_archivo_abierto(nombre_archivo);
 	archivo->nombre = nombre_archivo;
-	archivo->path = path;
+	//archivo->path = path;
 
 	return archivo;
 }
@@ -127,16 +124,16 @@ void destroy_tablas_archivos_abiertos(void) {
 	list_destroy(archivos_abiertos);
 }
 
-t_archivo_abierto* crear_archivo_abierto(void) {
+t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo) {
 
 	t_archivo_abierto* archivo = malloc(sizeof(t_archivo_abierto));
-	archivo->cant_aperturas = 0;
+	archivo->cant_aperturas = 1;
 	archivo->file_id = file_id++;
 	archivo->mutex = malloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(archivo->mutex , 0);
-	archivo->path = string_new();
-	archivo->nombre = string_new();
-
+	//archivo->path = string_new();
+	archivo->nombre = nombre_archivo;
+	log_info(logger, "Creado archivo %s [id: %d]",archivo->nombre, archivo->file_id);
 	return archivo;
 }
 
@@ -144,7 +141,7 @@ void archivo_abierto_destroy(t_archivo_abierto* archivo) {
 
     pthread_mutex_destroy(archivo->mutex);
     free(archivo->mutex);
-    free(archivo->path);
+    //free(archivo->path);
     free(archivo);
 }
 
