@@ -26,4 +26,6 @@ void procesar_f_seek(t_pcb* pcb);
 void procesar_f_read(t_pcb* pcb);
 void procesar_f_write(t_pcb* pcb);
 void procesar_f_truncate(t_pcb* pcb);
+void procesar_create_segment(t_pcb* pcb);
+void procesar_delete_segment(t_pcb* pcb);
 #endif

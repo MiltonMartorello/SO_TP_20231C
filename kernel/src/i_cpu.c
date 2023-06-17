@@ -39,25 +39,25 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 	char* nombre;
 	switch(cod_op) {
 		case PROCESO_DESALOJADO_POR_YIELD:
-
 			log_info(logger, "P_CORTO -> Proceso desalojado por Yield");
-			pasar_a_cola_ready(pcb, logger);
+			pasar_a_cola_ready(pcb, logger);// TODO: no era pasar_segun_algo?
+
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_FINALIZADO:
-
 			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
+
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
 			log_info(logger, "P_CORTO -> Proceso desalojado por BLOQUEO");
-			log_info(logger, "PID: <%d> - Bloqueado por: <IO>",pcb->pid);
+			log_info(logger, "PID: <%d> - Bloqueado por: <IO>", pcb->pid);
 
 			pthread_t thread_bloqueados;
-			t_args_hilo_block* args = malloc(sizeof(t_args_hilo_block));
+			t_args_hilo_block_io* args = malloc(sizeof(t_args_hilo_block_io));
 
-			int tiempo_bloqueo = recibir_operacion(socket_cpu);
+			int tiempo_bloqueo = recibir_entero(socket_cpu);
 
 			args->algoritmo = algoritmo;
 			args->tiempo_bloqueo = tiempo_bloqueo;
@@ -75,7 +75,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_WAIT:
 			nombre = recibir_string(socket_cpu);
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT de %s ", nombre); //TODO modificar log
-			procesar_wait_recurso(nombre,pcb,algoritmo,logger);
+			procesar_wait_recurso(nombre, pcb, algoritmo, logger);
 			break;
 		case PROCESO_DESALOJADO_POR_SIGNAL:
 			nombre = recibir_string(socket_cpu);
@@ -103,18 +103,37 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_F_READ:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_READ");
 			procesar_f_read(pcb);
+
 			sem_post(&cpu_liberada);
 			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_WRITE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_WRITE");
 			procesar_f_write(pcb);
+
 			sem_post(&cpu_liberada);
 			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_TRUNCATE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_TRUNCATE");
 			procesar_f_truncate(pcb);
+
+			sem_post(&cpu_liberada);
+			break;
+		case PROCESO_DESALOJADO_POR_CREATE_SEGMENT:
+			log_info(logger, "P_CORTO -> Proceso desalojado por CREATE_SEGMENT");
+			procesar_create_segment(pcb);
+			ejecutar_proceso(socket_cpu, pcb, logger);
+			break;
+		case PROCESO_DESALOJADO_POR_DELETE_SEGMENT:
+			log_info(logger, "P_CORTO -> Proceso desalojado por DELETE_SEGMENT");
+			procesar_delete_segment(pcb);
+			ejecutar_proceso(socket_cpu, pcb, logger);
+			break;
+		case PROCESO_DESALOJADO_POR_SEG_FAULT:
+			log_info(logger, "P_CORTO -> Proceso desalojado por SEG_FAULT");
+			pasar_a_cola_exit(pcb, logger, SEG_FAULT);
+
 			sem_post(&cpu_liberada);
 			return;
 			break;
@@ -127,7 +146,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 
 void bloqueo_io(void* vArgs){
 
-	t_args_hilo_block* args = (t_args_hilo_block*) vArgs;
+	t_args_hilo_block_io* args = (t_args_hilo_block_io*) vArgs;
 	char* algoritmo = args->algoritmo;
 	int tiempo = args->tiempo_bloqueo;
 	t_log* logger = args->logger;
@@ -225,5 +244,16 @@ void procesar_f_truncate(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
+}
+
+void procesar_create_segment(t_pcb* pcb) {
+	int id_segmento = recibir_entero(socket_cpu);
+	int tamanio = recibir_entero(socket_cpu);
+	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
+}
+
+void procesar_delete_segment(t_pcb* pcb) {
+	int id_segmento = recibir_entero(socket_cpu);
+	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
 }
 
