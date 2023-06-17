@@ -96,7 +96,6 @@ void inicializarBloques() {
         log_error(logger, "No se pudo abrir el archivo bloques");
         exit(1);
     }
-    ftruncate(fd, fs_config->BLOCK_COUNT);
     close(fd);
     log_info(logger, "ARCHIVO %s LEIDO", rutaBloques);
 }
@@ -115,6 +114,7 @@ void inicializarBitmap() {
     } else {
         cantidadBloques = (fs_config->BLOCK_COUNT / 8) + 1;
     }
+
     ftruncate(fd, cantidadBloques / 8);
 
     mapBitmap = mmap(NULL, cantidadBloques, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -132,9 +132,9 @@ void inicializarBitmap() {
 
     log_info(logger, "El tamaño del bitmap creado es de %d bits.", bitarray_get_max_bit(bitmap));
 
-    for (int i = 0; i < fs_config->BLOCK_COUNT/8; i++) {
-    	bitarray_clean_bit(bitmap, i);
-	}
+//    for (int i = 0; i < fs_config->BLOCK_COUNT/8; i++) {
+//    	bitarray_clean_bit(bitmap, i);
+//	}
 
 	close(fd);
 	log_info(logger, "ARCHIVO %s LEIDO", rutaBitmap);

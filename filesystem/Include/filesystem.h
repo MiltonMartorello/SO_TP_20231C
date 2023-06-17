@@ -1,6 +1,8 @@
 #ifndef FILESYSTEM_H_
 #define FILESYSTEM_H_
 
+#define PATH_CONFIG "file_system.config"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/config.h>
@@ -51,14 +53,11 @@ int estado_socket_kernel;
 char* superBloqueMap;
 Superbloque superbloque;
 t_bitarray* bitmap;
-char* mapBloques;
-char* mapBloquesOriginal;
 FCB* fcb;
 
 /* CONSTANTES */
 char* mapBitmap;
 
-#define PATH_CONFIG "file_system.config"
 
 /* -- FUNCIONES -- */
 
