@@ -61,7 +61,7 @@ int id = 0;
 t_segmento* crear_segmento(int tam_segmento);
 void destroy_segmento(int id);
 t_hueco* crear_hueco(int inicio, int fin);
-void actualizar_hueco(t_hueco* hueco, int nuevo_piso);
+void actualizar_hueco(t_hueco* hueco, int nuevo_piso, int nuevo_fin);
 
 t_memoria_config* leer_config(char *path);
 void correr_servidor(t_log *logger, char *puerto);
@@ -71,5 +71,11 @@ void procesar_cliente(void *args_hilo);
 void iniciar_estructuras(void);
 void destroy_estructuras(void);
 
+void consolidar(int inicio, int tamanio);
+t_hueco* buscar_hueco(int tamanio);
+t_list* filtrar_huecos_libres_por_tamanio(int tamanio);
+t_hueco* buscar_hueco_por_best_fit(int tamanio);
+t_hueco* buscar_hueco_por_first_fit(int tamanio);
+t_hueco* buscar_hueco_por_worst_fit(int tamanio);
 
 #endif
