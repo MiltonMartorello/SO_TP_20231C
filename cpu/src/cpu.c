@@ -306,34 +306,34 @@ void actualizar_registros_pcb(t_registro* registros) {
     strcpy(registros->BX, registros_cpu.registros_4[1]);
 //    log_info(cpu_logger, "Registro BX: %.4s, %s", registros->BX, registros_cpu.registros_4[1]);
 
-    strncpy(registros->CX, registros_cpu.registros_4[2], 5);
+    strcpy(registros->CX, registros_cpu.registros_4[2]);
 //    log_info(cpu_logger, "Registro CX: %.4s, %s", registros->CX, registros_cpu.registros_4[2]);
 
-    strncpy(registros->DX, registros_cpu.registros_4[3], 5);
+    strcpy(registros->DX, registros_cpu.registros_4[3]);
 //    log_info(cpu_logger, "Registro DX: %.4s, %s", registros->DX, registros_cpu.registros_4[3]);
 
-    strncpy(registros->EAX, registros_cpu.registros_8[0], 9);
+    strcpy(registros->EAX, registros_cpu.registros_8[0]);
 //    log_info(cpu_logger, "Registro EAX: %.8s, %s", registros->EAX, registros_cpu.registros_8[0]);
 
-    strncpy(registros->EBX, registros_cpu.registros_8[1], 9);
+    strcpy(registros->EBX, registros_cpu.registros_8[1]);
 //    log_info(cpu_logger, "Registro EBX: %.8s, %s", registros->EBX, registros_cpu.registros_8[1]);
 
-    strncpy(registros->ECX, registros_cpu.registros_8[2], 9);
+    strcpy(registros->ECX, registros_cpu.registros_8[2]);
 //    log_info(cpu_logger, "Registro ECX: %.8s, %s", registros->ECX, registros_cpu.registros_8[2]);
 
-    strncpy(registros->EDX, registros_cpu.registros_8[3], 9);
+    strcpy(registros->EDX, registros_cpu.registros_8[3]);
 //    log_info(cpu_logger, "Registro EDX: %.8s, %s", registros->EDX, registros_cpu.registros_8[3]);
 
-    strncpy(registros->RAX, registros_cpu.registros_16[0], 17);
+    strcpy(registros->RAX, registros_cpu.registros_16[0]);
 //    log_info(cpu_logger, "Registro RAX: %.16s, %s", registros->RAX, registros_cpu.registros_16[0]);
 
-    strncpy(registros->RBX, registros_cpu.registros_16[1], 17);
+    strcpy(registros->RBX, registros_cpu.registros_16[1]);
 //    log_info(cpu_logger, "Registro RBX: %.16s, %s", registros->RBX, registros_cpu.registros_16[1]);
 
-    strncpy(registros->RCX, registros_cpu.registros_16[2], 17);
+    strcpy(registros->RCX, registros_cpu.registros_16[2]);
 //    log_info(cpu_logger, "Registro RCX: %.16s, %s", registros->RCX, registros_cpu.registros_16[2]);
 
-    strncpy(registros->RDX, registros_cpu.registros_16[3], 17);
+    strcpy(registros->RDX, registros_cpu.registros_16[3]);
 //    log_info(cpu_logger, "Registro RDX: %.16s, %s", registros->RDX, registros_cpu.registros_16[3]);
 
    // loggear_registros(registros);
