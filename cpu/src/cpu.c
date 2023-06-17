@@ -1,4 +1,4 @@
-#include "../Include/cpu.h"
+#include "../include/cpu.h"
 
 t_log* cpu_logger;
 t_config* config;
@@ -7,6 +7,7 @@ int socket_kernel;
 int socket_memoria;
 t_cpu_config* cpu_config;
 t_reg registros_cpu;
+t_contexto_proceso* proceso;
 
 char* IP_CPU = "127.0.0.1";
 
@@ -60,7 +61,6 @@ void cargar_config(char* path){
 
 }
 
-
 void conexion_a_memoria(char* ip,char* puerto,t_log* logger){
 	socket_memoria = crear_conexion(ip,puerto);
 	enviar_handshake(socket_memoria,CPU);
@@ -84,7 +84,7 @@ void correr_servidor(void){
 			while(1){
 				int operacion = recibir_operacion(socket_kernel);
 				if(operacion == CONTEXTO_PROCESO){ //TODO
-					t_contexto_proceso* proceso = recibir_contexto(socket_kernel, cpu_logger);
+					proceso = recibir_contexto(socket_kernel, cpu_logger);
 					setear_registros_desde_proceso(proceso);
 					ciclo_de_instruccion(proceso,socket_kernel);
 					liberar_proceso(proceso);
@@ -107,143 +107,6 @@ void correr_servidor(void){
 	}
 }
 
-
-void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
-
-	bool fin_de_ciclo = false;
-	t_instruccion* una_instruccion;
-	t_list* parametros;
-	while(!fin_de_ciclo){
-
-		una_instruccion = list_get(proceso->instrucciones, proceso->program_counter);
-		parametros = una_instruccion->parametros;
-		proceso->program_counter++;
-		char* nombre_archivo;
-		switch (una_instruccion->codigo)
-		{
-		case ci_SET:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",proceso->pid,obtener_parametro(parametros,0),obtener_parametro(parametros,1));
-			usleep(cpu_config->retardo_instruccion * 1000);
-			set_valor_registro((char *)list_get(una_instruccion->parametros,0),obtener_parametro(parametros,1));
-			break;
-		case ci_MOV_IN:
-
-			break;
-		case ci_MOV_OUT:
-			break;
-		case ci_F_OPEN:
-			nombre_archivo = obtener_parametro(parametros,0);
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>", proceso->pid, nombre_archivo);
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_OPEN, cpu_logger);
-			enviar_mensaje(nombre_archivo, socket, cpu_logger);
-			return;
-			break;
-		case ci_F_CLOSE:
-			nombre_archivo = obtener_parametro(parametros,0);
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_CLOSE> - <%s>",proceso->pid,nombre_archivo);
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_CLOSE,cpu_logger);
-			enviar_mensaje(nombre_archivo, socket, cpu_logger);
-			return;
-			break;
-		case ci_F_SEEK:
-			nombre_archivo = obtener_parametro(parametros,0);
-			int posicion = atoi(obtener_parametro(parametros,1));
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_SEEK> - <%s> - <%d>",proceso->pid,nombre_archivo,posicion);
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_SEEK,cpu_logger);
-			enviar_mensaje(nombre_archivo, socket, cpu_logger);
-			enviar_entero(socket, posicion);
-			return;
-			break;
-		case ci_F_READ:
-			nombre_archivo = obtener_parametro(parametros,0);
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_READ> - <%s> - <%s> - <%s>",proceso->pid,nombre_archivo,obtener_parametro(parametros,1),obtener_parametro(parametros,2));
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_READ,cpu_logger);
-			enviar_mensaje(nombre_archivo, socket, cpu_logger);
-			enviar_entero(socket, atoi(obtener_parametro(parametros,1)));
-			enviar_entero(socket, atoi(obtener_parametro(parametros, 2)));
-			return;
-			break;
-		case ci_F_WRITE:
-			nombre_archivo = obtener_parametro(parametros,0);
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_WRITE> - <%s> - <%s> - <%s>",proceso->pid,nombre_archivo,obtener_parametro(parametros,1),obtener_parametro(parametros,2));
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_WRITE,cpu_logger);
-			enviar_mensaje(nombre_archivo, socket, cpu_logger);
-			enviar_entero(socket, atoi(obtener_parametro(parametros,1)));
-			enviar_entero(socket, atoi(obtener_parametro(parametros, 2)));
-			return;
-			break;
-		case ci_F_TRUNCATE:
-			nombre_archivo = obtener_parametro(parametros,0);
-			int tamanio = atoi(obtener_parametro(parametros,1));
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_TRUNCATE> - <%s> - <%d>",proceso->pid,nombre_archivo,posicion);
-			devolver_proceso(socket, proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE,cpu_logger);
-			enviar_mensaje(nombre_archivo, socket, cpu_logger);
-			enviar_entero(socket, posicion);
-			return;
-			break;
-
-		case ci_IO: //TODO funcion para loguear instrucciones
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO> - <%s>",proceso->pid,obtener_parametro(parametros,0));
-			devolver_proceso(socket,proceso,PROCESO_BLOQUEADO,cpu_logger);
-			enviar_entero(socket, atoi(obtener_parametro(parametros,0)));
-			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_BLOQUEADO");
-			return;
-			break;
-
-		case ci_WAIT:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT> - <%s>",proceso->pid,obtener_parametro(parametros,0));
-			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_WAIT,cpu_logger);
-			enviar_mensaje(obtener_parametro(parametros,0),socket,cpu_logger);
-
-			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
-			return;
-			break;
-
-		case ci_SIGNAL:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL> - <%s>",proceso->pid,obtener_parametro(parametros,0));
-			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_SIGNAL,cpu_logger);
-			enviar_mensaje(obtener_parametro(parametros,0),socket,cpu_logger);
-
-			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
-			return;
-			break;
-		case ci_CREATE_SEGMENT:
-			break;
-		case ci_DELETE_SEGMENT:
-			break;
-		case ci_YIELD:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <YIELD>",proceso->pid);
-			devolver_proceso(socket,proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
-			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_YIELD");
-			return;
-			break;
-		case ci_EXIT:
-			log_info(cpu_logger,"PID: <%d> - Ejecutando: <EXIT>",proceso->pid);
-			devolver_proceso(socket,proceso,PROCESO_FINALIZADO,cpu_logger);
-			log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_FINALIZADO");
-			fin_de_ciclo = true;
-			return;
-			break;
-
-		default:
-			log_info(cpu_logger, "Instruccion desconocida.");
-			break;
-		}
-
-	}
-	//free(una_instruccion);
-}
-
-char* obtener_parametro(t_list* parametros, int posicion){
-	return (char*)list_get(parametros,posicion);
-}
-
-void devolver_proceso(int socket,t_contexto_proceso* proceso,int codigo,t_log* logger){
-	actualizar_registros_pcb(&proceso->registros);
-	enviar_contexto(socket,proceso,codigo,logger);
-}
-
-
 void loggear_registros(t_registro* registro) {
     log_info(cpu_logger, "Valores del registro:");
     log_info(cpu_logger, "AX: %s", registro->AX);
@@ -260,45 +123,6 @@ void loggear_registros(t_registro* registro) {
     log_info(cpu_logger, "RDX: %s", registro->RDX);
 }
 
-
-void set_valor_registro(char* nombre_registro, char* valor){
-
-	char tipo_registro = nombre_registro[0];
-	int posicion = posicion_registro(nombre_registro);
-//	log_info(cpu_logger, "Set de tipo %c %s", tipo_registro, valor);
-	switch (tipo_registro)
-	{
-	case 'R':
-		strncpy(registros_cpu.registros_16[posicion],valor,16);
-//		log_info(cpu_logger, "Actualizando registro R: %s", valor);
-		break;
-
-	case 'E':
-		strncpy(registros_cpu.registros_8[posicion],valor,8);
-//		log_info(cpu_logger, "Actualizando registro E: %s", valor);
-		break;
-
-	default:
-		strncpy(registros_cpu.registros_4[posicion],valor,4);
-//		log_info(cpu_logger, "Actualizando registro X: %s", valor);
-		break;
-	}
-}
-
-int posicion_registro(char* nombre_registro){
-
-    int l = strlen(nombre_registro);
-    char tipo[2];
-    strcpy(tipo,&nombre_registro[l-2]);
-
-	if(strcmp(tipo,"AX") == 0) return 0;
-	if(strcmp(tipo,"BX") == 0) return 1;
-	if(strcmp(tipo,"CX") == 0) return 2;
-	if(strcmp(tipo,"DX") == 0) return 3;
-	return NULL;
-}
-
-
 void actualizar_registros_pcb(t_registro* registros) {
     strcpy(registros->AX, registros_cpu.registros_4[0]);
     //log_info(cpu_logger, "Registro AX %s, %s", registros->AX, registros_cpu.registros_4[0]);
@@ -306,34 +130,34 @@ void actualizar_registros_pcb(t_registro* registros) {
     strcpy(registros->BX, registros_cpu.registros_4[1]);
 //    log_info(cpu_logger, "Registro BX: %.4s, %s", registros->BX, registros_cpu.registros_4[1]);
 
-    strncpy(registros->CX, registros_cpu.registros_4[2], 5);
+    strcpy(registros->CX, registros_cpu.registros_4[2]);
 //    log_info(cpu_logger, "Registro CX: %.4s, %s", registros->CX, registros_cpu.registros_4[2]);
 
-    strncpy(registros->DX, registros_cpu.registros_4[3], 5);
+    strcpy(registros->DX, registros_cpu.registros_4[3]);
 //    log_info(cpu_logger, "Registro DX: %.4s, %s", registros->DX, registros_cpu.registros_4[3]);
 
-    strncpy(registros->EAX, registros_cpu.registros_8[0], 9);
+    strcpy(registros->EAX, registros_cpu.registros_8[0]);
 //    log_info(cpu_logger, "Registro EAX: %.8s, %s", registros->EAX, registros_cpu.registros_8[0]);
 
-    strncpy(registros->EBX, registros_cpu.registros_8[1], 9);
+    strcpy(registros->EBX, registros_cpu.registros_8[1]);
 //    log_info(cpu_logger, "Registro EBX: %.8s, %s", registros->EBX, registros_cpu.registros_8[1]);
 
-    strncpy(registros->ECX, registros_cpu.registros_8[2], 9);
+    strcpy(registros->ECX, registros_cpu.registros_8[2]);
 //    log_info(cpu_logger, "Registro ECX: %.8s, %s", registros->ECX, registros_cpu.registros_8[2]);
 
-    strncpy(registros->EDX, registros_cpu.registros_8[3], 9);
+    strcpy(registros->EDX, registros_cpu.registros_8[3]);
 //    log_info(cpu_logger, "Registro EDX: %.8s, %s", registros->EDX, registros_cpu.registros_8[3]);
 
-    strncpy(registros->RAX, registros_cpu.registros_16[0], 17);
+    strcpy(registros->RAX, registros_cpu.registros_16[0]);
 //    log_info(cpu_logger, "Registro RAX: %.16s, %s", registros->RAX, registros_cpu.registros_16[0]);
 
-    strncpy(registros->RBX, registros_cpu.registros_16[1], 17);
+    strcpy(registros->RBX, registros_cpu.registros_16[1]);
 //    log_info(cpu_logger, "Registro RBX: %.16s, %s", registros->RBX, registros_cpu.registros_16[1]);
 
-    strncpy(registros->RCX, registros_cpu.registros_16[2], 17);
+    strcpy(registros->RCX, registros_cpu.registros_16[2]);
 //    log_info(cpu_logger, "Registro RCX: %.16s, %s", registros->RCX, registros_cpu.registros_16[2]);
 
-    strncpy(registros->RDX, registros_cpu.registros_16[3], 17);
+    strcpy(registros->RDX, registros_cpu.registros_16[3]);
 //    log_info(cpu_logger, "Registro RDX: %.16s, %s", registros->RDX, registros_cpu.registros_16[3]);
 
    // loggear_registros(registros);
@@ -363,7 +187,6 @@ void limpiar_registros_cpu(int tam,char registro[][tam]){
 	}
 }
 
-
 void liberar_proceso(t_contexto_proceso* proceso){
 	limpiar_registros_cpu(4,registros_cpu.registros_4);
 	limpiar_registros_cpu(8,registros_cpu.registros_8);
@@ -380,3 +203,5 @@ void liberar_parametros_instruccion(void* instruccion){
 
 	free(una_instruccion);
 }
+
+

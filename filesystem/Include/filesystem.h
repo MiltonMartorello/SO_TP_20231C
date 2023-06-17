@@ -1,6 +1,8 @@
 #ifndef FILESYSTEM_H_
 #define FILESYSTEM_H_
 
+#define PATH_CONFIG "file_system.config"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/config.h>
@@ -35,6 +37,7 @@ typedef struct {
     char* PATH_BLOQUES;
     char* PATH_FCB;
     int RETARDO_ACCESO_BLOQUE;
+    char* PATH_FS;
     int BLOCK_COUNT;
     int BLOCK_SIZE;
 } t_fs_config;
@@ -50,26 +53,19 @@ int estado_socket_kernel;
 char* superBloqueMap;
 Superbloque superbloque;
 t_bitarray* bitmap;
-char* mapBloques;
-char* mapBloquesOriginal;
 FCB* fcb;
 
 /* CONSTANTES */
 char* mapBitmap;
 
-#define PATH_CONFIG "file_system.config"
 
 /* -- FUNCIONES -- */
 
 void cargarConfigFS(t_config* config_fs);
 void inicializarFS();
 int existeFS();
-void inicializarSuperBloque();
 void finalizarFS(int conexion, t_log* logger, t_config* config);
 
-bool existe_archivo(char* nombre_archivo); //TODO
-void procesar_f_open(char* nombre_archivo); //TODO
-void procesar_f_create(char * nombre_archivo);//TODO
 void procesar_f_truncate(char * nombre_archivo);//TODO
 void procesar_f_read(char * nombre_archivo);//TODO
 void procesar_f_write(char * nombre_archivo);//TODO
@@ -77,13 +73,24 @@ void procesar_f_write(char * nombre_archivo);//TODO
 
 void conectar_con_memoria();
 void correr_servidor();
-int abrirArchivo(const char* nombreArchivo);
-void crearArchivo(const char* nombreArchivo);
-void truncarArchivo(const char* nombreArchivo, uint32_t nuevoTamano);
 void leerArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
 void escribirArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
 void accederBitmap(uint32_t numeroBloque, int estado);
 void accederBloque(const char* nombreArchivo, uint32_t numeroBloqueArchivo, uint32_t numeroBloqueFS);
 int existeArchivo(char* ruta);
+
+int abrirArchivo(const char* nombreArchivo);
+int crearArchivo(const char* nombreArchivo);
+int truncarArchivo(const char* nombreArchivo);
+void levantarFCB(const char* nombreArchivo);
+void persistirFCB(FCB* archivo, const char* nombre_archivo);
+void actualizarFCB(FCB* archivo, int nuevo_tamanio, int nuevo_directo, int nuevo_indirecto);
+int obtenerPosIniDeNBloquesLibresEnBitmap(int cantidadBloques);
+void inicializarSuperBloque();
+void inicializarBloques();
+void inicializarBitmap();
+void crearDirectorio(char* path);
+
+void recibir_request_kernel(int socket_kernel);
 
 #endif /* FILESYSTEM_H_ */
