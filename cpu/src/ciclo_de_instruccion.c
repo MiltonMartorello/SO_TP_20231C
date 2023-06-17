@@ -12,10 +12,10 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 	bool fin_de_ciclo = false;
 	t_instruccion* una_instruccion;
 	t_list* parametros;
-
 	while(!fin_de_ciclo){
 
 		una_instruccion = list_get(proceso->instrucciones, proceso->program_counter);
+		//log_info(cpu_logger, "Cód instrucción: %d", una_instruccion->codigo);
 		parametros = una_instruccion->parametros;
 		proceso->program_counter++;
 
@@ -103,7 +103,7 @@ void execute_mov_in(char* registro,int direccion_logica) {
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
 
 	int valor = leer_memoria(direccion_fisica);
-	log_info(cpu_logger, "PID: <%d> - Acción: <LEER> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%d>",proceso->pid,segmento->id,direccion_fisica,valor);
+	log_info(cpu_logger, "PID: <%d> - Acción: <LEER> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%d>",proceso->pid,segmento->segmento_id,direccion_fisica,valor);
 
 	set_valor_registro(registro, valor);
 }
@@ -233,11 +233,11 @@ int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proce
 	t_segmento* segmento = obtener_segmento(direccion_logica,proceso->tabla_segmentos);
 
 	int offset = desplazamiento_segmento + cant_bytes;
-	if (offset > segmento->tamanio){ //SEG_FAULT
-		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>",proceso->pid,segmento->id,offset,segmento->tamanio);
+	if (offset > segmento->tam_segmento){ //SEG_FAULT
+		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>",proceso->pid,segmento->segmento_id,offset,segmento->tam_segmento);
 		return -1;
 	}
-	return segmento->base + desplazamiento_segmento;
+	return segmento->inicio + desplazamiento_segmento;
 }
 
 t_segmento* obtener_segmento(int direccion_logica,t_list* tabla_segmentos){

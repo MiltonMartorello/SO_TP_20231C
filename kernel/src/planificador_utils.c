@@ -320,10 +320,11 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	contexto_pcb->program_counter = pcb->program_counter;
 	contexto_pcb->instrucciones = pcb->instrucciones;
 	contexto_pcb->registros = pcb->registros;
-	contexto_pcb->tabla_segmentos = pcb->tabla_segmento;
-	//log_info(logger,"El pcb tiene el PC en %d ",pcb->program_counter);
-	//log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
-	//log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
+	//contexto_pcb->tabla_segmentos = pcb->tabla_segmento;
+	log_info(logger,"El pcb tiene el PC en %d ",pcb->program_counter);
+	log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
+	log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));
+	loggear_tabla(pcb);
 	enviar_contexto(socket_cpu, contexto_pcb, CONTEXTO_PROCESO, logger);
 	sem_post(&proceso_enviado);
 	free(contexto_pcb);

@@ -31,7 +31,7 @@ void procesar_file_system(void) {
 	    enviar_request_fs(instruccion, nombre_archivo);
 	    int cod_respuesta = recibir_entero(socket_filesystem);
 	    switch (cod_respuesta) {
-			case FILE_NOT_EXISTS:
+			case F_NOT_EXISTS:
 				log_info(logger, "El Archivo que se intentó abrir no existe. Enviando F_CREATE %s", nombre_archivo);
 				t_archivo_abierto* archivo = fs_crear_archivo(nombre_archivo);
 				log_info(logger, "Se creó el archivo %s en el path: %s", archivo->nombre, archivo->path);

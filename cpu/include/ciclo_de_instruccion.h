@@ -8,12 +8,6 @@
 #include <commons/config.h>
 #include "cpu.h"
 
-typedef struct{
-	int id;
-	int base;
-	int tamanio;
-}t_segmento;
-
 void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket);
 void execute_set(char* registro, char* valor);
 void execute_mov_in(char* registro,int direccion_logica);
