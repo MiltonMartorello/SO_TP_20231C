@@ -46,8 +46,9 @@ void enviar_request_fs(t_instruccion* instruccion, char* nombre_archivo) {
 	switch (instruccion->codigo) {
 		case ci_F_OPEN:
 			log_info(logger, "Enviando Request de ci_F_OPEN para el archivo %s ", nombre_archivo);
-			enviar_entero(socket_filesystem, F_OPEN);
+			enviar_entero(socket_filesystem, F_OPEN); // f_open ARCHIVO
 			enviar_mensaje(nombre_archivo, socket_filesystem, logger);
+
 			break;
 		case ci_F_READ:
 			log_info(logger, "Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);

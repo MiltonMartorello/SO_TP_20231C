@@ -2,45 +2,59 @@
 
 int main(void) {
 
-	t_log *logger = iniciar_logger("memoria.log");
+	logger = iniciar_logger("memoria.log");
 
 	log_info(logger, "MODULO MEMORIA");
 
-	t_memoria_config* memoria_config = leer_config("memoria.config");
+	memoria_config = leer_config("memoria.config");
+
+	iniciar_estructuras();
+	crear_segmento(memoria_config->tam_segmento_0);
 
 	correr_servidor(logger, memoria_config->puerto_escucha);
+	//destroy_segmento(0); // TODO, INYECCIÓN DE DEPENDENCIAS.
 
+	destroy_estructuras();
 	return EXIT_SUCCESS;
 }
 
-t_memoria_config* leer_config(char *path) {
+void procesar_cliente(void *args_hilo) {
 
-	t_config *config = iniciar_config(path);
-	t_memoria_config* tmp = malloc(sizeof(t_memoria_config));
+	t_args_hilo_cliente *args = (t_args_hilo_cliente*) args_hilo;
 
-	tmp->puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
-	tmp->tam_memoria = config_get_int_value(config,"TAM_MEMORIA");
-	tmp->tam_segmento_0 = config_get_int_value(config,"TAM_SEGMENTO_0");
-	tmp->cant_segmentos = config_get_int_value(config,"CANT_SEGMENTOS");
-	tmp->retardo_memoria = config_get_int_value(config,"RETARDO_MEMORIA");
-	tmp->retardo_compactacion = config_get_int_value(config,"RETARDO_COMPACTACION");
-	tmp->algoritmo_asignacion = config_get_int_value(config,"ALGORITMO_ASIGNACION");
+	int socket_cliente = args->socket;
+	t_log *logger = args->log;
 
-	//config_destroy(config);
+	int modulo = recibir_operacion(socket_cliente);
 
-	return tmp;
-}
+	switch (modulo) {
 
-void correr_servidor(t_log *logger, char *puerto) {
+	case CPU:
+		log_info(logger, "CPU conectado.");
+		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente, logger);
+		break;
 
-	int server_fd = iniciar_servidor(puerto);
+	case KERNEL:
+		log_info(logger, "Kernel conectado.");
+		enviar_mensaje("Hola KERNEL! -Memoria ", socket_cliente, logger);
+		procesar_kernel(socket_cliente);
+		break;
 
-	log_info(logger, "Iniciada la conexión de servidor de memoria: %d",server_fd);
+	case FILESYSTEM:
+		log_info(logger, "FileSystem conectado.");
+		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente, logger);
+		break;
+	case -1:
+		log_error(logger, "Se desconectó el cliente.");
+		break;
 
-	while(escuchar_clientes(server_fd,logger));
+	default:
+		log_error(logger, "Codigo de operacion desconocido.");
+		break;
+	}
 
-	liberar_conexion(server_fd);
-
+	free(args);
+	return;
 }
 
 int escuchar_clientes(int server_fd, t_log *logger) {
@@ -64,50 +78,43 @@ int escuchar_clientes(int server_fd, t_log *logger) {
 	return 0;
 }
 
-int aceptar_cliente(int socket_servidor) {
-	struct sockaddr_in dir_cliente;
-	int tam_direccion = sizeof(struct sockaddr_in);
+void procesar_kernel(int socket_kernel) {
 
-	int socket_cliente = accept(socket_servidor, (void*) &dir_cliente,(void*) &tam_direccion);
-
-	return socket_cliente;
-}
-
-void procesar_cliente(void *args_hilo) {
-
-	t_args_hilo_cliente *args = (t_args_hilo_cliente*) args_hilo;
-
-	int socket_cliente = args->socket;
-	t_log *logger = args->log;
-
-	int modulo = recibir_operacion(socket_cliente);
-
-	switch (modulo) {
-
-	case CPU:
-		log_info(logger, "CPU conectado.");
-		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente, logger);
-		break;
-
-	case KERNEL:
-		log_info(logger, "Kernel conectado.");
-		enviar_mensaje("Hola KERNEL! -Memoria ", socket_cliente, logger);
-		break;
-
-	case FILESYSTEM:
-		log_info(logger, "FileSystem conectado.");
-		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente, logger);
-		break;
-	case -1:
-		log_error(logger, "Se desconectó el cliente.");
-		break;
-
-	default:
-		log_error(logger, "Codigo de operacion desconocido.");
-		break;
+	while(true) {
+		int cod_op = recibir_operacion(socket_kernel);
+		switch (cod_op) {
+			case MEMORY_CREATE_TABLE:
+				int pid = recibir_entero(socket_kernel);
+				log_info(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
+				/*
+				 * typedef struct {
+						int pid;
+						t_list* tabla; // t_segmento_tabla
+					}t_tabla_segmento;*/
+				t_tabla_segmento* tabla_segmento = create_tabla_segmento(pid);
+				enviar_tabla_segmento(socket_kernel, tabla_segmento);
+				break;
+			case -1:
+				log_error(logger, "Se desconectó el cliente.");
+				break;
+			default:
+				break;
+		}
 	}
-
-	free(args);
-	return;
 }
+
+void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento) {
+	enviar_entero(socket_kernel, MEMORY_SEGMENT_CREATED);
+	enviar_entero(socket_kernel, tabla_segmento->pid); // PID
+
+	int cant_segmentos = list_size(tabla_segmento->tabla);
+	for (int i = 0; i < cant_segmentos; ++i) { // TABLA DE SEGMENTOS
+		t_segmento* segmento_aux = list_get(tabla_segmento->tabla, i);
+		enviar_entero(socket_kernel, segmento_aux->segmento_id); // SEGMENTO_ID
+		enviar_entero(socket_kernel, segmento_aux->inicio); // INICIO
+		enviar_entero(socket_kernel, segmento_aux->tam_segmento); // TAMAÑO SEGMENTO
+	}
+}
+
+
 

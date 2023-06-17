@@ -37,12 +37,23 @@ typedef enum
 	PROCESO_DESALOJADO_POR_F_READ,
 	PROCESO_DESALOJADO_POR_F_WRITE,
 	PROCESO_DESALOJADO_POR_F_TRUNCATE,
-	PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
+  PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
 	PROCESO_DESALOJADO_POR_DELETE_SEGMENT,
 	PROCESO_DESALOJADO_POR_SEG_FAULT,
+  
 	//CPU - MEMORIA
 	LEER_DIRECCION = 50,
 	ESCRIBIR_DIRECCION
+    
+  //KERNEL - MEMORIA
+	MEMORY_CREATE_TABLE = 60,
+	MEMORY_DELETE_TABLE,
+	MEMORY_CREATE_SEGMENT,
+	MEMORY_DELETE_SEGMET,
+	MEMORY_COMPACT,
+	MEMORY_SEGMENT_CREATED,
+	MEMORY_SEGMENT_DELETED,
+	MEMORY_SEG_FAULT
 } op_code;
 
 typedef enum
@@ -152,6 +163,15 @@ typedef struct{
 	t_registro registros;
 	t_list* tabla_segmentos;
 }t_contexto_proceso;
+
+/*
+ * KERNEL - MEMORIA
+ * */
+typedef struct {
+	int segmento_id;
+	int inicio;
+	int tam_segmento;
+}t_segmento;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);

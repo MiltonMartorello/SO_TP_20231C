@@ -7,23 +7,17 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include "estructuras.h"
+#include "memoria_utils.h"
 
-typedef struct{
-	char* puerto_escucha;
-	uint32_t tam_memoria;
-	uint32_t tam_segmento_0;
-	uint32_t cant_segmentos;
-	uint32_t retardo_memoria;
-	uint32_t retardo_compactacion;
-	char* algoritmo_asignacion;
-}t_memoria_config;
+extern t_espacio_usuario* espacio_usuario;
+extern t_memoria_config* memoria_config;
 
-t_memoria_config* leer_config(char *path);
-void correr_servidor(t_log *logger, char *puerto) ;
+extern t_log * logger;
+extern int id;
+
 int escuchar_clientes(int server_fd, t_log *logger);
-int aceptar_cliente(int socket_servidor);
 void procesar_cliente(void *args_hilo);
-void terminar_programa(int conexion, t_log* logger, t_config* config);
-
+void procesar_kernel(int socket_cliente);
+void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento);
 
 #endif

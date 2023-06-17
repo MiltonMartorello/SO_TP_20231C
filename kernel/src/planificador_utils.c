@@ -4,6 +4,7 @@ t_log* logger;
 
 // SOCKETS
 int socket_file_system;
+int socket_memoria;
 
 // LARGO PLAZO
 sem_t sem_grado_multiprogramacion;
