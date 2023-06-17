@@ -87,7 +87,12 @@ t_archivo_abierto* fs_crear_archivo(char* nombre_archivo) {
 	enviar_entero(socket_filesystem, F_CREATE);
 	enviar_mensaje(nombre_archivo, socket_filesystem, logger);
 
-	int size_buffer = recibir_operacion(socket_filesystem);
+	int cod_op = recibir_operacion(socket_filesystem); // F_OP_OK
+	if (cod_op != F_OP_OK) {
+		log_error(logger, "FS_THREAD -> Error al crear archivo %s. Cod op recibido: %d", nombre_archivo, cod_op);
+		return EXIT_FAILURE;
+	}
+	int size_buffer = recibir_entero(socket_filesystem);
 	char* path = (char*)recibir_buffer(&size_buffer, socket_filesystem);
 	t_archivo_abierto* archivo = crear_archivo_abierto();
 	archivo->nombre = nombre_archivo;

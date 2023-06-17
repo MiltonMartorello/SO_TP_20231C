@@ -1,13 +1,12 @@
 #include "../Include/filesystem.h"
 
-int main(void) {
+int main(int argc, char **argv) {
 
     logger = iniciar_logger("file_system.log");
     log_info(logger, "MODULO FILE SYSTEM");
-
-    config_fs = iniciar_config(PATH_CONFIG); // Inicializar configuración
+    config_fs = iniciar_config(argv[1]); // Inicializar configuración
     cargarConfigFS(config_fs);
-    conectar_con_memoria(); // Conectarse con Memoria
+    //conectar_con_memoria(); // Conectarse con Memoria
     inicializarFS(); // Inicializar el File System
     correr_servidor(); // Iniciar file system como servidor de kernel
     finalizarFS(socket_fs, logger, config_fs); // Finalizar el File System
@@ -251,7 +250,7 @@ void finalizarFS(int socket_servidor, t_log* logger, t_config* config) {
 }
 
 int abrirArchivo(const char* nombreArchivo) {
-    log_info(logger, "Abrir Archivo: %ss", nombreArchivo);
+    log_info(logger, "Abrir Archivo: %s", nombreArchivo);
     DIR* dir = opendir(fs_config->PATH_FCB);
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL) {

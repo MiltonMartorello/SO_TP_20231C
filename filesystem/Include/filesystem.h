@@ -1,7 +1,7 @@
 #ifndef FILESYSTEM_H_
 #define FILESYSTEM_H_
 
-#define PATH_CONFIG "file_system.config"
+#define PATH_CONFIG "./file_system.config"
 
 #include <stdio.h>
 #include <stdlib.h>
