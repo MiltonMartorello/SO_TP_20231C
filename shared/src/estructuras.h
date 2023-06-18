@@ -49,7 +49,7 @@ typedef enum
 	MEMORY_CREATE_TABLE = 60,
 	MEMORY_DELETE_TABLE,
 	MEMORY_CREATE_SEGMENT,
-	MEMORY_DELETE_SEGMET,
+	MEMORY_DELETE_SEGMENT,
 	MEMORY_COMPACT,
 	MEMORY_SEGMENT_CREATED,
 	MEMORY_SEGMENT_DELETED,
@@ -171,9 +171,9 @@ typedef struct{
  * KERNEL - MEMORIA
  * */
 typedef struct {
-	int segmento_id;
-	int inicio;
-	int tam_segmento;
+	uint32_t segmento_id;
+	uint32_t inicio;
+	uint32_t tam_segmento;
 }t_segmento;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
@@ -183,5 +183,11 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger);
 void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger);
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger);
 int size_of_registros(t_contexto_proceso* contexto);
+
+t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos);
+t_list* deserializar_tabla_segmentos(void* stream);
+void enviar_tabla_segmentos(int socket,t_list* tabla_segmentos);
+t_list* recibir_tabla_segmentos(int socket);
+
 
 #endif /* SRC_ESTRUCTURAS_H_ */

@@ -4,6 +4,7 @@
 #include "planificador_corto.h"
 
 extern int socket_cpu;
+extern int socket_memoria;
 extern t_colas* colas_planificacion;
 extern sem_t cpu_liberada;
 extern sem_t proceso_enviado;

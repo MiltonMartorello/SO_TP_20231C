@@ -9,7 +9,7 @@ int id = 0;
 void iniciar_estructuras(void) {
 	espacio_usuario = malloc(sizeof(t_espacio_usuario));
 	espacio_usuario->huecos_libres = list_create();
-	list_add(espacio_usuario->huecos_libres, crear_hueco(0, memoria_config->tam_memoria)); // la memoria se inicia con un hueco global
+	list_add(espacio_usuario->huecos_libres, crear_hueco(0, memoria_config->tam_memoria - 1)); // la memoria se inicia con un hueco global
 	espacio_usuario->segmentos_activos = list_create();
     log_info(logger, "Tamaño de memoria: %d", memoria_config->tam_memoria);
     espacio_usuario->espacio_usuario = malloc(memoria_config->tam_memoria);
@@ -73,19 +73,21 @@ void destroy_segmento(int id) {
 		return;
 	}
     int tamanio = segmento->tam_segmento;
-    int inicio_segmento = segmento->segmento_id;
+    int inicio_segmento = segmento->inicio;
     //free(segmento->valor);
-    free(segmento);
+    //free(segmento);
     log_info(logger, "Eliminado Segmento %d de %d Bytes", id, tamanio);
-    crear_hueco(inicio_segmento, inicio_segmento + tamanio);
-
+    //crear_hueco(inicio_segmento, inicio_segmento + tamanio);
+    consolidar(inicio_segmento,tamanio);
+    list_remove_element(espacio_usuario->segmentos_activos, segmento);
 }
 
 t_hueco* crear_hueco(int inicio, int fin) {
 	t_hueco* hueco = malloc(sizeof(t_hueco));
 	hueco->inicio = inicio;
 	hueco->fin = fin;
-	log_info(logger, "Creado Hueco Libre de memoria de %d Bytes", fin-inicio);
+	log_info(logger, "Creado Hueco Libre de memoria de %d Bytes", fin-inicio+1);
+	log_info(logger, "hueco: INICIO %d  FIN %d", inicio, fin);
 	list_add(espacio_usuario->huecos_libres, hueco);
 	// TODO CALCULAR CONSOLIDACIÓN
 	return hueco;
@@ -97,7 +99,7 @@ void actualizar_hueco(t_hueco* hueco, int nuevo_piso, int nuevo_fin) {
 	hueco->fin = nuevo_fin;
 	log_info(logger, "Hueco Libre actualizado: [%d-%d]", hueco->inicio, hueco->fin);
 	// Si el hueco quedó vacío. Lo eliminamos.
-	if(hueco->inicio >= hueco->fin) {
+	if(hueco->inicio > hueco->fin) {
 		log_info(logger, "El hueco quedó vacío. Eliminado hueco...");
 		eliminar_hueco(hueco);
 	}
@@ -187,20 +189,24 @@ void consolidar(int inicio, int tamanio) {
 	if(hueco_izquierdo != NULL){
 
 		if(hueco_derecho != NULL){
+			log_info(logger,"Tengo ambos vecinos :')");
 			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_derecho->fin);
 //			hueco_izquierdo->fin = hueco_derecho->fin;
 			eliminar_hueco(hueco_derecho);
 		}
 		else {
+			log_info(logger, "Tengo vecino izquierdo, Haremos fusion");
 			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_izquierdo->fin + tamanio);
 //			hueco_izquierdo->fin += tamanio;
 		}
 	}
 	else if(hueco_derecho != NULL){
+		log_info(logger, "Tengo vecino derecho, Haremos fusion");
 		actualizar_hueco(hueco_derecho, inicio, hueco_derecho->fin);
 //		hueco_derecho->inicio = inicio;
 	}
 	else{
+		log_info(logger,"No tengo vecinos :(");
 		crear_hueco(inicio, inicio + tamanio - 1); //TODO REVISAR
 	}
 
@@ -286,6 +292,27 @@ t_hueco* buscar_hueco_por_worst_fit(int tamanio){
 	return (t_hueco*) list_get_maximum(huecos_candidatos,&_fun_aux_2);
 }
 
+void loggear_huecos(void){
+	log_info(logger,"-----------HUECOS LIBRES-------");
+	log_info(logger,"HUECO_INICIO	HUECO_FIN");
+	void _log(void* elem){
+		t_hueco* hueco  = (t_hueco*) elem;
 
+		log_info(logger,"	%d			%d",hueco->inicio,hueco->fin);
+	}
 
+	list_iterate(espacio_usuario->huecos_libres,&_log);
+}
+
+void loggear_segmentos(void){
+	log_info(logger,"----------SEGMENTOS--------");
+	log_info(logger,"SEG_INICIO	SEG_FIN");
+	void _log(void* elem){
+		t_segmento* seg  = (t_segmento*) elem;
+
+		log_info(logger,"	%d	%d",seg->inicio,seg->inicio + seg->tam_segmento - 1);
+	}
+
+	list_iterate(espacio_usuario->segmentos_activos,&_log);
+}
 

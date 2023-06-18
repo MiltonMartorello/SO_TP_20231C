@@ -89,6 +89,20 @@ void procesar_kernel(int socket_kernel) {
 				t_tabla_segmento* tabla_segmento = create_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento);
 				break;
+			case MEMORY_CREATE_SEGMENT:
+				int id_crear = recibir_entero(socket_kernel);
+				int tamanio = recibir_entero(socket_kernel);
+				log_info(logger, "MEMORY_CREATE_SEGMENT tamanio %d",tamanio);
+				crear_segmento(tamanio);
+				loggear_segmentos();
+				break;
+			case MEMORY_DELETE_SEGMENT:
+				int id_eliminar = recibir_entero(socket_kernel);
+				log_info(logger, "MEMORY_DELETE_SEGMENT %d", id_eliminar);
+				destroy_segmento(id_eliminar);
+				loggear_segmentos();
+				loggear_huecos();
+				break;
 			case -1:
 				log_error(logger, "Se desconectó el cliente.");
 				break;

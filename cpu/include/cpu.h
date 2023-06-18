@@ -28,4 +28,6 @@ void limpiar_registros_cpu(int tam,char registro[][tam]);
 void liberar_proceso(t_contexto_proceso* proceso);
 void liberar_parametros_instruccion(void* instruccion);
 
+
+void loggear_tabla(t_contexto_proceso* pcb);
 #endif /* CPU_H_ */
