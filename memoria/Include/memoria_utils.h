@@ -90,6 +90,7 @@ t_hueco* buscar_hueco_por_worst_fit(int tamanio);
 
 void loggear_huecos(t_list* huecos);
 void loggear_tablas_segmentos(void);
+int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos);
 int tamanio_hueco(t_hueco* hueco);
 
 #endif /* MEMORIA_UTILS_H_ */
