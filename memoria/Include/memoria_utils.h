@@ -83,7 +83,7 @@ t_hueco* buscar_hueco_por_best_fit(int tamanio);
 t_hueco* buscar_hueco_por_first_fit(int tamanio);
 t_hueco* buscar_hueco_por_worst_fit(int tamanio);
 
-void loggear_huecos(void);
-void loggear_segmentos(void);
+void loggear_huecos(t_list* huecos);
+int tamanio_hueco(t_hueco* hueco);
 
 #endif /* MEMORIA_UTILS_H_ */

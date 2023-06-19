@@ -37,7 +37,7 @@ typedef enum
 	PROCESO_DESALOJADO_POR_F_READ,
 	PROCESO_DESALOJADO_POR_F_WRITE,
 	PROCESO_DESALOJADO_POR_F_TRUNCATE,
-  PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
+	PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
 	PROCESO_DESALOJADO_POR_DELETE_SEGMENT,
 	PROCESO_DESALOJADO_POR_SEG_FAULT,
   
@@ -45,7 +45,7 @@ typedef enum
 	LEER_DIRECCION = 50,
 	ESCRIBIR_DIRECCION,
     
-  //KERNEL - MEMORIA
+	//KERNEL - MEMORIA
 	MEMORY_CREATE_TABLE = 60,
 	MEMORY_DELETE_TABLE,
 	MEMORY_CREATE_SEGMENT,
@@ -186,8 +186,8 @@ int size_of_registros(t_contexto_proceso* contexto);
 
 t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos);
 t_list* deserializar_tabla_segmentos(void* stream);
-void enviar_tabla_segmentos(int socket,t_list* tabla_segmentos);
-t_list* recibir_tabla_segmentos(int socket);
-
+void enviar_tabla_de_segmentos(int socket,t_list* tabla_segmentos);
+t_list* recibir_tabla_de_segmentos(int socket);
+void loggear_segmentos(t_list* lista_segmentos, t_log* logger);
 
 #endif /* SRC_ESTRUCTURAS_H_ */

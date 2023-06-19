@@ -312,7 +312,7 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	eliminar_paquete(paquete);
 }
 
-void enviar_tabla_segmentos(int socket,t_list* tabla_segmentos){
+void enviar_tabla_de_segmentos(int socket,t_list* tabla_segmentos){
 	t_buffer* buffer = serializar_tabla_segmentos(tabla_segmentos);
 	int bytes = sizeof(int) + buffer->size;
 	void* magic = malloc(bytes);
@@ -327,7 +327,7 @@ void enviar_tabla_segmentos(int socket,t_list* tabla_segmentos){
 	free(buffer);
 }
 
-t_list* recibir_tabla_segmentos(int socket){
+t_list* recibir_tabla_de_segmentos(int socket){
 	int size;
 	void* stream;
 
@@ -431,4 +431,15 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	return proceso;
 }
 
+void loggear_segmentos(t_list* lista_segmentos, t_log* logger){
+	log_info(logger,"----------SEGMENTOS--------");
+	log_info(logger,"SEG_INICIO	SEG_FIN");
+	void _log(void* elem){
+		t_segmento* seg  = (t_segmento*) elem;
+
+		log_info(logger,"	%d	%d",seg->inicio,seg->inicio + seg->tam_segmento - 1);
+	}
+
+	list_iterate(lista_segmentos,&_log);
+}
 

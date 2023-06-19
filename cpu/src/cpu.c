@@ -85,7 +85,7 @@ void correr_servidor(void){
 				int operacion = recibir_operacion(socket_kernel);
 				if(operacion == CONTEXTO_PROCESO){ //TODO
 					proceso = recibir_contexto(socket_kernel, cpu_logger);
-					loggear_tabla(proceso);
+					loggear_segmentos(proceso->tabla_segmentos, cpu_logger);
 					setear_registros_desde_proceso(proceso);
 					ciclo_de_instruccion(proceso,socket_kernel);
 					liberar_proceso(proceso);
@@ -105,18 +105,6 @@ void correr_servidor(void){
 			return;
 			break;
 
-	}
-}
-
-void loggear_tabla(t_contexto_proceso* pcb) {
-	log_info(cpu_logger, "Tabla de PCB %d", pcb->pid);
-	int cant_segmentos = list_size(pcb->tabla_segmentos);
-	log_info(cpu_logger, " La cantidad de segmentos es: %d", cant_segmentos);
-	for (int i = 0; i < cant_segmentos; ++i) {
-		t_segmento* segmento = list_get(pcb->tabla_segmentos, i);
-		log_info(cpu_logger, "Segmento ID: %d", segmento->segmento_id);
-		log_info(cpu_logger, "Inicio: %d", segmento->inicio);
-		log_info(cpu_logger, "Tamaño: %d", segmento->tam_segmento);
 	}
 }
 
@@ -196,7 +184,7 @@ void setear_registros_desde_proceso(t_contexto_proceso* proceso){
 void limpiar_registros_cpu(int tam,char registro[][tam]){
 
 	for(int i=0; i < (sizeof(registro)/sizeof(registro[0])) ;i++ ){
-		strcpy(registro[i],"");
+		strcpy(&registro[i],"");
 	}
 }
 
@@ -206,6 +194,7 @@ void liberar_proceso(t_contexto_proceso* proceso){
 	limpiar_registros_cpu(17,registros_cpu.registros_16);
 
 	list_destroy_and_destroy_elements(proceso->instrucciones,(void*)liberar_parametros_instruccion);
+	list_destroy_and_destroy_elements(proceso->tabla_segmentos,&free);
 	free(proceso);
 }
 
