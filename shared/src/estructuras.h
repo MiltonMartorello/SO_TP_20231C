@@ -37,7 +37,7 @@ typedef enum
 	PROCESO_DESALOJADO_POR_F_READ,
 	PROCESO_DESALOJADO_POR_F_WRITE,
 	PROCESO_DESALOJADO_POR_F_TRUNCATE,
-  PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
+	PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
 	PROCESO_DESALOJADO_POR_DELETE_SEGMENT,
 	PROCESO_DESALOJADO_POR_SEG_FAULT,
   
@@ -45,11 +45,11 @@ typedef enum
 	LEER_DIRECCION = 50,
 	ESCRIBIR_DIRECCION,
     
-  //KERNEL - MEMORIA
+	//KERNEL - MEMORIA
 	MEMORY_CREATE_TABLE = 60,
 	MEMORY_DELETE_TABLE,
 	MEMORY_CREATE_SEGMENT,
-	MEMORY_DELETE_SEGMET,
+	MEMORY_DELETE_SEGMENT,
 	MEMORY_COMPACT,
 	MEMORY_SEGMENT_CREATED,
 	MEMORY_SEGMENT_DELETED,
@@ -171,9 +171,9 @@ typedef struct{
  * KERNEL - MEMORIA
  * */
 typedef struct {
-	int segmento_id;
-	int inicio;
-	int tam_segmento;
+	uint32_t segmento_id;
+	uint32_t inicio;
+	uint32_t tam_segmento;
 }t_segmento;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
@@ -183,5 +183,11 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger);
 void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger);
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger);
 int size_of_registros(t_contexto_proceso* contexto);
+
+t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos);
+t_list* deserializar_tabla_segmentos(void* stream);
+void enviar_tabla_de_segmentos(int socket,t_list* tabla_segmentos);
+t_list* recibir_tabla_de_segmentos(int socket);
+void loggear_segmentos(t_list* lista_segmentos, t_log* logger);
 
 #endif /* SRC_ESTRUCTURAS_H_ */

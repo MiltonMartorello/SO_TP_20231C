@@ -247,21 +247,16 @@ t_segmento* obtener_segmento(int direccion_logica,t_list* tabla_segmentos){
 
 //--------------LLAMADAS A MEMORIA
 int leer_memoria(int direccion_fisica){
-
-	t_paquete* paquete = crear_paquete(LEER_DIRECCION);
-	agregar_a_paquete(paquete, direccion_fisica, sizeof(int));
-	enviar_paquete(paquete, socket_memoria);
-
-	return recibir_entero(socket_memoria);
+	enviar_entero(socket_memoria, LEER_DIRECCION);
+	enviar_entero(direccion_fisica);
+	char* respuesta = recibir_string(socket_memoria);
+	return respuesta;
 }
 
 void escribir_memoria(int direccion_fisica, char* valor_a_escribir){
-
-	t_paquete* paquete = crear_paquete(ESCRIBIR_DIRECCION);
-	agregar_a_paquete(paquete, (void*) direccion_fisica, sizeof(int));
-	agregar_a_paquete(paquete, valor_a_escribir, string_length(valor_a_escribir));
-	enviar_paquete(paquete, socket_memoria);
-
+	enviar_entero(socket_memoria, ESCRIBIR_DIRECCION);
+	enviar_entero(socket_memoria, direccion_fisica);
+	enviar_mensaje(valor_a_escribir, socket_memoria, cpu_logger);
 }
 
 //-------------MANEJO DE REGISTROS

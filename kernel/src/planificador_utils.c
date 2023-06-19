@@ -320,7 +320,7 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	contexto_pcb->program_counter = pcb->program_counter;
 	contexto_pcb->instrucciones = pcb->instrucciones;
 	contexto_pcb->registros = pcb->registros;
-	//contexto_pcb->tabla_segmentos = pcb->tabla_segmento;
+	contexto_pcb->tabla_segmentos = pcb->tabla_segmento;
 //	log_info(logger,"El pcb tiene el PC en %d ",pcb->program_counter);
 //	log_info(logger,"El pcb tiene %d instrucciones",list_size(pcb->instrucciones));
 //	log_info(logger,"Voy a ejecutar proceso de %d instrucciones", list_size(contexto_pcb->instrucciones));

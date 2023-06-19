@@ -11,7 +11,7 @@ int main(void) {
 	iniciar_estructuras();
 	crear_segmento(memoria_config->tam_segmento_0);
   
-  correr_servidor(logger, memoria_config->puerto_escucha);
+	correr_servidor(logger, memoria_config->puerto_escucha);
 	//destroy_segmento(0); // TODO, INYECCIÓN DE DEPENDENCIAS.
 
 	destroy_estructuras();
@@ -32,6 +32,7 @@ void procesar_cliente(void *args_hilo) {
 	case CPU:
 		log_info(logger, "CPU conectado.");
 		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente, logger);
+		//procesar_pedidos_cpu(socket_cliente);
 		break;
 
 	case KERNEL:
@@ -88,6 +89,30 @@ void procesar_kernel(int socket_kernel) {
 				log_info(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
 				t_tabla_segmento* tabla_segmento = create_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento);
+				//enviar_entero(socket_kernel, MEMORY_SEGMENT_CREATED);
+				//enviar_entero(socket_kernel, tabla_segmento->pid); // PID
+				//enviar_tabla_de_segmentos(socket_kernel, tabla_segmento->tabla);
+				break;
+			case MEMORY_CREATE_SEGMENT:
+				//TODO necesito que kernel me envia el id para saber a que proceso le pertenece el segmento
+				int id_crear = recibir_entero(socket_kernel); //TODO replantear el uso del id
+				int tamanio = recibir_entero(socket_kernel);
+				log_info(logger, "MEMORY_CREATE_SEGMENT tamanio %d",tamanio);
+				crear_segmento(tamanio);
+				//loggear_segmentos(espacio_usuario->segmentos_activos,logger);
+				//loggear_huecos(espacio_usuario->huecos_libres);
+				//TODO actualizar tabla del proceso
+				//TODO enviar a kernel la tabla actualizada
+				break;
+			case MEMORY_DELETE_SEGMENT:
+				//TODO necesito que kernel me envia el id para saber a que proceso le pertenecia el segmento
+				int id_eliminar = recibir_entero(socket_kernel);
+				log_info(logger, "MEMORY_DELETE_SEGMENT %d", id_eliminar);
+				destroy_segmento(id_eliminar);
+				//loggear_segmentos(espacio_usuario->segmentos_activos,logger);
+				//loggear_huecos(espacio_usuario->huecos_libres);
+				//TODO actualizar tabla del proceso
+				//TODO enviar a kernel la tabla actualizada
 				break;
 			case -1:
 				log_error(logger, "Se desconectó el cliente.");
@@ -95,6 +120,29 @@ void procesar_kernel(int socket_kernel) {
 			default:
 				break;
 		}
+	}
+}
+
+void procesar_pedidos_cpu(int socket_cpu) {
+
+	while(1){
+		int operacion = recibir_operacion(socket_cpu);
+		int direccion_fisica;
+//		switch(operacion) {
+//		case LEER_DIRECCION:
+//			direccion_fisica = recibir_entero(socket_cpu);
+//			char* valor_leido = leer_direccion(direccion_fisica);
+//			enviar_mensaje(valor_leido, socket_cpu, logger);
+//			break;
+//		case ESCRIBIR_DIRECCION:
+//			direccion_fisica = recibir_entero(socket_cpu);
+//			char* valor_a_escribir = recibir_string(socket_cpu);
+//			escribir_en_direccion(direccion_fisica, valor_a_escribir);
+//			break;
+//		default:d
+//		log_info(logger, "No pude reconocer operacion que CPU me mando.");
+//		break;
+//		}
 	}
 }
 

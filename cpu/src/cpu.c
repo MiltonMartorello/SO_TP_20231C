@@ -85,6 +85,7 @@ void correr_servidor(void){
 				int operacion = recibir_operacion(socket_kernel);
 				if(operacion == CONTEXTO_PROCESO){ //TODO
 					proceso = recibir_contexto(socket_kernel, cpu_logger);
+					loggear_segmentos(proceso->tabla_segmentos, cpu_logger);
 					setear_registros_desde_proceso(proceso);
 					ciclo_de_instruccion(proceso,socket_kernel);
 					liberar_proceso(proceso);
@@ -183,16 +184,17 @@ void setear_registros_desde_proceso(t_contexto_proceso* proceso){
 void limpiar_registros_cpu(int tam,char registro[][tam]){
 
 	for(int i=0; i < (sizeof(registro)/sizeof(registro[0])) ;i++ ){
-		strcpy(registro[i],"");
+		strcpy(&registro[i],"");
 	}
 }
 
 void liberar_proceso(t_contexto_proceso* proceso){
-	limpiar_registros_cpu(4,registros_cpu.registros_4);
-	limpiar_registros_cpu(8,registros_cpu.registros_8);
-	limpiar_registros_cpu(16,registros_cpu.registros_16);
+	limpiar_registros_cpu(5,registros_cpu.registros_4);
+	limpiar_registros_cpu(9,registros_cpu.registros_8);
+	limpiar_registros_cpu(17,registros_cpu.registros_16);
 
 	list_destroy_and_destroy_elements(proceso->instrucciones,(void*)liberar_parametros_instruccion);
+	list_destroy_and_destroy_elements(proceso->tabla_segmentos,&free);
 	free(proceso);
 }
 

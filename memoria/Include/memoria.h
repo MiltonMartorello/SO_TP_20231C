@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <shared.h>
 #include <commons/config.h>
 #include <commons/txt.h>

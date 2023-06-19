@@ -39,7 +39,8 @@ void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
 		}
 		log_info(logger, "P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
 		list_add(pcb->tabla_segmento, recibir_segmento_0());
-		//loggear_tabla(pcb);
+		//pcb->tabla_segmento = recibir_tabla_de_segmentos(socket_memoria);
+		loggear_tabla(pcb);
 	} else {
 		log_error(logger, "Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d", pcb->pid, cod_op);
 		return;

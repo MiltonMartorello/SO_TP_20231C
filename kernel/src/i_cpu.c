@@ -249,11 +249,16 @@ void procesar_f_truncate(t_pcb* pcb) {
 void procesar_create_segment(t_pcb* pcb) {
 	int id_segmento = recibir_entero(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
+	enviar_entero(socket_memoria,MEMORY_CREATE_SEGMENT);
+	enviar_entero(socket_memoria,id_segmento);
+	enviar_entero(socket_memoria,tamanio);
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
 }
 
 void procesar_delete_segment(t_pcb* pcb) {
 	int id_segmento = recibir_entero(socket_cpu);
+	enviar_entero(socket_memoria,MEMORY_DELETE_SEGMENT);
+	enviar_entero(socket_memoria,id_segmento);
 	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
 }
 
