@@ -11,6 +11,7 @@
 #include "memoria_utils.h"
 
 extern t_espacio_usuario* espacio_usuario;
+extern t_list* tablas_segmentos;
 extern t_memoria_config* memoria_config;
 
 extern t_log * logger;

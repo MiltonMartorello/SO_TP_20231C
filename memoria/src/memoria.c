@@ -9,10 +9,8 @@ int main(void) {
 	memoria_config = leer_config("memoria.config");
 
 	iniciar_estructuras();
-	crear_segmento(memoria_config->tam_segmento_0);
-  
+	crear_segmento(SEGMENTO_0, memoria_config->tam_segmento_0, 0);
 	correr_servidor(logger, memoria_config->puerto_escucha);
-	//destroy_segmento(0); // TODO, INYECCIÓN DE DEPENDENCIAS.
 
 	destroy_estructuras();
 	return EXIT_SUCCESS;
@@ -80,35 +78,34 @@ int escuchar_clientes(int server_fd, t_log *logger) {
 }
 
 void procesar_kernel(int socket_kernel) {
+	int pid;
 
 	while(true) {
 		int cod_op = recibir_operacion(socket_kernel);
 		switch (cod_op) {
 			case MEMORY_CREATE_TABLE:
-				int pid = recibir_entero(socket_kernel);
+				pid = recibir_entero(socket_kernel);
 				log_info(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
-				t_tabla_segmento* tabla_segmento = create_tabla_segmento(pid);
+				t_tabla_segmento* tabla_segmento = crear_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento);
-				//enviar_entero(socket_kernel, MEMORY_SEGMENT_CREATED);
-				//enviar_entero(socket_kernel, tabla_segmento->pid); // PID
-				//enviar_tabla_de_segmentos(socket_kernel, tabla_segmento->tabla);
 				break;
 			case MEMORY_CREATE_SEGMENT:
-				//TODO necesito que kernel me envia el id para saber a que proceso le pertenece el segmento
-				int id_crear = recibir_entero(socket_kernel); //TODO replantear el uso del id
+				pid = recibir_entero(socket_kernel);
+				int id_crear = recibir_entero(socket_kernel);
 				int tamanio = recibir_entero(socket_kernel);
-				log_info(logger, "MEMORY_CREATE_SEGMENT tamanio %d",tamanio);
-				crear_segmento(tamanio);
+
+				log_info(logger, "MEMORY_CREATE_SEGMENT PID: %d, SEG_ID: %d [%d bytes]", pid, id_crear, tamanio);
+				crear_segmento(pid, tamanio, id_crear);
 				//loggear_segmentos(espacio_usuario->segmentos_activos,logger);
 				//loggear_huecos(espacio_usuario->huecos_libres);
 				//TODO actualizar tabla del proceso
 				//TODO enviar a kernel la tabla actualizada
 				break;
 			case MEMORY_DELETE_SEGMENT:
-				//TODO necesito que kernel me envia el id para saber a que proceso le pertenecia el segmento
+				pid = recibir_entero(socket_kernel);
 				int id_eliminar = recibir_entero(socket_kernel);
-				log_info(logger, "MEMORY_DELETE_SEGMENT %d", id_eliminar);
-				destroy_segmento(id_eliminar);
+				log_info(logger, "MEMORY_DELETE_SEGMENT PID: %d, SEG_ID: %d", pid , id_eliminar);
+				delete_segmento(pid, id_eliminar);
 				//loggear_segmentos(espacio_usuario->segmentos_activos,logger);
 				//loggear_huecos(espacio_usuario->huecos_libres);
 				//TODO actualizar tabla del proceso
@@ -153,7 +150,7 @@ void enviar_segmento(int socket_kernel, t_segmento *segmento_aux) {
 }
 
 void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento) {
-	enviar_entero(socket_kernel, MEMORY_SEGMENT_CREATED);
+	enviar_entero(socket_kernel, MEMORY_SEGMENT_CREATED); //TODO: REFACTOR, SACAR ESTO AFUERA PARA QUE SEA MEMORY_SEG_CREATED O MEMORY_SEG_UPDATED
 	enviar_entero(socket_kernel, tabla_segmento->pid); // PID
 
 	int cant_segmentos = list_size(tabla_segmento->tabla);

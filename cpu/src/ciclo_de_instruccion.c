@@ -248,7 +248,7 @@ t_segmento* obtener_segmento(int direccion_logica,t_list* tabla_segmentos){
 //--------------LLAMADAS A MEMORIA
 int leer_memoria(int direccion_fisica){
 	enviar_entero(socket_memoria, LEER_DIRECCION);
-	enviar_entero(direccion_fisica);
+	enviar_entero(socket_memoria, direccion_fisica);
 	char* respuesta = recibir_string(socket_memoria);
 	return respuesta;
 }

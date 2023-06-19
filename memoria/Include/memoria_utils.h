@@ -8,6 +8,7 @@
 #include <commons/txt.h>
 #include "estructuras.h"
 
+#define SEGMENTO_0 0
 
 typedef struct {
 	char* puerto_escucha;
@@ -61,9 +62,13 @@ typedef struct {
 	//t_segmento segmento_0;
 }t_espacio_usuario;
 
-t_segmento* crear_segmento(int tam_segmento);
-t_tabla_segmento* create_tabla_segmento(int pid);
-void destroy_segmento(int id);
+t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id);
+void delete_segmento(int pid, int segmento_id);
+
+t_tabla_segmento* crear_tabla_segmento(int pid);
+void destroy_tabla_segmento(void* elemento);
+t_tabla_segmento* buscar_tabla_segmentos(int pid);
+
 t_hueco* crear_hueco(int inicio, int fin);
 void actualizar_hueco(t_hueco* hueco, int nuevo_piso, int nuevo_fin);
 
@@ -84,6 +89,7 @@ t_hueco* buscar_hueco_por_first_fit(int tamanio);
 t_hueco* buscar_hueco_por_worst_fit(int tamanio);
 
 void loggear_huecos(t_list* huecos);
+void loggear_tablas_segmentos(void);
 int tamanio_hueco(t_hueco* hueco);
 
 #endif /* MEMORIA_UTILS_H_ */
