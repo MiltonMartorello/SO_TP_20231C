@@ -30,36 +30,24 @@ void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
 	enviar_entero(socket_memoria, pcb->pid);
 
 	//RECV
-	int cod_op = recibir_entero(socket_memoria);
-	if (cod_op == MEMORY_SEGMENT_CREATED) { // 55
-		int pid = recibir_entero(socket_memoria);
-		if (pid != pcb->pid) {
-			log_error(logger, "P_LARGO -> El Pid recibido [%d] difiere del pid del PCB [%d]", pid, pcb->pid);
-			return;
-		}
-		log_info(logger, "P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
-		list_add(pcb->tabla_segmento, recibir_segmento_0());
-		//pcb->tabla_segmento = recibir_tabla_de_segmentos(socket_memoria);
-		loggear_tabla(pcb);
-	} else {
-		log_error(logger, "Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d", pcb->pid, cod_op);
-		return;
-	}
+	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
+	recibir_tabla_segmentos(pcb);
 }
 
-void loggear_tabla(t_pcb* pcb) {
-	log_info(logger, "P_LARGO -> Tabla de PCB %d", pcb->pid);
+void loggear_tabla(t_pcb* pcb, char* origen) {
+	log_info(logger, "%s -> Tabla de PCB %d", origen, pcb->pid);
 	int cant_segmentos = list_size(pcb->tabla_segmento);
-	log_info(logger, "P_LARGO -> La cantidad de segmentos es: %d", cant_segmentos);
+	log_info(logger, "%s -> La cantidad de segmentos es: %d", origen, cant_segmentos);
 	for (int i = 0; i < cant_segmentos; ++i) {
 		t_segmento* segmento = list_get(pcb->tabla_segmento, i);
-		log_info(logger, "P_LARGO -> Segmento ID: %d", segmento->segmento_id);
-		log_info(logger, "P_LARGO -> Inicio: %d", segmento->inicio);
-		log_info(logger, "P_LARGO -> Tamaño: %d", segmento->tam_segmento);
+		log_info(logger, "%s -> Segmento ID: %d", origen, segmento->segmento_id);
+		log_info(logger, "%s -> Inicio: %d", origen, segmento->inicio);
+		log_info(logger, "%s -> Tamaño: %d", origen, segmento->tam_segmento);
 	}
 }
 
-t_segmento* recibir_segmento_0(void) {
+// TODO: REFACTORIZAR A VOID* DE-SERIALIZACION
+t_segmento* recibir_segmento(void) {
 	t_segmento* segmento = malloc(sizeof(t_segmento));
 	segmento->segmento_id = recibir_entero(socket_memoria);
 	segmento->inicio= recibir_entero(socket_memoria);

@@ -120,4 +120,6 @@ void* squeue_pop(t_squeue* queue);
 void squeue_push(t_squeue* queue, void* element);
 void* squeue_peek(t_squeue* queue);
 
+void recibir_tabla_segmentos(t_pcb *pcb);
+
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

@@ -186,6 +186,7 @@ t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos) {
 	int cant_segmentos = list_size(tabla_segmentos);
 	int offset = 0;
 
+	// CANTIDAD DE SEGMENTO * 3 + CANTIDAD DE SEGMENTOS
 	buffer->size = cant_segmentos * 3 * sizeof(uint32_t) + sizeof(int);
 	buffer->stream = malloc(buffer->size);
 

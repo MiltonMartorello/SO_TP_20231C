@@ -25,31 +25,6 @@ typedef struct {
 	t_list* tabla;
 }t_tabla_segmento;
 
-/*
- * RECIBE CREATE_TABLE
- * RECIBE PARAMETRO PID
- * CREAR T_TABLA_SEGMENTO
- * TABLA->PID
- * TABLA->TABLA = LIST_CREATE
- *
- * BUSCAR_SEGMENTO(0)
- * LIST_ADD(TABLA->TABLA, SEGMENTO);
- * */
-
-/*
- * PCB
- * PID -> 1
- * TABLA_ARCHIVOS BLA
- * TABLA_DE_SEGMENTO {
-	 * SEGMENTO_0 {
-	 * 		SEGMENTO_ID
-	 * 		INICIO
-	 *
-	 * }, <-- EXISTE SIEMPRE ESC OMPARTIDO
-	 * SEGMENTO_1, <-- MEDIANTE CREATE_SEGMENT
- * }
- * */
-
 typedef struct {
 	int inicio;
 	int fin;
@@ -59,7 +34,6 @@ typedef struct {
 	void* espacio_usuario;
 	t_list* segmentos_activos;
 	t_list* huecos_libres;
-	//t_segmento segmento_0;
 }t_espacio_usuario;
 
 t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id);
@@ -92,5 +66,7 @@ void loggear_huecos(t_list* huecos);
 void loggear_tablas_segmentos(void);
 int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos);
 int tamanio_hueco(t_hueco* hueco);
+int encontrar_descriptor_id(int pid, int segmento_id);
+t_list* encontrar_tabla_segmentos(int pid, int segmento_id);
 
 #endif /* MEMORIA_UTILS_H_ */

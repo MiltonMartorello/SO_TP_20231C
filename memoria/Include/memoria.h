@@ -20,6 +20,7 @@ extern int id;
 int escuchar_clientes(int server_fd, t_log *logger);
 void procesar_cliente(void *args_hilo);
 void procesar_kernel(int socket_cliente);
-void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento);
+void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento, int cod_op);
+void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id);
 
 #endif

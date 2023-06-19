@@ -53,7 +53,10 @@ typedef enum
 	MEMORY_COMPACT,
 	MEMORY_SEGMENT_CREATED,
 	MEMORY_SEGMENT_DELETED,
-	MEMORY_SEG_FAULT
+	MEMORY_SEG_FAULT,
+	MEMORY_SEGMENT_TABLE_CREATED,
+	MEMORY_SEGMENT_TABLE_UPDATED,
+	MEMORY_SEGMENT_TABLE_DELETED
 } op_code;
 
 typedef enum
@@ -172,6 +175,7 @@ typedef struct{
  * */
 // TODO: ES NECESARIO UN DESCRIPTOR ? TIPO ID DE SISTEMA UNIQUE ?
 typedef struct {
+	uint32_t descriptor_id;
 	uint32_t segmento_id;
 	uint32_t inicio;
 	uint32_t tam_segmento;

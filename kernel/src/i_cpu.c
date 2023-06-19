@@ -254,6 +254,8 @@ void procesar_create_segment(t_pcb* pcb) {
 	enviar_entero(socket_memoria,id_segmento);
 	enviar_entero(socket_memoria,tamanio);
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
+	recibir_tabla_segmentos(pcb);
+	loggear_tabla(pcb, "P_CORTO");
 }
 
 void procesar_delete_segment(t_pcb* pcb) {
