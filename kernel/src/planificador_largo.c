@@ -31,28 +31,15 @@ void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
 
 	//RECV
 	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
-	recibir_tabla_segmentos(pcb);
+	procesar_respuesta_memoria(pcb);
 }
 
 void loggear_tabla(t_pcb* pcb, char* origen) {
 	log_info(logger, "%s -> Tabla de PCB %d", origen, pcb->pid);
 	int cant_segmentos = list_size(pcb->tabla_segmento);
-	log_info(logger, "%s -> La cantidad de segmentos es: %d", origen, cant_segmentos);
-	for (int i = 0; i < cant_segmentos; ++i) {
+	//log_info(logger, "%s -> La cantidad de segmentos es: %d", origen, cant_segmentos);
+	for (int i = 0; i < cant_segmentos; i++) {
 		t_segmento* segmento = list_get(pcb->tabla_segmento, i);
-		log_info(logger, "%s -> Segmento ID: %d", origen, segmento->segmento_id);
-		log_info(logger, "%s -> Inicio: %d", origen, segmento->inicio);
-		log_info(logger, "%s -> Tamaño: %d", origen, segmento->tam_segmento);
+		log_info(logger, "%s -> Segmento ID: %d, Inicio: %d, Tamaño: %d", origen, segmento->segmento_id, segmento->inicio, segmento->tam_segmento);
 	}
 }
-
-// TODO: REFACTORIZAR A VOID* DE-SERIALIZACION
-t_segmento* recibir_segmento(void) {
-	t_segmento* segmento = malloc(sizeof(t_segmento));
-	segmento->segmento_id = recibir_entero(socket_memoria);
-	segmento->inicio= recibir_entero(socket_memoria);
-	segmento->tam_segmento = recibir_entero(socket_memoria);
-
-	return segmento;
-}
-

@@ -25,7 +25,6 @@ extern t_kernel_config* kernel_config;
 
 int planificador_largo_plazo(void*);
 void solicitar_nueva_tabla_de_segmento(t_pcb* pcb);
-t_segmento* recibir_segmento(void);
 void loggear_tabla(t_pcb* pcb, char* origen);
 
 #endif

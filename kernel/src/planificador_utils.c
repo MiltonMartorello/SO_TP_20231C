@@ -431,31 +431,64 @@ int buscar_recurso(char* nombre){
 	return -1;
 }
 
-void recibir_tabla_segmentos(t_pcb *pcb) {
+void procesar_respuesta_memoria(t_pcb *pcb) {
 	//RECV
 	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
 	log_info(logger, "Recibiendo tabla... ");
 	validar_conexion(socket_memoria);
 	int cod_op = recibir_entero(socket_memoria);
 	log_info(logger, "Recibido cod %d",cod_op);
-	if (cod_op == MEMORY_SEGMENT_TABLE_CREATED) {
-		// 55
-		int pid = recibir_entero(socket_memoria);
-		if (pid != pcb->pid) {
-			log_error(logger,
-					"P_LARGO -> El Pid recibido [%d] difiere del pid del PCB [%d]",
-					pid, pcb->pid);
-		}
-		log_info(logger,
-				"P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d",
-				pcb->pid);
-		list_add(pcb->tabla_segmento, recibir_segmento());
-		//pcb->tabla_segmento = recibir_tabla_de_segmentos(socket_memoria);
-		loggear_tabla(pcb, "P_LARGO");
-	} else {
-		log_error(logger,
-				"Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d",
-				pcb->pid, cod_op);
+	int pid;
+	switch (cod_op) {
+		case MEMORY_SEGMENT_TABLE_CREATED: // 69
+			pid = recibir_entero(socket_memoria);
+			if (pid != pcb->pid) {
+				log_error(logger, "P_LARGO -> El Pid recibido [%d] difiere del pid del PCB [%d]", pid, pcb->pid);
+			}
+			log_info(logger, "P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
+			list_add(pcb->tabla_segmento, recibir_segmento());
+			//pcb->tabla_segmento = recibir_tabla_de_segmentos(socket_memoria);
+			loggear_tabla(pcb, "P_LARGO");
+			break;
+		case MEMORY_SEGMENT_TABLE_UPDATED:
+			pid = recibir_entero(socket_memoria);
+			if (pid != pcb->pid) {
+				log_error(logger, "P_LARGO -> El Pid recibido [%d] difiere del pid del PCB [%d]", pid, pcb->pid);
+			}
+			list_destroy(pcb->tabla_segmento);
+			pcb->tabla_segmento = recibir_tabla_segmentos(socket_memoria);
+
+			loggear_tabla(pcb, "P_CORTO");
+			break;
+		default:
+			log_error(logger,"Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d", pcb->pid, cod_op);
+			break;
+
 	}
 }
 
+// TODO: REFACTORIZAR A VOID* DE-SERIALIZACION
+t_segmento* recibir_segmento(void) {
+	t_segmento* segmento = malloc(sizeof(t_segmento));
+	segmento->segmento_id = recibir_entero(socket_memoria);
+	segmento->inicio= recibir_entero(socket_memoria);
+	segmento->tam_segmento = recibir_entero(socket_memoria);
+//	log_info(logger, "MEMCHECK -> Segmento ID: %d", segmento->segmento_id);
+//	log_info(logger, "MEMCHECK -> Inicio: %d", segmento->inicio);
+//	log_info(logger, "MEMCHECK -> Tamaño: %d", segmento->tam_segmento);
+	return segmento;
+}
+
+
+t_list* recibir_tabla_segmentos(int socket_memoria) {
+	validar_conexion(socket_memoria);
+	t_list* tabla_segmentos = list_create();
+	int cant_segmentos = recibir_entero(socket_memoria);
+//	log_info(logger, "MEMCHECK -> Cantidad de segmentos: %d", cant_segmentos);
+	for (int i = 0; i < cant_segmentos; i++) {
+		t_segmento* segmento_aux = recibir_segmento();
+		list_add(tabla_segmentos, segmento_aux);
+	}
+
+	return tabla_segmentos;
+}

@@ -330,11 +330,13 @@ int validar_conexion(int socket) {
 	    if (optval != 0) {
 	        // hay un error de conexión pendiente
 	        fprintf(stderr, "Error de conexión pendiente: %s\n", strerror(optval));
+	        liberar_conexion(socket);
 	        return -1;
 	    }
 	} else {
 	    // hubo un error al obtener el estado de la conexión
 	    fprintf(stderr, "Error al obtener el estado de la conexión: %s\n", strerror(errno));
+	    liberar_conexion(socket);
 	    return -1;
 	}
 	return 1;

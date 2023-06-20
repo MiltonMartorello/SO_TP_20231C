@@ -81,6 +81,7 @@ void procesar_kernel(int socket_kernel) {
 	int pid;
 
 	while(true) {
+		validar_conexion(socket_kernel);
 		int cod_op = recibir_operacion(socket_kernel);
 		switch (cod_op) {
 			case MEMORY_CREATE_TABLE:
@@ -110,10 +111,10 @@ void procesar_kernel(int socket_kernel) {
 				//TODO actualizar tabla del proceso
 				//TODO enviar a kernel la tabla actualizada
 				break;
-			case -1:
-				log_error(logger, "Se desconectó el cliente.");
-				break;
 			default:
+				log_error(logger, "Se desconectó el cliente. Cod: %d", cod_op);
+				liberar_conexion(socket_kernel);
+				return;
 				break;
 		}
 	}
@@ -168,6 +169,7 @@ void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento, 
 //	log_info(logger, "Enviando %d", tabla_segmento->pid);
 
 	int cant_segmentos = list_size(tabla_segmento->tabla);
+	enviar_entero(socket_kernel, cant_segmentos); // Size de la tabla;
 	for (int i = 0; i < cant_segmentos; ++i) { // TABLA DE SEGMENTOS
 		t_segmento* segmento_aux = list_get(tabla_segmento->tabla, i);
 		enviar_segmento(socket_kernel, segmento_aux);
