@@ -46,8 +46,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_FINALIZADO:
 			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
+			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
-
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
@@ -255,7 +255,6 @@ void procesar_create_segment(t_pcb* pcb) {
 	enviar_entero(socket_memoria,tamanio);
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
 	procesar_respuesta_memoria(pcb);
-	loggear_tabla(pcb, "P_CORTO");
 }
 
 void procesar_delete_segment(t_pcb* pcb) {
@@ -264,5 +263,19 @@ void procesar_delete_segment(t_pcb* pcb) {
 	enviar_entero(socket_memoria, pcb->pid);
 	enviar_entero(socket_memoria,id_segmento);
 	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
+	procesar_respuesta_memoria(pcb);
+}
+
+void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) { //TODO: LLEVAR A UN ARCHIVO i_memoria
+	validar_conexion(socket_memoria);
+	log_info(logger, "P_LARGO -> Solicitando Eliminación de Tabla de Segmentos para PID: %d...", pcb->pid);
+
+	//SEND
+	enviar_entero(socket_memoria, MEMORY_DELETE_TABLE);
+	enviar_entero(socket_memoria, pcb->pid);
+
+	//RECV
+	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
+	procesar_respuesta_memoria(pcb);
 }
 

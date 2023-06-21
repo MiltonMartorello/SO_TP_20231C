@@ -68,5 +68,6 @@ int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos);
 int tamanio_hueco(t_hueco* hueco);
 int encontrar_descriptor_id(int pid, int segmento_id);
 t_list* encontrar_tabla_segmentos(int pid, int segmento_id);
+t_tabla_segmento* encontrar_tabla_segmento_por_pid(int pid);
 
 #endif /* MEMORIA_UTILS_H_ */

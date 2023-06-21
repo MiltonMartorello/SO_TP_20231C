@@ -90,6 +90,18 @@ void procesar_kernel(int socket_kernel) {
 				t_tabla_segmento* tabla_segmento = crear_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento, MEMORY_SEGMENT_TABLE_CREATED);
 				break;
+			case MEMORY_DELETE_TABLE:
+				pid = recibir_entero(socket_kernel);
+				log_info(logger, "Recibido MEMORY_DELETE_TABLE para PID: %d", pid);
+				t_tabla_segmento* tabla = encontrar_tabla_segmento_por_pid(pid);
+				if (tabla == NULL) {
+					enviar_entero(socket_kernel, MEMORY_ERROR_TABLE_NOT_FOUND);
+					break;
+				}
+				log_info(logger, "Encontrada Tabla a eliminar para PID: %d (%d Segmentos)",tabla->pid , tabla->tabla->elements_count);
+				destroy_tabla_segmento(tabla);
+				enviar_entero(socket_kernel, MEMORY_SEGMENT_TABLE_DELETED);
+				break;
 			case MEMORY_CREATE_SEGMENT:
 				pid = recibir_entero(socket_kernel);
 				int id_crear = recibir_entero(socket_kernel);
@@ -97,19 +109,14 @@ void procesar_kernel(int socket_kernel) {
 
 				log_info(logger, "MEMORY_CREATE_SEGMENT PID: %d, SEG_ID: %d [%d bytes]", pid, id_crear, tamanio);
 				crear_segmento(pid, tamanio, id_crear);
-				//loggear_segmentos(espacio_usuario->segmentos_activos,logger);
-				//loggear_huecos(espacio_usuario->huecos_libres);
-				enviar_tabla_actualizada(socket_kernel, pid, id_crear);
+				enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_CREATED);
 				break;
 			case MEMORY_DELETE_SEGMENT:
 				pid = recibir_entero(socket_kernel);
 				int id_eliminar = recibir_entero(socket_kernel);
 				log_info(logger, "MEMORY_DELETE_SEGMENT PID: %d, SEG_ID: %d", pid , id_eliminar);
 				delete_segmento(pid, id_eliminar);
-				//loggear_segmentos(espacio_usuario->segmentos_activos,logger);
-				//loggear_huecos(espacio_usuario->huecos_libres);
-				//TODO actualizar tabla del proceso
-				//TODO enviar a kernel la tabla actualizada
+				enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_DELETED);
 				break;
 			default:
 				log_error(logger, "Se desconectó el cliente. Cod: %d", cod_op);
@@ -154,11 +161,11 @@ void enviar_segmento(int socket_kernel, t_segmento *segmento_aux) {
 	enviar_entero(socket_kernel, segmento_aux->tam_segmento); // TAMAÑO SEGMENTO
 }
 
-void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id) {
+void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id, int cod_op) {
 	t_tabla_segmento* tabla_segmento = malloc(sizeof(t_tabla_segmento));
 		tabla_segmento->tabla =  encontrar_tabla_segmentos(pid, segmento_id);
 		tabla_segmento->pid = pid;
-	enviar_tabla_segmento(socket_kernel, tabla_segmento, MEMORY_SEGMENT_TABLE_UPDATED);
+	enviar_tabla_segmento(socket_kernel, tabla_segmento, cod_op);
 	free(tabla_segmento);
 }
 
@@ -167,10 +174,9 @@ void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento, 
 //	log_info(logger, "Enviando %d", cod_op);
 	enviar_entero(socket_kernel, tabla_segmento->pid); // PID
 //	log_info(logger, "Enviando %d", tabla_segmento->pid);
-
 	int cant_segmentos = list_size(tabla_segmento->tabla);
 	enviar_entero(socket_kernel, cant_segmentos); // Size de la tabla;
-	for (int i = 0; i < cant_segmentos; ++i) { // TABLA DE SEGMENTOS
+	for (int i = 0; i < cant_segmentos; i++) { // TABLA DE SEGMENTOS
 		t_segmento* segmento_aux = list_get(tabla_segmento->tabla, i);
 		enviar_segmento(socket_kernel, segmento_aux);
 	}
