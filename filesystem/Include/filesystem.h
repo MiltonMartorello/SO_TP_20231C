@@ -29,16 +29,15 @@ typedef struct {
 } t_fs_config;
 
 typedef struct {
-	void* datos;
-	int inicio;
-	int fin;
-    struct t_bloque_indirecto* next;
-} t_bloque;
+    int BLOCK_COUNT;
+    int BLOCK_SIZE;
+} Superbloque;
 
 typedef struct {
-    int puntero_indirecto;
-    struct t_bloque* bloques[64]; // es el tamaño máximo del array de punteros
-} t_bloque_indirecto;
+	char* datos;
+	int inicio;
+	int fin;
+} t_bloque;
 
 typedef struct {
     char* NOMBRE_ARCHIVO;
@@ -60,10 +59,12 @@ int socket_fs;
 char* mapBitmap;
 t_bitarray* bitmap;
 t_fs_config* fs_config;
+Superbloque* superbloque;
 FCB* fcb;
 void* bloques;
 t_bitarray* bloques_bitarray;
 FCB lista_archivos[100];
+int arch_en_mem;
 
 /* PROCEDIMIENTOS */
 void cargar_config_fs(t_config* config);
@@ -87,13 +88,13 @@ void finalizar_fs(int conexion, t_log* logger, t_config* config);
 void liberarBloque(int index);
 void reservarBloque(int index);
 void iniciar_fcbs();
-
+void escribir_en_bloque(uint32_t numero_bloque, char* contenido);
 /* FUNCIONES */
 int existe_fs();
 int abrir_archivo(const char* nombreArchivo);
 int crear_archivo(const char* nombreArchivo);
 int truncar_archivo(const char* nombreArchivo);
 int obtener_bloque_libre(void);
-t_bloque* crear_bloque(int bloque_index_dir, int bloque_index_ind);
+t_bloque* crear_bloque(int bloque_index_dir);
 int cargar_archivos(FCB* lis_archivos);
 #endif /* FILESYSTEM_H_ */
