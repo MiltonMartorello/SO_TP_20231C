@@ -431,6 +431,11 @@ int buscar_recurso(char* nombre){
 	return -1;
 }
 
+void sincronizar_tabla_segmentos(int socket, t_pcb *pcb) {
+	list_destroy(pcb->tabla_segmento);
+	pcb->tabla_segmento = recibir_tabla_de_segmentos(socket);
+}
+
 void procesar_respuesta_memoria(t_pcb *pcb) {
 	//RECV
 	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
@@ -441,12 +446,8 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 	switch (cod_op) {
 		case MEMORY_SEGMENT_TABLE_CREATED: // 69
 			pid = recibir_entero(socket_memoria);
-			if (pid != pcb->pid) {
-				log_error(logger, "P_LARGO -> El Pid recibido [%d] difiere del pid del PCB [%d]", pid, pcb->pid);
-			}
 			log_info(logger, "P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
-			list_add(pcb->tabla_segmento, recibir_segmento());
-			//pcb->tabla_segmento = recibir_tabla_de_segmentos(socket_memoria);
+			sincronizar_tabla_segmentos(socket_memoria, pcb);
 			loggear_tabla(pcb, "P_LARGO");
 			break;
 		case MEMORY_SEGMENT_TABLE_DELETED: // 70
@@ -454,21 +455,12 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			break;
 		case MEMORY_SEGMENT_CREATED: // 65
 			pid = recibir_entero(socket_memoria);
-			if (pid != pcb->pid) {
-				log_error(logger, "P_CORTO -> El Pid recibido [%d] difiere del pid del PCB [%d]", pid, pcb->pid);
-			}
-			list_destroy(pcb->tabla_segmento);
-			pcb->tabla_segmento = recibir_tabla_segmentos(socket_memoria);
+			sincronizar_tabla_segmentos(socket_memoria, pcb);
 			loggear_tabla(pcb, "P_CORTO");
 			break;
 		case MEMORY_SEGMENT_DELETED: // 66
 			pid = recibir_entero(socket_memoria);
-			if (pid != pcb->pid) {
-				log_error(logger, "P_CORTO -> El Pid recibido [%d] difiere del pid del PCB [%d]", pid, pcb->pid);
-			}
-			list_destroy(pcb->tabla_segmento);
-			pcb->tabla_segmento = recibir_tabla_segmentos(socket_memoria);
-
+			sincronizar_tabla_segmentos(socket_memoria, pcb);
 			loggear_tabla(pcb, "P_CORTO");
 			break;
 		default:

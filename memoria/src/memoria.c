@@ -152,60 +152,44 @@ void procesar_pedidos_cpu(int socket_cpu) {
 	}
 }
 
-void enviar_segmento(int socket_kernel, t_segmento *segmento_aux) {
-//	log_info(logger, "Enviando %d", segmento_aux->segmento_id);
-	enviar_entero(socket_kernel, segmento_aux->segmento_id); // SEGMENTO_ID
-//	log_info(logger, "Enviando %d", segmento_aux->inicio);
-	enviar_entero(socket_kernel, segmento_aux->inicio); // INICIO
-//	log_info(logger, "Enviando %d", segmento_aux->tam_segmento);
-	enviar_entero(socket_kernel, segmento_aux->tam_segmento); // TAMAÑO SEGMENTO
-}
+
 
 void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id, int cod_op) {
-	t_tabla_segmento* tabla_segmento = malloc(sizeof(t_tabla_segmento));
-		tabla_segmento->tabla =  encontrar_tabla_segmentos(pid, segmento_id);
-		tabla_segmento->pid = pid;
-	enviar_tabla_segmento(socket_kernel, tabla_segmento, cod_op);
-	free(tabla_segmento);
+	t_tabla_segmento* tabla_segmento_aux = malloc(sizeof(t_tabla_segmento));
+	tabla_segmento_aux->tabla =  encontrar_tabla_segmentos(pid, segmento_id);
+	tabla_segmento_aux->pid = pid;
+	enviar_tabla_segmento(socket_kernel, tabla_segmento_aux, cod_op);
+	free(tabla_segmento_aux);
 }
 
 void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento, int cod_op) {
-	enviar_entero(socket_kernel, cod_op); //TODO: REFACTOR, SACAR ESTO AFUERA PARA QUE SEA MEMORY_SEG_CREATED O MEMORY_SEG_UPDATED
-//	log_info(logger, "Enviando %d", cod_op);
-	enviar_entero(socket_kernel, tabla_segmento->pid); // PID
-//	log_info(logger, "Enviando %d", tabla_segmento->pid);
-	int cant_segmentos = list_size(tabla_segmento->tabla);
-	enviar_entero(socket_kernel, cant_segmentos); // Size de la tabla;
-	for (int i = 0; i < cant_segmentos; i++) { // TABLA DE SEGMENTOS
-		t_segmento* segmento_aux = list_get(tabla_segmento->tabla, i);
-		enviar_segmento(socket_kernel, segmento_aux);
-	}
-}
 
-/*
-void enviar_tabla_segmentos(int socket_kernel, int pid, int segmento_id) {
-	t_tabla_segmento* tabla_segmento = malloc(sizeof(t_tabla_segmento));
-	tabla_segmento->tabla =  encontrar_tabla_segmentos(pid, segmento_id);
-	tabla_segmento->pid = pid;
+	// COD OP
+	enviar_entero(socket_kernel, cod_op);
 
-	t_paquete* paquete = crear_paquete(MEMORY_SEGMENT_TABLE_UPDATED);
-	t_buffer* buffer_tabla_segmentos = serializar_tabla_segmentos(tabla_segmento->tabla);
-	paquete->buffer = crear_buffer();
-	int tamanio_paquete = sizeof(int) + buffer_tabla_segmentos->size; // PID + SIZE DE SEGMENTOS + BUFFER DE SEGMENTOS
+	t_buffer* buffer = serializar_tabla_segmentos(tabla_segmento->tabla);
+	// PID +  SIZE + TABLA/BUFFER
+	int bytes = sizeof(int) + sizeof(int) + buffer->size;
+	void* magic = malloc(bytes);
 	int offset = 0;
-	paquete->buffer->size = tamanio_paquete;
 
-	memcpy(paquete->buffer->stream + offset, &(tabla_segmento->pid),sizeof(int));
-	offset+=sizeof(int);
-	memcpy(paquete->buffer->stream + offset, &(buffer_tabla_segmentos->size),sizeof(int));
-	offset+=sizeof(int);
-	memcpy(paquete->buffer->stream + offset, buffer_tabla_segmentos->stream, buffer_tabla_segmentos->size);
-	offset+= buffer_tabla_segmentos->size;
+	// PID
+	memcpy(magic, &(tabla_segmento->pid), sizeof(int));
+	memcpy(magic + offset, buffer->stream, buffer->size);
+	offset += sizeof(int);
 
-	enviar_paquete(paquete, socket_kernel);
+	// BUFFER SIZE
+	memcpy(magic+ offset, &(buffer->size), sizeof(int));
+	offset += sizeof(int);
 
-	buffer_destroy(buffer_tabla_segmentos);
-	eliminar_paquete(paquete);
-	free(tabla_segmento);
+	memcpy(magic + offset, buffer->stream, buffer->size);
+	offset += buffer->size;
+
+	send(socket_kernel, magic, bytes, 0);
+
+	free(magic);
+	buffer_destroy(buffer);
+
 }
-*/
+
+

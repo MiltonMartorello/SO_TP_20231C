@@ -194,7 +194,7 @@ t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos) {
 	offset += sizeof(int);
 
 	for(int i=0; i< cant_segmentos; i++){
-		t_segmento* segmento = (t_segmento*) list_get(tabla_segmentos,i);
+		t_segmento* segmento = (t_segmento*) list_get(tabla_segmentos, i);
 
 		memcpy(buffer->stream + offset, &(segmento->segmento_id), sizeof(uint32_t));
 		offset += sizeof(uint32_t);
@@ -311,21 +311,6 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	free(buffer_tabla_segmentos->stream);
 	free(buffer_tabla_segmentos);
 	eliminar_paquete(paquete);
-}
-
-void enviar_tabla_de_segmentos(int socket,t_list* tabla_segmentos){
-	t_buffer* buffer = serializar_tabla_segmentos(tabla_segmentos);
-	int bytes = sizeof(int) + buffer->size;
-	void* magic = malloc(bytes);
-
-	memcpy(magic, &(buffer->size), sizeof(int));
-	memcpy(magic + sizeof(int), buffer->stream, buffer->size);
-
-	send(socket, magic, bytes, 0);
-
-	free(magic);
-	free(buffer->stream);
-	free(buffer);
 }
 
 t_list* recibir_tabla_de_segmentos(int socket){
