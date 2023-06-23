@@ -108,7 +108,10 @@ void procesar_kernel(int socket_kernel) {
 				int tamanio = recibir_entero(socket_kernel);
 
 				log_info(logger, "MEMORY_CREATE_SEGMENT PID: %d, SEG_ID: %d [%d bytes]", pid, id_crear, tamanio);
-				crear_segmento(pid, tamanio, id_crear);
+				if (crear_segmento(pid, tamanio, id_crear) == NULL) {
+					log_error(logger, "OUT_OF_MEMORY EXCEPTION -> Retornando a Kernel");
+					enviar_entero(socket_kernel, MEMORY_ERROR_OUT_OF_MEMORY);
+				}
 				enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_CREATED);
 				break;
 			case MEMORY_DELETE_SEGMENT:

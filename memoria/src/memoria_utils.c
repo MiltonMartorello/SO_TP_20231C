@@ -52,8 +52,13 @@ t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id) {
 		t_tabla_segmento* tabla_segmento = buscar_tabla_segmentos(pid);
 //		log_info(logger, "Tengo una tabla de segmentos con PID %d y %d segments", tabla_segmento->pid, tabla_segmento->tabla->elements_count);
 //		log_info(logger,"Tengo un segmento de id %d y tamaño %d" , segmento->segmento_id, segmento->tam_segmento);
-		list_add(tabla_segmento->tabla, segmento);
 		hueco = buscar_hueco(tam_segmento);
+		if (hueco == NULL) {
+			log_error(logger, "OUT_OF_MEMORY - Retornando respuesta...");
+			free(segmento);
+			return NULL;
+		}
+		list_add(tabla_segmento->tabla, segmento);
 	}
 	segmento->inicio = hueco->inicio; // Desde donde empieza, en el caso del segmento_0 esta bien que sea 0. Sino es la base del hueco
 	log_info(logger, "Encontrado hueco con piso %d y %d de espacio total", hueco->inicio, tamanio_hueco(hueco));
@@ -251,11 +256,26 @@ void destroy_tabla_segmento(void* elemento) {
     	log_error(logger, "No se encontró la tabla de segmentos a eliminar para el PID %d\n", pid);
         return;
     }
+    liberar_huecos_ocupados(tabla->tabla);
     list_destroy_and_destroy_elements(tabla->tabla, free); // Liberar la memoria de los segmentos en la tabla
     log_info(logger, "Eliminada tabla de segmentos de PID %d", pid);
     list_remove_and_destroy_by_condition(tablas_segmentos, encontrar_por_pid, free); // Remover y liberar la memoria de la tabla
     log_info(logger, "Eliminada entrada en tablas de segmentos para PID %d", pid);
     loggear_tablas_segmentos();
+}
+
+void liberar_huecos_ocupados(t_list* tabla) {
+
+	t_list_iterator* segmento_iterator = list_iterator_create(tabla);
+	while(list_iterator_has_next(segmento_iterator)) {
+		t_segmento* segmento_aux = (t_segmento*) list_iterator_next(segmento_iterator);
+		if(segmento_aux->segmento_id != SEGMENTO_0) {
+			int inicio = segmento_aux->inicio;
+			int tamanio = segmento_aux->tam_segmento;
+			consolidar(inicio, tamanio);
+		}
+	}
+	list_iterator_destroy(segmento_iterator);
 }
 
 t_memoria_config* leer_config(char *path) {
@@ -349,12 +369,15 @@ t_hueco* buscar_hueco(int tamanio){
 	t_hueco* hueco;
 
 	if(string_equals_ignore_case(algoritmo, "BEST")){
+		//@Nullable
 		hueco = buscar_hueco_por_best_fit(tamanio);
 	}
 	else if(string_equals_ignore_case(algoritmo, "FIRST")){
+		//TODO: @NULLABLE
 		hueco = buscar_hueco_por_first_fit(tamanio);
 	}
 	else{
+		//TODO: @NULLABLE
 		hueco = buscar_hueco_por_worst_fit(tamanio);
 	}
 	return hueco;
@@ -369,10 +392,14 @@ t_list* filtrar_huecos_libres_por_tamanio(int tamanio){
 	return list_filter(espacio_usuario->huecos_libres,&_func_aux);
 }
 
+//@Nullable
 t_hueco* buscar_hueco_por_best_fit(int tamanio){
 
 	t_list* huecos_candidatos = filtrar_huecos_libres_por_tamanio(tamanio);
-
+	if (list_size(huecos_candidatos) <= 0) {
+		log_error(logger, "No hay huecos candidatos => OUT OF MEMORY");
+		return NULL;
+	}
 	void* _fun_aux_2(void* elem1,void* elem2){
 		t_hueco* hueco1 = (t_hueco*) elem1;
 		t_hueco* hueco2 = (t_hueco*) elem2;
