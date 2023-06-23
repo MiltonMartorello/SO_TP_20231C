@@ -5,7 +5,7 @@ t_memoria_config* memoria_config;
 t_list* tablas_segmentos;
 
 t_log * logger;
-int id = 0;
+int id = 1;
 
 void iniciar_estructuras(void) {
 	espacio_usuario = malloc(sizeof(t_espacio_usuario));
@@ -39,6 +39,7 @@ void destroy_estructuras(void) {
 t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id) {
     t_segmento* segmento = malloc(sizeof(t_segmento));
     //segmento->valor = malloc(tam_segmento);  // Este valor lo seteará CPU de ser necesario
+    segmento->descriptor_id = id++;
     segmento->segmento_id = segmento_id; // id autoincremental de sistema (Descriptor)
 	segmento->tam_segmento = tam_segmento; // Con la base + el tamaño se calcula la posición final
 	//log_info(logger, "Creando segmento con tamaño %d" ,tam_segmento);
@@ -60,21 +61,22 @@ t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id) {
 	//memcpy(espacio_usuario->espacio_usuario + hueco->inicio, segmento->valor, tam_segmento);
 	//log_info(logger, "Copiado Segmento a espacio de usuario");
 	actualizar_hueco(hueco,hueco->inicio + tam_segmento, hueco->fin); // Actualizamos el piso del hueco al nuevo offset.
-	// Agregamos el segmento a la lista de segmentos activos
 	list_add(espacio_usuario->segmentos_activos, segmento);
-
 	log_info(logger, "Creado Segmento %d", segmento->segmento_id);
 
 	return segmento;
 }
 
 void delete_segmento(int pid, int segmento_id) {
+
+    int descriptor_id = encontrar_descriptor_id(pid, segmento_id);
+
 	// Lambda
     bool encontrar_por_id(void* elemento) {
         t_segmento* segmento = (t_segmento*)elemento;
-        return segmento->segmento_id == segmento_id;
+        return segmento->descriptor_id == descriptor_id;
     }
-    log_info(logger, "Eliminando segmento %d...", segmento_id);
+    log_info(logger, "Eliminando Segmento: DESC_ID %d [PID:%d - SID:%d]...", descriptor_id, pid, segmento_id);
     t_segmento* segmento = list_find(espacio_usuario->segmentos_activos, encontrar_por_id);
     if (segmento == NULL) {
 		log_error(logger, "Error: No se encontró el segmento %d para eliminar", segmento_id);
@@ -84,10 +86,58 @@ void delete_segmento(int pid, int segmento_id) {
     int inicio_segmento = segmento->inicio;
     //free(segmento->valor);
     consolidar(inicio_segmento,tamanio);
-    if (list_remove_element(espacio_usuario->segmentos_activos, segmento)) {
-		free(segmento);
+    if (list_remove_element(espacio_usuario->segmentos_activos, segmento)) { //REMUEVE EL SEGMENTO DE LOS ACTIVOS/OCUPADOS GENERALES
+    	list_remove_element(encontrar_tabla_segmentos(pid, segmento_id), segmento); //REMUEVE EL SEGMENTO DE LA TABLA PARTICULAR DE ESE PID
+		free(segmento); // LIBERA EL SEGMENTO T_SEGMENTO (3 INTS)
 		log_info(logger, "Eliminado Segmento %d de %d Bytes", segmento_id, tamanio);
+		loggear_tablas_segmentos();
     }
+}
+
+t_list* encontrar_tabla_segmentos(int pid, int segmento_id) {
+	//log_info(logger, "TEST DE PID: %d", pid);
+	bool encontrar_tabla(void* elemento) {
+		t_tabla_segmento* tabla = (t_tabla_segmento*) elemento;
+		return tabla->pid == pid;
+	}
+	//loggear_tablas_segmentos();
+	t_tabla_segmento* tabla_encontrada = list_find(tablas_segmentos, encontrar_tabla);
+	 if (tabla_encontrada != NULL) {
+		 return tabla_encontrada->tabla;
+	 } else {
+		 log_error(logger, "No se encontró tabla de segmentos para el pid %d", pid);
+		 return EXIT_FAILURE;
+	 }
+}
+
+t_tabla_segmento* encontrar_tabla_segmento_por_pid(int pid) {
+    bool encontrar_tabla(void* elemento) {
+        t_tabla_segmento* tabla = (t_tabla_segmento*)elemento;
+        return tabla->pid == pid;
+    }
+
+    return list_find(tablas_segmentos, encontrar_tabla);
+}
+
+int encontrar_descriptor_id(int pid, int segmento_id) {
+
+	t_list* tabla_encontrada = encontrar_tabla_segmentos(pid, segmento_id);
+
+	if (tabla_encontrada != NULL) {
+		bool encontrar_segmento(void* elemento) {
+			t_segmento* segmento = (t_segmento*) elemento;
+			return segmento->segmento_id == segmento_id;
+		}
+
+		t_segmento* segmento_encontrado = list_find(tabla_encontrada, encontrar_segmento);
+
+		if (segmento_encontrado != NULL) {
+			return segmento_encontrado->descriptor_id;
+		}
+	}
+
+	// En caso de no encontrar el descriptor, puedes devolver un valor predeterminado o manejarlo según tus necesidades
+	return 0; // Por ejemplo, devolvemos 0
 }
 
 t_hueco* crear_hueco(int inicio, int fin) {
@@ -123,7 +173,7 @@ t_tabla_segmento* crear_tabla_segmento(int pid) {
 	tabla_segmento->tabla = list_create();
 	tabla_segmento->pid = pid;
 
-	list_add(tabla_segmento->tabla, list_get(espacio_usuario->segmentos_activos, SEGMENTO_0));
+	list_add(tabla_segmento->tabla, list_get(espacio_usuario->segmentos_activos, 0));
 	log_info(logger, "Creada tabla de segmentos para PID %d", pid);
 	list_add(tablas_segmentos, tabla_segmento);
 	//log_info(logger, "Tablas totales de segmentos: %d", tablas_segmentos->elements_count);
@@ -151,23 +201,29 @@ t_tabla_segmento* buscar_tabla_segmentos(int pid) {
 
 void loggear_tablas_segmentos(void) {
     //log_info(logger, "Loggeando tabla de segmentos...");
-    for (int i = 0; i < tablas_segmentos->elements_count; i++) {
-        t_tabla_segmento* tabla_segmentos = list_get(tablas_segmentos, i);
-        log_info(logger, "Tabla de PID: %d", tabla_segmentos->pid);
+	int cantidad = tablas_segmentos->elements_count;
+	if (cantidad <= 0) {
+		log_info(logger, "No quedan tablas de segmentos en el sistema");
+		loggear_huecos(espacio_usuario->huecos_libres);
+	} else {
+		for (int i = 0; i < cantidad; i++) {
+			t_tabla_segmento* tabla_segmentos = list_get(tablas_segmentos, i);
+			log_info(logger, "Tabla de PID: %d", tabla_segmentos->pid);
 
-        int max_tam_segmento = obtener_max_tam_segmento_para_log(tabla_segmentos->tabla);
+			int max_tam_segmento = obtener_max_tam_segmento_para_log(tabla_segmentos->tabla);
 
-        for (int j = 0; j < tabla_segmentos->tabla->elements_count; j++) {
-            t_segmento* segmento = list_get(tabla_segmentos->tabla, j);
-            int barra_size = (segmento->tam_segmento * 20) / max_tam_segmento;  // Ajustar el tamaño de la barra según el máximo tamaño de segmento
+			for (int j = 0; j < tabla_segmentos->tabla->elements_count; j++) {
+				t_segmento* segmento = list_get(tabla_segmentos->tabla, j);
+				int barra_size = (segmento->tam_segmento * 20) / max_tam_segmento;  // Ajustar el tamaño de la barra según el máximo tamaño de segmento
 
-            char barra[21];
-            memset(barra, '*', barra_size);
-            barra[barra_size] = '\0';
+				char barra[21];
+				memset(barra, '*', barra_size);
+				barra[barra_size] = '\0';
 
-            log_info(logger, "Segmento ID: %d | Inicio: %d | Tamaño: %d | %s", segmento->segmento_id, segmento->inicio, segmento->tam_segmento, barra);
-        }
-    }
+				log_info(logger, "Segmento ID: %d | Inicio: %d | Tamaño: %d | %s", segmento->segmento_id, segmento->inicio, segmento->tam_segmento, barra);
+			}
+		}
+	}
 }
 
 int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos) {
@@ -180,7 +236,6 @@ int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos) {
     }
     return max_tam;
 }
-
 
 void destroy_tabla_segmento(void* elemento) {
 	t_tabla_segmento* tabla_segmento = (t_tabla_segmento*)elemento;
@@ -196,11 +251,12 @@ void destroy_tabla_segmento(void* elemento) {
     	log_error(logger, "No se encontró la tabla de segmentos a eliminar para el PID %d\n", pid);
         return;
     }
-
     list_destroy_and_destroy_elements(tabla->tabla, free); // Liberar la memoria de los segmentos en la tabla
+    log_info(logger, "Eliminada tabla de segmentos de PID %d", pid);
     list_remove_and_destroy_by_condition(tablas_segmentos, encontrar_por_pid, free); // Remover y liberar la memoria de la tabla
+    log_info(logger, "Eliminada entrada en tablas de segmentos para PID %d", pid);
+    loggear_tablas_segmentos();
 }
-
 
 t_memoria_config* leer_config(char *path) {
     t_config *config = iniciar_config(path);
@@ -253,7 +309,6 @@ int aceptar_cliente(int socket_servidor) {
 }
 
 void consolidar(int inicio, int tamanio) {
-
 	bool inicio_contiguo(void* elem) {
 		t_hueco* hueco = (t_hueco*) elem;
 		return hueco->inicio == (inicio + tamanio);
