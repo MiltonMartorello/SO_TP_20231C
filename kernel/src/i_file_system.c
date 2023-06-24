@@ -47,28 +47,28 @@ void enviar_request_fs(t_instruccion* instruccion, char* nombre_archivo) {
 		case ci_F_OPEN:
 			log_info(logger, "Enviando Request de ci_F_OPEN para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_OPEN); // f_open ARCHIVO
-			enviar_mensaje(nombre_archivo, socket_filesystem, logger);
+			enviar_mensaje(nombre_archivo, socket_filesystem);
 
 			break;
 		case ci_F_READ:
 			log_info(logger, "Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_READ);
-			enviar_mensaje(nombre_archivo, socket_filesystem, logger);
-			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem, logger);
-			enviar_mensaje(list_get(instruccion->parametros,2), socket_filesystem, logger);
+			enviar_mensaje(nombre_archivo, socket_filesystem);
+			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem);
+			enviar_mensaje(list_get(instruccion->parametros,2), socket_filesystem);
 			break;
 		case ci_F_WRITE:
 			log_info(logger, "Enviando Request de ci_F_WRITE para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_WRITE);
-			enviar_mensaje(nombre_archivo, socket_filesystem, logger);
-			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem, logger);
-			enviar_mensaje(list_get(instruccion->parametros,2), socket_filesystem, logger);
+			enviar_mensaje(nombre_archivo, socket_filesystem);
+			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem);
+			enviar_mensaje(list_get(instruccion->parametros,2), socket_filesystem);
 			break;
 		case ci_F_TRUNCATE:
 			log_info(logger, "Enviando Request de ci_F_TRUNCATE para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_TRUNCATE);
-			enviar_mensaje(nombre_archivo, socket_filesystem, logger);
-			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem, logger);
+			enviar_mensaje(nombre_archivo, socket_filesystem);
+			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem);
 			break;
 		default:
 			break;
@@ -85,7 +85,7 @@ t_archivo_abierto* fs_crear_archivo(char* nombre_archivo) {
 	log_info(logger, "FS_THREAD -> Se va a crear el archivo %s de length %d ", nombre_archivo, nombre_length);
 	validar_conexion(socket_filesystem);
 	enviar_entero(socket_filesystem, F_CREATE);
-	enviar_mensaje(nombre_archivo, socket_filesystem, logger);
+	enviar_mensaje(nombre_archivo, socket_filesystem);
 
 	int cod_op = recibir_operacion(socket_filesystem); // F_OP_OK
 	if (cod_op != F_OP_OK) {

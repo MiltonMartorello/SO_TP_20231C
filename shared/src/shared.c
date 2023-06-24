@@ -183,8 +183,8 @@ int crear_conexion(char *ip, char* puerto)
 
 	return socket_cliente;
 }
-//TODO: no hace falta el logger en esta funcion
-void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
+
+void enviar_mensaje(char* mensaje, int socket_cliente)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 

@@ -65,8 +65,6 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 }
 
 
-//TODO GENERALIZAR ESTA FUNCION EN LAS SHARED
-
 int conexion_a_kernel(char* ip, char* puerto,t_log* logger) {
 	int socket_kernel = crear_conexion(ip, puerto);
 	enviar_handshake(socket_kernel,CONSOLA);

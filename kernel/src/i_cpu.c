@@ -181,7 +181,7 @@ void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger
 	else{
 		log_info(logger, "No se encontro recurso %s , pasando PROCESO <%d> a EXIT",nombre,pcb->pid);
 		solicitar_eliminar_tabla_de_segmento(pcb);
-		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
+		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND);
 		sem_post(&cpu_liberada);
 	}
 
@@ -207,7 +207,7 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	else{
 		log_info(logger, "No se encontro recurso, pasando a EXIT");
 		solicitar_eliminar_tabla_de_segmento(pcb);
-		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
+		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND);
 		sem_post(&cpu_liberada);
 	}
 
@@ -293,7 +293,7 @@ void procesar_delete_segment(t_pcb* pcb) {
 	pthread_mutex_unlock(&mutex_socket_memoria);
 }
 
-void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) { //TODO: LLEVAR A UN ARCHIVO i_memoria
+void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) {
 	pthread_mutex_lock(&mutex_socket_memoria);
 	validar_conexion(socket_memoria);
 	log_info(logger, "P_LARGO -> Solicitando Eliminación de Tabla de Segmentos para PID: %d...", pcb->pid);

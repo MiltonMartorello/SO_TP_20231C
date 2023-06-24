@@ -34,7 +34,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes);
  * CLIENTE
  * */
 int crear_conexion(char* ip, char* puerto);
-void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger);
+void enviar_mensaje(char* mensaje, int socket_cliente);
 t_buffer* crear_buffer();
 t_paquete* crear_paquete(int);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);

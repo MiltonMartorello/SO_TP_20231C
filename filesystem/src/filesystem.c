@@ -169,7 +169,7 @@ void correr_servidor(void) {
     switch (modulo) {
         case KERNEL:
             log_info(logger, "Kernel Conectado.");
-            enviar_mensaje("TODO: Generico", socket_kernel, logger);
+            enviar_mensaje("TODO: Generico", socket_kernel);
             recibir_request_kernel(socket_kernel);
             break;
         case -1:

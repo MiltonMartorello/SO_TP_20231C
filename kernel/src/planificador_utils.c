@@ -334,7 +334,7 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	free(contexto_pcb);
 }
 
-//TODO: arreglar harcodeo
+
 void loggear_cola_ready(t_log* logger, char* algoritmo) {
 	pthread_mutex_lock(colas_planificacion->cola_ready->mutex);
     char* pids = concatenar_pids(colas_planificacion->cola_ready->cola->elements);
@@ -466,6 +466,7 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			loggear_tabla(pcb, "P_CORTO");
 			break;
 		case MEMORY_ERROR_OUT_OF_MEMORY: // 71
+			pthread_mutex_unlock(&mutex_socket_memoria); // TODO: PATCH
 			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, OUT_OF_MEMORY);
 			sem_post(&cpu_liberada);
