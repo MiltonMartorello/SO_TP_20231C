@@ -1,7 +1,7 @@
 #include "shared.h"
 #include <errno.h>
 
-t_log* logger; //TODO se necesita aca?
+t_log* logger;
 
 /*
  * SERVIDOR

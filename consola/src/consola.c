@@ -168,7 +168,6 @@ int serializar_buffer_programa(int size_buffer, int cant_instrucciones, t_list* 
 			// Mientras existra otro parámetro, tal vez queda medio redundante con el if de arriba.
 			while (list_iterator_has_next(iterador_parametros)) {
 				parametro = (char*) list_iterator_next(iterador_parametros);
-				// TODO revisar si es necesario el + 1
 				size_parametro = strlen(parametro) + 1;
 				// Tamaño del parámetro
 				memcpy(buffer->stream + offset, &(size_parametro),
