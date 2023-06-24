@@ -18,6 +18,8 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 		//log_info(cpu_logger, "Cód instrucción: %d", una_instruccion->codigo);
 		parametros = una_instruccion->parametros;
 		proceso->program_counter++;
+		int direccion_fisica;
+		int direccion_logica;
 
 		switch (una_instruccion->codigo)
 		{
@@ -25,10 +27,27 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			execute_set(list_get(parametros,0),list_get(parametros,1));
 			break;
 		case ci_MOV_IN:
-			execute_mov_in(list_get(parametros,0),atoi(list_get(parametros,1)));
+			direccion_logica = atoi(list_get(parametros,1));
+			direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(list_get(parametros,0)));
+
+	                if(direccion_fisica == -1){
+		         devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
+		         return;
+	                }
+			else{
+			 execute_mov_in(direccion_fisica, list_get(parametros,0),direccion_logica);
+			}
 			break;
+				
 		case ci_MOV_OUT:
-			execute_mov_out(atoi(list_get(parametros,0)),list_get(parametros,1));
+			direccion_logica = atoi(list_get(parametros,0));
+			direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(list_get(parametros,1)));
+			if(direccion_fisica == -1){
+		         devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
+		         return;
+			}else{
+			execute_mov_out(direccion_fisica, atoi(list_get(parametros,0)),list_get(parametros,1));
+			}
 			break;
 		case ci_IO: //TODO funcion para loguear instrucciones
 			execute_io(atoi(list_get(parametros,0)));
@@ -97,14 +116,9 @@ void execute_set(char* registro, char* valor) {
 	set_valor_registro(registro,valor);
 }
 
-void execute_mov_in(char* registro,int direccion_logica) {
+void execute_mov_in(int direccion_fisica, char* registro,int direccion_logica) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <MOV_IN> - <%s> - <%d>",proceso->pid, registro, direccion_logica);
-	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(registro));
-
-	if(direccion_fisica == -1){
-		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
-		return;
-	}
+	
 
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
 	char* valor = leer_memoria(direccion_fisica, tamanio_registro(registro));
@@ -113,14 +127,14 @@ void execute_mov_in(char* registro,int direccion_logica) {
 	set_valor_registro(registro, valor);
 }
 
-void execute_mov_out(int direccion_logica, char* registro) {
+void execute_mov_out(int direccion_fisica, int direccion_logica, char* registro) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <MOV_OUT> - <%d> - <%s>", proceso->pid, direccion_logica, registro);
-	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(registro));
+	//int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(registro));
 
-	if(direccion_fisica == -1){
-		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
-		return;
-	}
+	//if(direccion_fisica == -1){
+	//	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
+	//	return;
+	//}
 
 	char* valor_registro = get_valor_registro(registro); //TODO: hay que verificar que tamaño lee en memoria
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
