@@ -403,7 +403,7 @@ int cargar_archivos(FCB* lis_archivos){
 int truncar_archivo(const char* nombreArchivo) {
 
     //char* paramTamanio = recibir_string(socket_kernel);
-	char* paramTamanio = "189";
+	char* paramTamanio = "130";
 	uint32_t nuevoTamanio = atoi(paramTamanio);
 
 	log_info(logger, "Truncar Archivo: %s - Tamaño: %d\n", nombreArchivo, nuevoTamanio);
@@ -528,13 +528,10 @@ int estaLlenoBloque(char* cadena) {
 
 t_bloque* obtener_bloque(int bloque_index) {
 
-    // Calcula la posición del bloque en el archivo de bloques
     off_t offset = bloque_index * superbloque->BLOCK_SIZE;
 
-    // Calcula el tamaño total de la cadena
     size_t tamano_total = superbloque->BLOCK_SIZE * superbloque->BLOCK_COUNT;
 
-    // Verifica si el offset está dentro de los límites de la cadena
     if (offset >= tamano_total) {
         printf("Error: el offset está fuera de los límites de la cadena.\n");
         return NULL;
