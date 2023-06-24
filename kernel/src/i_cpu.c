@@ -136,8 +136,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_DESALOJADO_POR_SEG_FAULT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por SEG_FAULT");
+			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, SEG_FAULT);
-
 			sem_post(&cpu_liberada);
 			return;
 			break;
@@ -180,6 +180,7 @@ void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger
 	}
 	else{
 		log_info(logger, "No se encontro recurso %s , pasando PROCESO <%d> a EXIT",nombre,pcb->pid);
+		solicitar_eliminar_tabla_de_segmento(pcb);
 		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
 		sem_post(&cpu_liberada);
 	}
@@ -204,6 +205,7 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	}
 	else{
 		log_info(logger, "No se encontro recurso, pasando a EXIT");
+		solicitar_eliminar_tabla_de_segmento(pcb);
 		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
 		sem_post(&cpu_liberada);
 	}
