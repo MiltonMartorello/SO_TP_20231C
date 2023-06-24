@@ -38,13 +38,25 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 	// Si el send envió algo
 	if (bytes_enviados > 0) {
 		int return_kernel = recibir_operacion(socket_kernel);
-		if (return_kernel == SUCCESS) {
-			log_info(logger, "Programa ha finalizado correctamente");
-		} else if(return_kernel == RESOURCE_NOT_FOUND){
-			log_error(logger, "Error al finalizar programa, recurso no encontrado. Código de error: %d", return_kernel);
-		}
-		else{
-			log_error(logger, "Error al finalizar programa. Código de error: %d", return_kernel);
+		switch (return_kernel) {
+			case SUCCESS:
+				log_info(logger, "Programa ha finalizado correctamente");
+				break;
+			case SEG_FAULT:
+				log_error(logger, "Error al finalizar programa. Código de error: %d [SEG_FAULT]", return_kernel);
+				break;
+			case OUT_OF_MEMORY:
+				log_error(logger, "Error al finalizar programa. Código de error: %d [OUT_OF_MEMORY]", return_kernel);
+				break;
+			case NOT_DEFINED:
+				log_error(logger, "Error al finalizar programa. Código de error: %d [NOT_DEFINED]", return_kernel);
+				break;
+			case RESOURCE_NOT_FOUND:
+				log_error(logger, "Error al finalizar programa. Código de error: %d [RESOURCE_NOT_FOUND]", return_kernel);
+				break;
+			default:
+				log_error(logger, "Error al finalizar programa. Código de error: %d", return_kernel);
+				break;
 		}
 	}
 
