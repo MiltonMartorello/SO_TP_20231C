@@ -34,6 +34,9 @@ sem_t request_file_system;
 t_list* lista_recursos;
 char** indice_recursos;
 
+// MEMORIA
+pthread_mutex_t mutex_socket_memoria;
+
 
 t_squeue* squeue_create(void) {
 	t_squeue* squeue = malloc (sizeof(t_squeue));
@@ -108,6 +111,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	pthread_mutex_init(&mutex_cola_ready, NULL);
 	pthread_mutex_init(&mutex_cola_exec, NULL);
 	pthread_mutex_init(&mutex_cola_exit, NULL);
+	pthread_mutex_init(&mutex_socket_memoria, NULL);
 	sem_init(&request_file_system, 0, 0);
 }
 
@@ -122,6 +126,7 @@ void destroy_semaforos(void) {
 
 	sem_destroy(&cpu_liberada);
 	sem_destroy(&proceso_enviado);
+
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
@@ -437,6 +442,7 @@ void sincronizar_tabla_segmentos(int socket, t_pcb *pcb) {
 void procesar_respuesta_memoria(t_pcb *pcb) {
 	//RECV
 	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
+
 	validar_conexion(socket_memoria);
 	int cod_op = recibir_entero(socket_memoria);
 	log_info(logger, "Recibido memoria op_code: %d", cod_op);
@@ -487,6 +493,7 @@ t_segmento* recibir_segmento(void) {
 
 
 t_list* recibir_tabla_segmentos(int socket_memoria) {
+	pthread_mutex_lock(&mutex_socket_memoria);
 	validar_conexion(socket_memoria);
 	t_list* tabla_segmentos = list_create();
 	int cant_segmentos = recibir_entero(socket_memoria);
@@ -495,6 +502,6 @@ t_list* recibir_tabla_segmentos(int socket_memoria) {
 		t_segmento* segmento_aux = recibir_segmento();
 		list_add(tabla_segmentos, segmento_aux);
 	}
-
+	pthread_mutex_unlock(&mutex_socket_memoria);
 	return tabla_segmentos;
 }
