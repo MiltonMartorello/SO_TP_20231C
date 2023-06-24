@@ -231,13 +231,11 @@ void recibir_request_kernel(int socket_kernel) {
 void procesar_f_read(char * nombre_archivo) {
 	char* direccion_logica = recibir_string(socket_kernel);
 	char* cantidad_de_bytes = recibir_string(socket_kernel);
-	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
 	// Ej: int tamanio_int = atoi(tamanio);
 }
 void procesar_f_write(char * nombre_archivo) {
 	char* direccion_logica = recibir_string(socket_kernel);
 	char* cantidad_de_bytes = recibir_string(socket_kernel);
-	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
 	// Ej: int tamanio_int = atoi(tamanio);
 }
 
