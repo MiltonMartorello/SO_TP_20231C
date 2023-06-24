@@ -99,7 +99,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_grado_multiprogramacion, 0, grado_multiprogramacion);
 	sem_init(&sem_nuevo_proceso, 0, 0);
 	sem_init(&sem_ready_proceso, 0, 0);
-	sem_init(&sem_exec_proceso, 0, 0);
+	//sem_init(&sem_exec_proceso, 0, 0);
 	sem_init(&sem_block_proceso, 0, 0);
 	sem_init(&sem_exit_proceso, 0, 0);
 	sem_init(&cpu_liberada, 0, 1);
@@ -116,7 +116,7 @@ void destroy_semaforos(void) {
 	sem_destroy(&sem_grado_multiprogramacion);
 	sem_destroy(&sem_nuevo_proceso);
 	sem_destroy(&sem_ready_proceso);
-	sem_destroy(&sem_exec_proceso);
+	//sem_destroy(&sem_exec_proceso);
 	sem_destroy(&sem_block_proceso);
 	sem_destroy(&sem_exit_proceso);
 
@@ -278,7 +278,6 @@ void pasar_a_cola_exec(t_pcb* pcb, t_log* logger) {
 	squeue_push(colas_planificacion->cola_exec, pcb);
 	squeue_push(colas_planificacion->log_ejecucion, pcb->pid);
 	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	sem_post(&sem_exec_proceso); //TODO : para que se usa este semforo?
 }
 
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola) {
@@ -387,7 +386,6 @@ char* estado_string(int cod_op) {
 	return NULL;
 }
 
-//TODO revisar
 t_registro crear_registro(void) {
 
 	t_registro registro;

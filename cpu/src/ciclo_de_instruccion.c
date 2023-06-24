@@ -158,7 +158,7 @@ void execute_f_read(char* nombre_archivo, int direccion_logica, int cant_bytes) 
 		enviar_entero(socket_kernel, cant_bytes);
 	}
 	else{
-		devolver_proceso(proceso, SEG_FAULT, cpu_logger); //TODO : usar este enum? o crear otro?
+		devolver_proceso(proceso, SEG_FAULT, cpu_logger);
 	}
 }
 
