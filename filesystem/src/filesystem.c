@@ -1,4 +1,4 @@
-#include "../Include/filesystem.h"
+#include "../Include/filesystem.h"300300
 
 int main(int argc, char **argv) {
 
@@ -119,7 +119,7 @@ void iniciar_bloques(void) {
     log_info(logger, "Posicion del archivo: %d", size_archivo);
 
     if (size_archivo > 0) {
-        size_t size = fs_config->BLOCK_COUNT * fs_config->BLOCK_SIZE;
+        size_t size = superbloque->BLOCK_COUNT * superbloque->BLOCK_SIZE;
         log_info(logger, "Size de %zu", size);
 
         int fd = fileno(archivo_bloques);
@@ -239,14 +239,15 @@ int crear_archivo(const char* nombreArchivo) {
 
     fprintf(archivo, "NOMBRE_ARCHIVO=%s\n", nombreArchivo);
     fprintf(archivo, "TAMANIO_ARCHIVO=%d\n", tamanioArchivo);
-    fprintf(archivo, "PUNTERO_DIRECTO=%s\n", "");
-    fprintf(archivo, "PUNTERO_INDIRECTO=%s\n", "");
+    fprintf(archivo, "PUNTERO_DIRECTO=%s\n", 0);
+    fprintf(archivo, "PUNTERO_INDIRECTO=%s\n", 0);
 
-    arch_en_mem++;
 	lista_archivos[arch_en_mem].NOMBRE_ARCHIVO = nombreArchivo;
 	lista_archivos[arch_en_mem].TAMANIO_ARCHIVO = tamanioArchivo;
-	lista_archivos[arch_en_mem].PUNTERO_DIRECTO = "";
-	lista_archivos[arch_en_mem].PUNTERO_INDIRECTO = "";
+	lista_archivos[arch_en_mem].PUNTERO_DIRECTO = 0;
+	lista_archivos[arch_en_mem].PUNTERO_INDIRECTO = 0;
+
+    arch_en_mem++;
 
     fclose(archivo);  // Cerrar el archivo
 
@@ -325,7 +326,6 @@ t_bloque* crear_bloque(int bloque_index) {
 
     // Llenar el bloque con datos vacíos
     memset(bloque->datos, 0, superbloque->BLOCK_SIZE);
-    //strcpy((char*)bloque->datos, "HOLA MUNDO");
 
     //log_info(logger, "Seteado bit %d en %d", bloque_index, bitarray_test_bit(bitmap, bloque_index));
 	return bloque;
@@ -403,7 +403,7 @@ int cargar_archivos(FCB* lis_archivos){
 int truncar_archivo(const char* nombreArchivo) {
 
     //char* paramTamanio = recibir_string(socket_kernel);
-	char* paramTamanio = "1500";
+	char* paramTamanio = "189";
 	uint32_t nuevoTamanio = atoi(paramTamanio);
 
 	log_info(logger, "Truncar Archivo: %s - Tamaño: %d\n", nombreArchivo, nuevoTamanio);
@@ -430,8 +430,18 @@ int truncar_archivo(const char* nombreArchivo) {
 
         int bloquesAsignados = 0;        // tendria que restar los bloques ya existentes
         int bloque = 0;
-        int bloqueIndirecto = obtener_bloque_libre();
- 	    t_bloque* nuevo_bloqueindirecto = crear_bloque(bloqueIndirecto);
+        int bloqueIndirecto = 0;
+    	t_bloque* nuevo_bloqueindirecto;
+
+        if(lista_archivos[indice_archivo].PUNTERO_INDIRECTO > 0){
+        	nuevo_bloqueindirecto = obtener_bloque(lista_archivos[indice_archivo].PUNTERO_INDIRECTO);
+        	if(!estaLlenoBloque(nuevo_bloqueindirecto->datos)){
+        		bloqueIndirecto = lista_archivos[indice_archivo].PUNTERO_INDIRECTO;
+        	}
+        } else {
+            bloqueIndirecto = obtener_bloque_libre();
+     	    nuevo_bloqueindirecto = crear_bloque(bloqueIndirecto);
+        }
 
  	    // Buscar bloques disponibles en el bitmap y asignarlos al archivo
         for (int i = 0; i < bloquesNecesarios; i++) {
@@ -446,6 +456,7 @@ int truncar_archivo(const char* nombreArchivo) {
 
            	escribir_en_bloque(bloque, nuevo_bloque->datos);
            	strcat(nuevo_bloqueindirecto->datos, &bloque);
+            levantar_fcb(lista_archivos[indice_archivo].NOMBRE_ARCHIVO);
            	actualizar_fcb(fcb, nuevoTamanio, bloque, bloqueIndirecto);
          }
 
@@ -509,4 +520,32 @@ void escribir_en_bloque(uint32_t numero_bloque, char* contenido) {
     }
 
     fclose(archivo_bloques);
+}
+
+int estaLlenoBloque(char* cadena) {
+    return (strlen(cadena) >= superbloque->BLOCK_SIZE);
+}
+
+t_bloque* obtener_bloque(int bloque_index) {
+
+    // Calcula la posición del bloque en el archivo de bloques
+    off_t offset = bloque_index * superbloque->BLOCK_SIZE;
+
+    // Calcula el tamaño total de la cadena
+    size_t tamano_total = superbloque->BLOCK_SIZE * superbloque->BLOCK_COUNT;
+
+    // Verifica si el offset está dentro de los límites de la cadena
+    if (offset >= tamano_total) {
+        printf("Error: el offset está fuera de los límites de la cadena.\n");
+        return NULL;
+    }
+
+    void* subcadena = (char*)bloques + offset;
+    void* subcadena_copiada = malloc(superbloque->BLOCK_SIZE + 1); // +1 para el carácter nulo
+    memcpy(subcadena_copiada, subcadena, superbloque->BLOCK_SIZE);
+
+	t_bloque* bloque = malloc(sizeof(t_bloque));
+	bloque->datos = subcadena_copiada;
+
+	return bloque;
 }

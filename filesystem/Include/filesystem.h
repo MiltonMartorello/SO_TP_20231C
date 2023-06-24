@@ -97,4 +97,5 @@ int truncar_archivo(const char* nombreArchivo);
 int obtener_bloque_libre(void);
 t_bloque* crear_bloque(int bloque_index_dir);
 int cargar_archivos(FCB* lis_archivos);
+t_bloque* obtener_bloque(int bloque_index);
 #endif /* FILESYSTEM_H_ */
