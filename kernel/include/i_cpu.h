@@ -9,6 +9,8 @@ extern t_colas* colas_planificacion;
 extern sem_t cpu_liberada;
 extern sem_t proceso_enviado;
 extern sem_t request_file_system;
+extern sem_t f_seek_done;
+extern sem_t f_close_done;
 extern t_list* lista_recursos;
 
 void manejar_respuesta_cpu(void* args_hilo);

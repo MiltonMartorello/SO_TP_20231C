@@ -31,6 +31,8 @@ pthread_mutex_t mutex_cola_exit;
 
 // FILE SYSTEM
 sem_t request_file_system;
+sem_t f_seek_done;
+sem_t f_close_done;
 t_list* lista_recursos;
 char** indice_recursos;
 
@@ -109,6 +111,8 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	pthread_mutex_init(&mutex_cola_exec, NULL);
 	pthread_mutex_init(&mutex_cola_exit, NULL);
 	sem_init(&request_file_system, 0, 0);
+	sem_init(&f_seek_done, 0, 0);
+	sem_init(&f_close_done, 0, 0);
 }
 
 void destroy_semaforos(void) {
@@ -122,6 +126,14 @@ void destroy_semaforos(void) {
 
 	sem_destroy(&cpu_liberada);
 	sem_destroy(&proceso_enviado);
+	sem_destroy(&request_file_system);
+	sem_destroy(&f_seek_done);
+	sem_destroy(&f_close_done);
+
+	pthread_mutex_destroy(&mutex_cola_new);
+	pthread_mutex_destroy(&mutex_cola_ready);
+	pthread_mutex_destroy(&mutex_cola_exec);
+	pthread_mutex_destroy(&mutex_cola_exit);
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {

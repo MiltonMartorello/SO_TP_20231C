@@ -134,6 +134,10 @@ typedef enum {
 	F_NOT_EXISTS,
 	F_EXISTS,
 	F_OP_OK,
+	F_OPEN_OK,
+	F_TRUNCATE_OK,
+	F_READ_OK,
+	F_WRITE_OK,
 	F_OP_ERROR
 } t_codigo_operacionfs;
 

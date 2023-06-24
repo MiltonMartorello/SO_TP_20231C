@@ -222,12 +222,19 @@ void procesar_f_open(t_pcb* pcb) {
 void procesar_f_close(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%s>", pcb->pid, nombre_archivo);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
+	sem_wait(&f_close_done);
 }
 
 void procesar_f_seek(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
+	sem_wait(&f_seek_done);
+	ejecutar_proceso(socket_cpu, pcb, logger);
 }
 
 void procesar_f_read(t_pcb* pcb) {

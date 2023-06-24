@@ -15,20 +15,23 @@
 
 typedef struct {
     int file_id;
-    char* path;
     char* nombre;
+    int puntero;
     int cant_aperturas;
+    t_squeue* cola_bloqueados;
     pthread_mutex_t* mutex;
 } t_archivo_abierto;
 
 extern t_colas* colas_planificacion;
 extern int socket_filesystem;
 extern sem_t request_file_system;
+extern sem_t f_seek_done;
+extern sem_t f_close_done;
 extern t_log* logger;
 
 //Interface
 t_archivo_abierto* fs_crear_archivo(char* nombre_archivo);
-void enviar_request_fs(t_instruccion* instruccion, char* nombre_archivo);
+void enviar_request_fs(int pid, t_instruccion* instruccion, char* nombre_archivo);
 
 //Internos
 void procesar_file_system(void);
