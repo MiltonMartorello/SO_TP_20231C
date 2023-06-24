@@ -216,6 +216,7 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 
 
 void procesar_f_open(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
 	squeue_push(colas_planificacion->cola_archivos, pcb);
@@ -223,17 +224,20 @@ void procesar_f_open(t_pcb* pcb) {
 }
 
 void procesar_f_close(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%s>", pcb->pid, nombre_archivo);
 }
 
 void procesar_f_seek(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
 }
 
 void procesar_f_read(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
@@ -241,6 +245,7 @@ void procesar_f_read(t_pcb* pcb) {
 }
 
 void procesar_f_write(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
@@ -248,31 +253,42 @@ void procesar_f_write(t_pcb* pcb) {
 }
 
 void procesar_f_truncate(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
 }
 
 void procesar_create_segment(t_pcb* pcb) {
+	//RECV
 	int id_segmento = recibir_entero(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
+
+	//SEND
 	pthread_mutex_lock(&mutex_socket_memoria);
 	enviar_entero(socket_memoria,MEMORY_CREATE_SEGMENT);
 	enviar_entero(socket_memoria, pcb->pid);
 	enviar_entero(socket_memoria,id_segmento);
 	enviar_entero(socket_memoria,tamanio);
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
+
+	//RECV
 	procesar_respuesta_memoria(pcb);
 	pthread_mutex_unlock(&mutex_socket_memoria);
 }
 
 void procesar_delete_segment(t_pcb* pcb) {
+	//RECV
 	int id_segmento = recibir_entero(socket_cpu);
+
+	//SEND
 	pthread_mutex_lock(&mutex_socket_memoria);
 	enviar_entero(socket_memoria,MEMORY_DELETE_SEGMENT);
 	enviar_entero(socket_memoria, pcb->pid);
 	enviar_entero(socket_memoria,id_segmento);
 	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
+
+	//RECV
 	procesar_respuesta_memoria(pcb);
 	pthread_mutex_unlock(&mutex_socket_memoria);
 }
@@ -287,7 +303,6 @@ void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) { //TODO: LLEVAR A UN ARCH
 	enviar_entero(socket_memoria, pcb->pid);
 
 	//RECV
-	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
 	procesar_respuesta_memoria(pcb);
 	pthread_mutex_unlock(&mutex_socket_memoria);
 }

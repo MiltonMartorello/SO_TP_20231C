@@ -441,8 +441,6 @@ void sincronizar_tabla_segmentos(int socket, t_pcb *pcb) {
 
 void procesar_respuesta_memoria(t_pcb *pcb) {
 	//RECV
-	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
-
 	validar_conexion(socket_memoria);
 	int cod_op = recibir_entero(socket_memoria);
 	log_info(logger, "Recibido memoria op_code: %d", cod_op);
