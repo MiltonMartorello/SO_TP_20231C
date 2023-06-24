@@ -123,7 +123,11 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_CREATE_SEGMENT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por CREATE_SEGMENT");
 			procesar_create_segment(pcb);
-			ejecutar_proceso(socket_cpu, pcb, logger);
+			if (pcb->estado_actual == EXEC) {
+				ejecutar_proceso(socket_cpu, pcb, logger);
+			} else {
+				log_error(logger, "P_CORTO -> Proceso desalojado por OUT_OF_MEMORY");
+			}
 			break;
 		case PROCESO_DESALOJADO_POR_DELETE_SEGMENT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por DELETE_SEGMENT");

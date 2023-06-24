@@ -444,13 +444,13 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 	log_info(logger, "Recibido memoria op_code: %d", cod_op);
 	int pid;
 	switch (cod_op) {
-		case MEMORY_SEGMENT_TABLE_CREATED: // 69
+		case MEMORY_SEGMENT_TABLE_CREATED: // 67
 			pid = recibir_entero(socket_memoria);
 			log_info(logger, "P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
 			sincronizar_tabla_segmentos(socket_memoria, pcb);
 			loggear_tabla(pcb, "P_LARGO");
 			break;
-		case MEMORY_SEGMENT_TABLE_DELETED: // 70
+		case MEMORY_SEGMENT_TABLE_DELETED: // 69
 			log_info(logger, "P_LARGO -> Eliminada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
 			break;
 		case MEMORY_SEGMENT_CREATED: // 65
@@ -462,6 +462,11 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			pid = recibir_entero(socket_memoria);
 			sincronizar_tabla_segmentos(socket_memoria, pcb);
 			loggear_tabla(pcb, "P_CORTO");
+			break;
+		case MEMORY_ERROR_OUT_OF_MEMORY: // 71
+			solicitar_eliminar_tabla_de_segmento(pcb);
+			pasar_a_cola_exit(pcb, logger, OUT_OF_MEMORY);
+			sem_post(&cpu_liberada);
 			break;
 		default:
 			log_error(logger,"Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d", pcb->pid, cod_op);

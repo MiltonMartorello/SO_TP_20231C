@@ -41,6 +41,7 @@ void delete_segmento(int pid, int segmento_id);
 
 t_tabla_segmento* crear_tabla_segmento(int pid);
 void destroy_tabla_segmento(void* elemento);
+void destroy_segmentos_propios_de_tabla(t_list* tabla);
 t_tabla_segmento* buscar_tabla_segmentos(int pid);
 
 t_hueco* crear_hueco(int inicio, int fin);
@@ -55,12 +56,14 @@ void iniciar_estructuras(void);
 void destroy_estructuras(void);
 
 void eliminar_hueco(t_hueco* hueco);
+void liberar_huecos_ocupados(t_list* tabla);
 void consolidar(int inicio, int tamanio);
 t_hueco* buscar_hueco(int tamanio);
 t_list* filtrar_huecos_libres_por_tamanio(int tamanio);
 t_hueco* buscar_hueco_por_best_fit(int tamanio);
 t_hueco* buscar_hueco_por_first_fit(int tamanio);
 t_hueco* buscar_hueco_por_worst_fit(int tamanio);
+
 
 void loggear_huecos(t_list* huecos);
 void loggear_tablas_segmentos(void);
