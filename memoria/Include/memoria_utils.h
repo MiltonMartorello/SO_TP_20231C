@@ -57,7 +57,7 @@ void destroy_estructuras(void);
 
 void eliminar_hueco(t_hueco* hueco);
 void liberar_huecos_ocupados(t_list* tabla);
-void consolidar(int inicio, int tamanio);
+void consolidar_huecos_contiguos(int inicio_nuevo_espacio, int tamanio_nuevo_espacio);
 t_hueco* buscar_hueco(int tamanio);
 t_list* filtrar_huecos_libres_por_tamanio(int tamanio);
 t_hueco* buscar_hueco_por_best_fit(int tamanio);
@@ -72,5 +72,8 @@ int tamanio_hueco(t_hueco* hueco);
 int encontrar_descriptor_id(int pid, int segmento_id);
 t_list* encontrar_tabla_segmentos(int pid, int segmento_id);
 t_tabla_segmento* encontrar_tabla_segmento_por_pid(int pid);
+
+char* leer_direccion(int direccion, int tamanio);
+void escribir_en_direccion(int direccion,int tamanio, char* valor_a_escribir, int socket_cliente);
 
 #endif /* MEMORIA_UTILS_H_ */

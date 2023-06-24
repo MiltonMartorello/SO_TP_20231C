@@ -136,8 +136,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_DESALOJADO_POR_SEG_FAULT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por SEG_FAULT");
+			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, SEG_FAULT);
-
 			sem_post(&cpu_liberada);
 			return;
 			break;
@@ -253,19 +253,30 @@ void procesar_f_truncate(t_pcb* pcb) {
 void procesar_create_segment(t_pcb* pcb) {
 	int id_segmento = recibir_entero(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
-	enviar_entero(socket_memoria,MEMORY_CREATE_SEGMENT);
-	enviar_entero(socket_memoria, pcb->pid);
-	enviar_entero(socket_memoria,id_segmento);
-	enviar_entero(socket_memoria,tamanio);
+	t_paquete* paquete = crear_paquete(MEMORY_CREATE_SEGMENT);
+	paquete->buffer = crear_buffer();
+	//enviar_entero(socket_memoria,MEMORY_CREATE_SEGMENT);
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
+	agregar_a_paquete(paquete, &tamanio, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
+//	enviar_entero(socket_memoria, pcb->pid);
+//	enviar_entero(socket_memoria,id_segmento);
+//	enviar_entero(socket_memoria,tamanio);
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
 	procesar_respuesta_memoria(pcb);
 }
 
 void procesar_delete_segment(t_pcb* pcb) {
 	int id_segmento = recibir_entero(socket_cpu);
-	enviar_entero(socket_memoria,MEMORY_DELETE_SEGMENT);
-	enviar_entero(socket_memoria, pcb->pid);
-	enviar_entero(socket_memoria,id_segmento);
+	t_paquete* paquete = crear_paquete(MEMORY_DELETE_SEGMENT);
+	paquete->buffer = crear_buffer();
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
+//	enviar_entero(socket_memoria,MEMORY_DELETE_SEGMENT);
+//	enviar_entero(socket_memoria, pcb->pid);
+//	enviar_entero(socket_memoria,id_segmento);
 	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
 	procesar_respuesta_memoria(pcb);
 }
@@ -275,9 +286,12 @@ void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) { //TODO: LLEVAR A UN ARCH
 	log_info(logger, "P_LARGO -> Solicitando Eliminación de Tabla de Segmentos para PID: %d...", pcb->pid);
 
 	//SEND
-	enviar_entero(socket_memoria, MEMORY_DELETE_TABLE);
-	enviar_entero(socket_memoria, pcb->pid);
-
+//	enviar_entero(socket_memoria, MEMORY_DELETE_TABLE);
+//	enviar_entero(socket_memoria, pcb->pid);
+	t_paquete* paquete = crear_paquete(MEMORY_DELETE_TABLE);
+	paquete->buffer = crear_buffer();
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
 	//RECV
 	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
 	procesar_respuesta_memoria(pcb);

@@ -62,13 +62,13 @@ t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id) {
 	}
 	segmento->inicio = hueco->inicio; // Desde donde empieza, en el caso del segmento_0 esta bien que sea 0. Sino es la base del hueco
 	log_info(logger, "Encontrado hueco con piso %d y %d de espacio total", hueco->inicio, tamanio_hueco(hueco));
+	log_info(logger, "PID: <%d> - Crear Segmento: <%d> - Base: <%d> - TAMAÑO: <%d>", pid, segmento_id, segmento->inicio, tam_segmento);//TODO : segmento_id o descriptor?
 	// Dentro del choclo de espacio de usuario nos movemos hasta el inicio del hueco libre encontrado, desde ahí asignamos el segmento, con el tamaño recibido
 	//memcpy(espacio_usuario->espacio_usuario + hueco->inicio, segmento->valor, tam_segmento);
 	//log_info(logger, "Copiado Segmento a espacio de usuario");
 	actualizar_hueco(hueco,hueco->inicio + tam_segmento, hueco->fin); // Actualizamos el piso del hueco al nuevo offset.
 	list_add(espacio_usuario->segmentos_activos, segmento);
 	log_info(logger, "Creado Segmento %d", segmento->segmento_id);
-
 	return segmento;
 }
 
@@ -83,6 +83,7 @@ void delete_segmento(int pid, int segmento_id) {
     }
     log_info(logger, "Eliminando Segmento: DESC_ID %d [PID:%d - SID:%d]...", descriptor_id, pid, segmento_id);
     t_segmento* segmento = list_find(espacio_usuario->segmentos_activos, encontrar_por_id);
+    log_info(logger, "PID: <%d> - Eliminar Segmento: <%d> - Base: <%d> - TAMAÑO: <%d>", pid, segmento_id, segmento->inicio, segmento->tam_segmento);
     if (segmento == NULL) {
 		log_error(logger, "Error: No se encontró el segmento %d para eliminar", segmento_id);
 		return;
@@ -90,7 +91,7 @@ void delete_segmento(int pid, int segmento_id) {
     int tamanio = segmento->tam_segmento;
     int inicio_segmento = segmento->inicio;
     //free(segmento->valor);
-    consolidar(inicio_segmento,tamanio);
+    consolidar_huecos_contiguos(inicio_segmento,tamanio);
     if (list_remove_element(espacio_usuario->segmentos_activos, segmento)) { //REMUEVE EL SEGMENTO DE LOS ACTIVOS/OCUPADOS GENERALES
     	list_remove_element(encontrar_tabla_segmentos(pid, segmento_id), segmento); //REMUEVE EL SEGMENTO DE LA TABLA PARTICULAR DE ESE PID
 		free(segmento); // LIBERA EL SEGMENTO T_SEGMENTO (3 INTS)
@@ -282,7 +283,7 @@ void liberar_huecos_ocupados(t_list* tabla) {
 		if(segmento_aux->segmento_id != SEGMENTO_0) {
 			int inicio = segmento_aux->inicio;
 			int tamanio = segmento_aux->tam_segmento;
-			consolidar(inicio, tamanio);
+			consolidar_huecos_contiguos(inicio, tamanio);
 		}
 	}
 	list_iterator_destroy(segmento_iterator);
@@ -338,15 +339,15 @@ int aceptar_cliente(int socket_servidor) {
 	return socket_cliente;
 }
 
-void consolidar(int inicio, int tamanio) {
+void consolidar_huecos_contiguos(int inicio_nuevo_espacio, int tamanio_nuevo_espacio) {
 	bool inicio_contiguo(void* elem) {
 		t_hueco* hueco = (t_hueco*) elem;
-		return hueco->inicio == (inicio + tamanio);
+		return hueco->inicio == (inicio_nuevo_espacio + tamanio_nuevo_espacio);
 	}
 
 	bool fin_contiguo(void* elem) {
 		t_hueco* hueco = (t_hueco*) elem;
-		return hueco->fin == (inicio - 1);
+		return hueco->fin == (inicio_nuevo_espacio - 1);
 	}
 
 	t_hueco* hueco_derecho = list_find(espacio_usuario->huecos_libres,&inicio_contiguo);
@@ -360,20 +361,20 @@ void consolidar(int inicio, int tamanio) {
 		}
 		else {
 			log_info(logger, "Tengo vecino izquierdo, Haremos fusion");
-			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_izquierdo->fin + tamanio);
+			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_izquierdo->fin + tamanio_nuevo_espacio);
 		}
 	}
 	else if(hueco_derecho != NULL){
 		log_info(logger, "Tengo vecino derecho, Haremos fusion");
-		actualizar_hueco(hueco_derecho, inicio, hueco_derecho->fin);
+		actualizar_hueco(hueco_derecho, inicio_nuevo_espacio, hueco_derecho->fin);
 	}
 	else{
 		log_info(logger,"No tengo vecinos :(");
-		crear_hueco(inicio, inicio + tamanio - 1); //TODO REVISAR
+		crear_hueco(inicio_nuevo_espacio, inicio_nuevo_espacio + tamanio_nuevo_espacio - 1); //TODO REVISAR
 	}
 }
 
-t_hueco* buscar_hueco(int tamanio){
+t_hueco* buscar_hueco(int tamanio) {
 
 	char* algoritmo = memoria_config->algoritmo_asignacion;
 	t_hueco* hueco;
@@ -393,14 +394,15 @@ t_hueco* buscar_hueco(int tamanio){
 	return hueco;
 }
 
-t_list* filtrar_huecos_libres_por_tamanio(int tamanio){
+t_list* filtrar_huecos_libres_por_tamanio(int tamanio) {
 
 	bool _func_aux(void* elemento){
 		t_hueco* hueco = (t_hueco*) elemento;
 		return tamanio_hueco(hueco) >= tamanio;
 	}
-	return list_filter(espacio_usuario->huecos_libres,&_func_aux);
+	return list_filter(espacio_usuario->huecos_libres, &_func_aux);
 }
+
 
 //@Nullable
 t_hueco* buscar_hueco_por_best_fit(int tamanio){
@@ -410,7 +412,7 @@ t_hueco* buscar_hueco_por_best_fit(int tamanio){
 		log_error(logger, "No hay huecos candidatos => OUT OF MEMORY");
 		return NULL;
 	}
-	void* _fun_aux_2(void* elem1,void* elem2){
+	void* _fun_aux_2(void* elem1, void* elem2){
 		t_hueco* hueco1 = (t_hueco*) elem1;
 		t_hueco* hueco2 = (t_hueco*) elem2;
 
@@ -419,18 +421,18 @@ t_hueco* buscar_hueco_por_best_fit(int tamanio){
 		}
 		return hueco2;
 	}
-	return (t_hueco*) list_get_minimum(huecos_candidatos,&_fun_aux_2);
+	return (t_hueco*) list_get_minimum(huecos_candidatos, &_fun_aux_2);
 }
 
-t_hueco* buscar_hueco_por_first_fit(int tamanio){
+t_hueco* buscar_hueco_por_first_fit(int tamanio) {
 	return (t_hueco*) list_get(filtrar_huecos_libres_por_tamanio(tamanio), 0);
 }
 
-t_hueco* buscar_hueco_por_worst_fit(int tamanio){
+t_hueco* buscar_hueco_por_worst_fit(int tamanio) {
 
 	t_list* huecos_candidatos = filtrar_huecos_libres_por_tamanio(tamanio);
 
-	void* _fun_aux_2(void* elem1,void* elem2){
+	void* _fun_aux_2(void* elem1, void* elem2){
 		t_hueco* hueco1 = (t_hueco*) elem1;
 		t_hueco* hueco2 = (t_hueco*) elem2;
 
@@ -439,22 +441,36 @@ t_hueco* buscar_hueco_por_worst_fit(int tamanio){
 		}
 		return hueco2;
 	}
-	return (t_hueco*) list_get_maximum(huecos_candidatos,&_fun_aux_2);
+	return (t_hueco*) list_get_maximum(huecos_candidatos, &_fun_aux_2);
 }
 
-int tamanio_hueco(t_hueco* hueco){
+int tamanio_hueco(t_hueco* hueco) {
 	return hueco->fin - hueco->inicio + 1 ;
 }
 
-void loggear_huecos(t_list* huecos){
-	log_info(logger,"----------HUECOS----------");
-	log_info(logger,"HUECO_INICIO	HUECO_FIN");
+void loggear_huecos(t_list* huecos) {
+	log_info(logger, "----------HUECOS----------");
+	log_info(logger, "HUECO_INICIO	HUECO_FIN");
 	void _log(void* elem){
 		t_hueco* hueco  = (t_hueco*) elem;
 
-		log_info(logger,"	%d	%d",hueco->inicio,hueco->fin);
+		log_info(logger, "	%d	%d", hueco->inicio, hueco->fin);
 	}
-	list_iterate(huecos,&_log);
+	list_iterate(huecos, &_log);
+}
+
+char* leer_direccion(int direccion, int tamanio) {
+	char* valor = malloc(tamanio);
+	memcpy(valor, espacio_usuario->espacio_usuario + direccion, tamanio);
+	usleep(memoria_config->retardo_memoria * 1000);
+	return valor;
+}
+
+void escribir_en_direccion(int direccion, int tamanio, char* valor_a_escribir, int socket_cliente) {
+	memcpy(espacio_usuario->espacio_usuario + direccion, valor_a_escribir, tamanio);
+	enviar_mensaje("OK", socket_cliente, logger);
+	free(valor_a_escribir);
+	usleep(memoria_config->retardo_memoria * 1000);
 }
 
 

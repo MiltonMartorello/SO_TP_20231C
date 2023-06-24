@@ -29,8 +29,8 @@ void execute_exit(void);
 int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proceso, int cant_bytes);
 t_segmento* obtener_segmento(int direccion_logica,t_list* tabla_segmentos);
 
-int leer_memoria(int direccion_fisica);
-void escribir_memoria(int direccion_fisica, char* valor_a_escribir);
+char* leer_memoria(int direccion_fisica, int cant_de_bytes);
+void escribir_memoria(int direccion_fisica, char* valor_a_escribir, int tamanio);
 
 void set_valor_registro(char* nombre_registro,char* valor);
 char* get_valor_registro(char* nombre_registro);

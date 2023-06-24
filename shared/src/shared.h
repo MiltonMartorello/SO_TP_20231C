@@ -25,6 +25,7 @@ void enviar_handshake(int, int);
 void enviar_entero(int socket, int valor);
 int recibir_operacion(int);
 int recibir_entero(int socket);
+int recibir_entero_2(int socket);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
 char * recibir_string(int socket_cliente);
