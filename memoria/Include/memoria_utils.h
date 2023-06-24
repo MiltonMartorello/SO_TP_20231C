@@ -41,6 +41,7 @@ void delete_segmento(int pid, int segmento_id);
 
 t_tabla_segmento* crear_tabla_segmento(int pid);
 void destroy_tabla_segmento(void* elemento);
+void destroy_segmentos_propios_de_tabla(t_list* tabla);
 t_tabla_segmento* buscar_tabla_segmentos(int pid);
 
 t_hueco* crear_hueco(int inicio, int fin);

@@ -257,11 +257,21 @@ void destroy_tabla_segmento(void* elemento) {
         return;
     }
     liberar_huecos_ocupados(tabla->tabla);
-    list_destroy_and_destroy_elements(tabla->tabla, free); // Liberar la memoria de los segmentos en la tabla
+    destroy_segmentos_propios_de_tabla(tabla->tabla); // Libera memoria para todos los segmentos menos el 0;
+    //list_destroy_and_destroy_elements(tabla->tabla, free); // Liberar la memoria de los segmentos en la tabla
     log_info(logger, "Eliminada tabla de segmentos de PID %d", pid);
     list_remove_and_destroy_by_condition(tablas_segmentos, encontrar_por_pid, free); // Remover y liberar la memoria de la tabla
     log_info(logger, "Eliminada entrada en tablas de segmentos para PID %d", pid);
     loggear_tablas_segmentos();
+}
+
+void destroy_segmentos_propios_de_tabla(t_list* tabla) {
+    bool condition(void* elemento) {
+        t_segmento* segmento = (t_segmento*)elemento;
+        return segmento->segmento_id != SEGMENTO_0;
+    }
+
+    list_remove_and_destroy_by_condition(tabla, condition, free);
 }
 
 void liberar_huecos_ocupados(t_list* tabla) {
