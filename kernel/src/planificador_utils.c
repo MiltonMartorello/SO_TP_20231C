@@ -33,9 +33,10 @@ pthread_mutex_t mutex_cola_exit;
 sem_t request_file_system;
 sem_t f_seek_done;
 sem_t f_close_done;
+sem_t f_open_done;
 t_list* lista_recursos;
 char** indice_recursos;
-
+t_list* archivos_abiertos;
 
 t_squeue* squeue_create(void) {
 	t_squeue* squeue = malloc (sizeof(t_squeue));
@@ -113,6 +114,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&request_file_system, 0, 0);
 	sem_init(&f_seek_done, 0, 0);
 	sem_init(&f_close_done, 0, 0);
+	sem_init(&f_open_done, 0, 0);
 }
 
 void destroy_semaforos(void) {
@@ -129,6 +131,7 @@ void destroy_semaforos(void) {
 	sem_destroy(&request_file_system);
 	sem_destroy(&f_seek_done);
 	sem_destroy(&f_close_done);
+	sem_destroy(&f_open_done);
 
 	pthread_mutex_destroy(&mutex_cola_new);
 	pthread_mutex_destroy(&mutex_cola_ready);
@@ -512,3 +515,8 @@ t_list* recibir_tabla_segmentos(int socket_memoria) {
 
 	return tabla_segmentos;
 }
+
+void loggear_tablas_archivos(void) {
+	log_info(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
+}
+

@@ -13,21 +13,14 @@
 #include <estructuras.h>
 #include "planificador_utils.h"
 
-typedef struct {
-    int file_id;
-    char* nombre;
-    int puntero;
-    int cant_aperturas;
-    t_squeue* cola_bloqueados;
-    pthread_mutex_t* mutex;
-} t_archivo_abierto;
-
 extern t_colas* colas_planificacion;
 extern int socket_filesystem;
 extern sem_t request_file_system;
 extern sem_t f_seek_done;
 extern sem_t f_close_done;
+extern sem_t f_open_done;
 extern t_log* logger;
+extern t_list* archivos_abiertos;
 
 //Interface
 t_archivo_abierto* fs_crear_archivo(char* nombre_archivo);

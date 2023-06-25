@@ -1,6 +1,5 @@
 #include "../include/i_file_system.h"
 
-t_list* archivos_abiertos;
 int file_id = 0;
 
 void procesar_file_system(void) {
@@ -15,6 +14,7 @@ void procesar_file_system(void) {
 	    int pid = pcb->pid;
 	    char* nombre_archivo = obtener_nombre_archivo(pcb);
 	    log_info(logger, "FS_THREAD -> Request de pid %d para el archivo %s",pid, nombre_archivo);
+	    log_info(logger, "FS_THREAD -> El estado del PCB es %s", estado_string(pcb->estado_actual));
 	    t_archivo_abierto* archivo;
 	    t_instruccion* instruccion = obtener_instruccion(pcb);
 	    log_info(logger, "FS_THREAD -> Recibido PID con PC en %d", pcb->program_counter);
@@ -40,6 +40,8 @@ void procesar_file_system(void) {
 				list_add(archivos_abiertos, archivo);
 				squeue_push(archivo->cola_bloqueados, pid);
 				archivo->cant_aperturas++;
+				//pasar_a_cola_ready(pcb, logger);
+				sem_post(&f_open_done);
 				break;
 			default:
 				break;
@@ -83,59 +85,6 @@ void enviar_request_fs(int pid, t_instruccion* instruccion, char* nombre_archivo
 		default:
 			break;
 	}
-}
-
-void ejectuar_f_seek(int pid, char* nombre_archivo, t_instruccion* instruccion) {
-	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
-	if (archivo == NULL) {
-		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
-		return;
-	}
-	int posicion_puntero = atoi((char*)list_get(instruccion, 1));
-	log_info(logger, "FS_THREAD -> F_SEEK: Moviendo Puntero a la posición %d", posicion_puntero);
-	pthread_mutex_lock(archivo->mutex);
-	archivo->puntero = posicion_puntero;
-	pthread_mutex_unlock(archivo->mutex);
-
-	//TODO: FORZAR EJECUCIÓN
-	sem_post(&f_seek_done);
-}
-
-void ejecutar_f_close(int pid, char* nombre_archivo) {
-	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
-
-	if (archivo == NULL) {
-		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
-		return;
-	} else {
-		// SI SOLO ESTE PID TIENE ABIERTO EL ARCHIVO
-		if (queue_size(archivo->cola_bloqueados->cola) <= 1) {
-			log_info(logger, "FS_THREAD -> Eliminando entrada en archivo %s para PID %d", nombre_archivo, pid);
-			archivo_abierto_destroy(archivo);
-			list_remove_element(archivos_abiertos, archivo);
-		}
-		// SI OTROS PROCESOS ESTAN BLOQUEADOS POR ESTE ARCHIVO -> SE DESBLOQUEA EL PRIMERO
-		else
-		{
-			int pid_desbloqueado = squeue_pop(archivo->cola_bloqueados);
-			log_info(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_desbloqueado, pid);
-			// TODO: ALGO CON ESTE PID
-		}
-
-	}
-	sem_post(&f_close_done);
-}
-
-void hay_procesos_esperando_por_este_archivo(char *nombre_archivo) {
-
-}
-
-void desbloquear_el_primero(void) {
-
-}
-
-void eliminar_entrada_de_tabla_de_registros(void) {
-
 }
 
 t_instruccion* obtener_instruccion(t_pcb* pcb) {

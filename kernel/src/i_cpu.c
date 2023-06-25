@@ -217,14 +217,13 @@ void procesar_f_open(t_pcb* pcb) {
 	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
 	squeue_push(colas_planificacion->cola_archivos, pcb);
 	sem_post(&request_file_system);
+	sem_wait(&f_open_done);
 }
 
 void procesar_f_close(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%s>", pcb->pid, nombre_archivo);
-	squeue_push(colas_planificacion->cola_archivos, pcb);
-	sem_post(&request_file_system);
-	sem_wait(&f_close_done);
+	ejecutar_f_close(pcb, nombre_archivo);
 }
 
 void procesar_f_seek(t_pcb* pcb) {
@@ -290,3 +289,45 @@ void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) { //TODO: LLEVAR A UN ARCH
 	procesar_respuesta_memoria(pcb);
 }
 
+void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+
+	if (archivo == NULL) {
+		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
+		return;
+	}
+	// SI SOLO ESTE PID TIENE ABIERTO EL ARCHIVO
+	if (queue_size(archivo->cola_bloqueados->cola) <= 1) {
+		log_info(logger, "FS_THREAD -> Eliminando entrada en archivo %s para PID %d", nombre_archivo, pcb->pid);
+		archivo_abierto_destroy(archivo);
+		list_remove_element(archivos_abiertos, archivo);
+		loggear_tablas_archivos();
+	}
+	// SI OTROS PROCESOS ESTAN BLOQUEADOS POR ESTE ARCHIVO -> SE DESBLOQUEA EL PRIMERO
+	else
+	{
+		int pid_desbloqueado = squeue_pop(archivo->cola_bloqueados);
+		log_info(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_desbloqueado, pcb->pid);
+		// TODO: DESBLOQUEAR OTRO PID
+
+
+	}
+	//sem_post(&f_close_done);
+}
+
+
+void ejectuar_f_seek(int pid, char* nombre_archivo, t_instruccion* instruccion) {
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+	if (archivo == NULL) {
+		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
+		return;
+	}
+	int posicion_puntero = atoi((char*)list_get(instruccion, 1));
+	log_info(logger, "FS_THREAD -> F_SEEK: Moviendo Puntero a la posición %d", posicion_puntero);
+	pthread_mutex_lock(archivo->mutex);
+	archivo->puntero = posicion_puntero;
+	pthread_mutex_unlock(archivo->mutex);
+
+	//TODO: FORZAR EJECUCIÓN
+	sem_post(&f_seek_done);
+}
