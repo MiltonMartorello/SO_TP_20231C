@@ -229,11 +229,8 @@ void procesar_f_close(t_pcb* pcb) {
 void procesar_f_seek(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
+	ejectuar_f_seek(pcb->pid, nombre_archivo, posicion);
 	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
-	squeue_push(colas_planificacion->cola_archivos, pcb);
-	sem_post(&request_file_system);
-	sem_wait(&f_seek_done);
-	ejecutar_proceso(socket_cpu, pcb, logger);
 }
 
 void procesar_f_read(t_pcb* pcb) {
@@ -316,17 +313,17 @@ void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
 }
 
 
-void ejectuar_f_seek(int pid, char* nombre_archivo, t_instruccion* instruccion) {
+void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
 	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
 	if (archivo == NULL) {
 		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
 		return;
 	}
-	int posicion_puntero = atoi((char*)list_get(instruccion, 1));
-	log_info(logger, "FS_THREAD -> F_SEEK: Moviendo Puntero a la posición %d", posicion_puntero);
+
 	pthread_mutex_lock(archivo->mutex);
 	archivo->puntero = posicion_puntero;
 	pthread_mutex_unlock(archivo->mutex);
+	log_info(logger, "FS_THREAD -> F_SEEK: Actualizado Puntero de archivo %s -> [%d]", nombre_archivo, posicion_puntero);
 
 	//TODO: FORZAR EJECUCIÓN
 	sem_post(&f_seek_done);

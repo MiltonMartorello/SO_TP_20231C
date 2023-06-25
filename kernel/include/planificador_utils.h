@@ -134,4 +134,5 @@ t_segmento* recibir_segmento(void);
 t_list* recibir_tabla_segmentos(int socket);
 
 void loggear_tablas_archivos(void);
+void archivo_abierto_destroy(t_archivo_abierto* archivo);
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

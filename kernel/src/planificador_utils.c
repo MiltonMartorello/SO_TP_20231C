@@ -520,3 +520,13 @@ void loggear_tablas_archivos(void) {
 	log_info(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
 }
 
+void archivo_abierto_destroy(t_archivo_abierto* archivo) {
+
+	//free(archivo->nombre); no eliminar, esto elimina 1 parametro de la instruccion
+	squeue_destroy(archivo->cola_bloqueados);
+    pthread_mutex_destroy(archivo->mutex);
+    free(archivo->mutex);
+    free(archivo);
+}
+
+

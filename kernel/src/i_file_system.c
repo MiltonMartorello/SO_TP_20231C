@@ -158,16 +158,3 @@ t_archivo_abierto* crear_archivo_abierto(void) {
 	return archivo;
 }
 
-void archivo_abierto_destroy(t_archivo_abierto* archivo) {
-
-	//free(archivo->nombre); no eliminar, esto elimina 1 parametro de la instruccion
-	squeue_destroy(archivo->cola_bloqueados);
-    pthread_mutex_destroy(archivo->mutex);
-    free(archivo->mutex);
-    free(archivo);
-}
-
-
-
-
-

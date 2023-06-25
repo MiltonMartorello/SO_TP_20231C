@@ -36,6 +36,7 @@ void procesar_delete_segment(t_pcb* pcb);
 
 void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb);
 
-void ejectuar_f_seek(int pid, char* nombre_archivo, t_instruccion* instruccion);
+void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero);
 void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo);
+
 #endif
