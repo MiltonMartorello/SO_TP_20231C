@@ -230,7 +230,6 @@ void procesar_f_seek(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
 	ejectuar_f_seek(pcb->pid, nombre_archivo, posicion);
-	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
 }
 
 void procesar_f_read(t_pcb* pcb) {
@@ -323,7 +322,8 @@ void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
 	pthread_mutex_lock(archivo->mutex);
 	archivo->puntero = posicion_puntero;
 	pthread_mutex_unlock(archivo->mutex);
-	log_info(logger, "FS_THREAD -> F_SEEK: Actualizado Puntero de archivo %s -> [%d]", nombre_archivo, posicion_puntero);
+	//
+	log_info(logger, "FS_THREAD -> Actualizar Puntero Archivo: “PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <%d>", pid, archivo->nombre, archivo->puntero);
 
 	//TODO: FORZAR EJECUCIÓN
 	sem_post(&f_seek_done);
