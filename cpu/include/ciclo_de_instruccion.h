@@ -10,8 +10,8 @@
 
 void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket);
 void execute_set(char* registro, char* valor);
-void execute_mov_in(char* registro,int direccion_logica);
-void execute_mov_out(int direccion_logica, char* registro);
+void execute_mov_in(int direccion_fisica, char* registro,int direccion_logica);
+void execute_mov_out(int direccion_fisica, int direccion_logica, char* registro);
 void execute_io(int tiempo);
 void execute_f_open(char* nombre_archivo);
 void execute_f_close(char* nombre_archivo);

@@ -149,21 +149,23 @@ void procesar_cpu_fs(int socket, char* modulo) {
 			direccion_fisica = recibir_entero(socket);
 			int cant_bytes = recibir_entero(socket);
 			char* valor_leido = leer_direccion(direccion_fisica, cant_bytes);
+			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
+			//log_info(logger, "Valor leido: _%s_", valor_leido);
 			enviar_mensaje(valor_leido, socket, logger);
 			free(valor_leido);
-			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
 			break;
 		case MEMORY_WRITE_ADRESS:
 			pid = recibir_entero(socket);
 			direccion_fisica = recibir_entero(socket);
 			int tamanio = recibir_entero(socket);
 			char* valor_a_escribir = recibir_string(socket);
-			escribir_en_direccion(direccion_fisica, tamanio, valor_a_escribir, socket);
+			
 			log_info(logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, tamanio, modulo);
-			log_info(logger, "Valor a escribir : _%s_", valor_a_escribir);
+			//log_info(logger, "Valor a escribir : _%s_", valor_a_escribir);
+			escribir_en_direccion(direccion_fisica, tamanio, valor_a_escribir, socket);
 			break;
 		default:
-			log_info(logger, "No pude reconocer operacion.");
+			log_info(logger, "No pude reconocer operacion de %s.", modulo);
 			liberar_conexion(socket);
 			return;
 			break;
