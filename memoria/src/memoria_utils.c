@@ -14,7 +14,7 @@ void iniciar_estructuras(void) {
 	espacio_usuario->segmentos_activos = list_create();
     //log_info(logger, "Tamaño de memoria: %d", memoria_config->tam_memoria);
     espacio_usuario->espacio_usuario = malloc(memoria_config->tam_memoria);
-
+    memset(espacio_usuario->espacio_usuario,0, memoria_config->tam_memoria);
     if (espacio_usuario->espacio_usuario == NULL) {
         log_error(logger, "No se pudo asignar memoria para el espacio de usuario");
         EXIT_FAILURE;
@@ -38,7 +38,7 @@ void destroy_estructuras(void) {
 
 t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id) {
     t_segmento* segmento = malloc(sizeof(t_segmento));
-    //segmento->valor = malloc(tam_segmento);  // Este valor lo seteará CPU de ser necesario
+
     segmento->descriptor_id = id++;
     segmento->segmento_id = segmento_id; // id autoincremental de sistema (Descriptor)
 	segmento->tam_segmento = tam_segmento; // Con la base + el tamaño se calcula la posición final
@@ -151,7 +151,14 @@ t_hueco* crear_hueco(int inicio, int fin) {
 	hueco->inicio = inicio;
 	hueco->fin = fin;
 	log_info(logger, "Creado Hueco Libre de memoria de %d Bytes", tamanio_hueco(hueco));
-	list_add(espacio_usuario->huecos_libres, hueco);
+
+	bool _ordenado_por_base(void* elem1, void* elem2) {
+		t_hueco* hueco1 = (t_hueco*) elem1;
+		t_hueco* hueco2 = (t_hueco*) elem2;
+		return hueco1->inicio < hueco2->inicio;
+	}
+
+	list_add_sorted(espacio_usuario->huecos_libres, hueco, &_ordenado_por_base);
 	return hueco;
 }
 
@@ -355,21 +362,21 @@ void consolidar_huecos_contiguos(int inicio_nuevo_espacio, int tamanio_nuevo_esp
 
 	if(hueco_izquierdo != NULL){
 		if(hueco_derecho != NULL){
-			log_info(logger,"Tengo ambos vecinos :')");
+//			log_info(logger,"Tengo ambos vecinos :')");
 			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_derecho->fin);
 			eliminar_hueco(hueco_derecho);
 		}
 		else {
-			log_info(logger, "Tengo vecino izquierdo, Haremos fusion");
+//			log_info(logger, "Tengo vecino izquierdo, Haremos fusion");
 			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_izquierdo->fin + tamanio_nuevo_espacio);
 		}
 	}
 	else if(hueco_derecho != NULL){
-		log_info(logger, "Tengo vecino derecho, Haremos fusion");
+//		log_info(logger, "Tengo vecino derecho, Haremos fusion");
 		actualizar_hueco(hueco_derecho, inicio_nuevo_espacio, hueco_derecho->fin);
 	}
 	else{
-		log_info(logger,"No tengo vecinos :(");
+//		log_info(logger,"No tengo vecinos :(");
 		crear_hueco(inicio_nuevo_espacio, inicio_nuevo_espacio + tamanio_nuevo_espacio - 1); //TODO REVISAR
 	}
 }
@@ -450,7 +457,7 @@ int tamanio_hueco(t_hueco* hueco) {
 
 void loggear_huecos(t_list* huecos) {
 	log_info(logger, "----------HUECOS----------");
-	log_info(logger, "HUECO_INICIO	HUECO_FIN");
+	log_info(logger, "	INICIO	FIN");
 	void _log(void* elem){
 		t_hueco* hueco  = (t_hueco*) elem;
 
@@ -460,9 +467,11 @@ void loggear_huecos(t_list* huecos) {
 }
 
 char* leer_direccion(int direccion, int tamanio) {
-	char* valor = malloc(tamanio);
-	memcpy(valor, espacio_usuario->espacio_usuario + direccion, tamanio);
+
+	char* valor = string_new();
+	string_n_append(&valor, espacio_usuario->espacio_usuario + direccion, tamanio);
 	usleep(memoria_config->retardo_memoria * 1000);
+
 	return valor;
 }
 
