@@ -26,6 +26,7 @@ extern int socket_filesystem;
 extern int socket_memoria;
 int socket_kernel;
 int socket_consola;
+extern t_list* procesos_en_kernel;
 
 /* -- FUNCIONES -- */
 int conectar_con_cpu();

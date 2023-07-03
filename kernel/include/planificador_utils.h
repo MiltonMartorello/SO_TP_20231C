@@ -9,6 +9,7 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <shared.h>
 
 typedef enum{
 	NEW,
@@ -123,4 +124,6 @@ void* squeue_peek(t_squeue* queue);
 void procesar_respuesta_memoria(t_pcb *pcb);
 t_segmento* recibir_segmento(void);
 t_list* recibir_tabla_segmentos(int socket);
+
+void sincronizar_tablas_procesos(void);
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

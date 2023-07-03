@@ -70,10 +70,16 @@ void loggear_tablas_segmentos(void);
 int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos);
 int tamanio_hueco(t_hueco* hueco);
 int encontrar_descriptor_id(int pid, int segmento_id);
-t_list* encontrar_tabla_segmentos(int pid, int segmento_id);
+t_list* encontrar_tabla_segmentos(int pid);
 t_tabla_segmento* encontrar_tabla_segmento_por_pid(int pid);
 
 char* leer_direccion(int direccion, int tamanio);
 void escribir_en_direccion(int direccion,int tamanio, char* valor_a_escribir, int socket_cliente);
+
+int memoria_disponible(void);
+void compactar_memoria(void);
+t_hueco* buscar_hueco_por_fin(int posicion);
+t_hueco* buscar_hueco_por_inicio(int posicion);
+void resultado_compactacion(void);
 
 #endif /* MEMORIA_UTILS_H_ */

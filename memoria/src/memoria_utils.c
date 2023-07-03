@@ -53,25 +53,24 @@ t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id) {
 //		log_info(logger, "Tengo una tabla de segmentos con PID %d y %d segments", tabla_segmento->pid, tabla_segmento->tabla->elements_count);
 //		log_info(logger,"Tengo un segmento de id %d y tamaño %d" , segmento->segmento_id, segmento->tam_segmento);
 		hueco = buscar_hueco(tam_segmento);
+
 		if (hueco == NULL) {
-			log_error(logger, "OUT_OF_MEMORY - Retornando respuesta...");
 			free(segmento);
 			return NULL;
 		}
 		list_add(tabla_segmento->tabla, segmento);
 	}
 	segmento->inicio = hueco->inicio; // Desde donde empieza, en el caso del segmento_0 esta bien que sea 0. Sino es la base del hueco
-	log_info(logger, "Encontrado hueco con piso %d y %d de espacio total", hueco->inicio, tamanio_hueco(hueco));
+	//log_info(logger, "Encontrado hueco con piso %d y %d de espacio total", hueco->inicio, tamanio_hueco(hueco));
 	log_info(logger, "PID: <%d> - Crear Segmento: <%d> - Base: <%d> - TAMAÑO: <%d>", pid, segmento_id, segmento->inicio, tam_segmento);//TODO : segmento_id o descriptor?
 	// Dentro del choclo de espacio de usuario nos movemos hasta el inicio del hueco libre encontrado, desde ahí asignamos el segmento, con el tamaño recibido
-	//memcpy(espacio_usuario->espacio_usuario + hueco->inicio, segmento->valor, tam_segmento);
-	//log_info(logger, "Copiado Segmento a espacio de usuario");
+
 	actualizar_hueco(hueco,hueco->inicio + tam_segmento, hueco->fin); // Actualizamos el piso del hueco al nuevo offset.
 	list_add(espacio_usuario->segmentos_activos, segmento);
-	log_info(logger, "Creado Segmento %d", segmento->segmento_id);
+
 	return segmento;
 }
-
+//TODO : QUE HACER CON LOS VALORES QUE HAY EN EL SEGMENTO DESPUES DE ELIMINARLO?
 void delete_segmento(int pid, int segmento_id) {
 
     int descriptor_id = encontrar_descriptor_id(pid, segmento_id);
@@ -81,7 +80,7 @@ void delete_segmento(int pid, int segmento_id) {
         t_segmento* segmento = (t_segmento*)elemento;
         return segmento->descriptor_id == descriptor_id;
     }
-    log_info(logger, "Eliminando Segmento: DESC_ID %d [PID:%d - SID:%d]...", descriptor_id, pid, segmento_id);
+    //log_info(logger, "Eliminando Segmento: DESC_ID %d [PID:%d - SID:%d]...", descriptor_id, pid, segmento_id);
     t_segmento* segmento = list_find(espacio_usuario->segmentos_activos, encontrar_por_id);
     log_info(logger, "PID: <%d> - Eliminar Segmento: <%d> - Base: <%d> - TAMAÑO: <%d>", pid, segmento_id, segmento->inicio, segmento->tam_segmento);
     if (segmento == NULL) {
@@ -90,17 +89,17 @@ void delete_segmento(int pid, int segmento_id) {
 	}
     int tamanio = segmento->tam_segmento;
     int inicio_segmento = segmento->inicio;
-    //free(segmento->valor);
+
     consolidar_huecos_contiguos(inicio_segmento,tamanio);
-    if (list_remove_element(espacio_usuario->segmentos_activos, segmento)) { //REMUEVE EL SEGMENTO DE LOS ACTIVOS/OCUPADOS GENERALES
-    	list_remove_element(encontrar_tabla_segmentos(pid, segmento_id), segmento); //REMUEVE EL SEGMENTO DE LA TABLA PARTICULAR DE ESE PID
+	if (list_remove_element(espacio_usuario->segmentos_activos, segmento)) { //REMUEVE EL SEGMENTO DE LOS ACTIVOS/OCUPADOS GENERALES
+		list_remove_element(encontrar_tabla_segmentos(pid), segmento); //REMUEVE EL SEGMENTO DE LA TABLA PARTICULAR DE ESE PID
 		free(segmento); // LIBERA EL SEGMENTO T_SEGMENTO (3 INTS)
-		log_info(logger, "Eliminado Segmento %d de %d Bytes", segmento_id, tamanio);
-		loggear_tablas_segmentos();
-    }
+		//loggear_tablas_segmentos();
+	}
+    loggear_huecos(espacio_usuario->huecos_libres);
 }
 
-t_list* encontrar_tabla_segmentos(int pid, int segmento_id) {
+t_list* encontrar_tabla_segmentos(int pid) {
 	//log_info(logger, "TEST DE PID: %d", pid);
 	bool encontrar_tabla(void* elemento) {
 		t_tabla_segmento* tabla = (t_tabla_segmento*) elemento;
@@ -127,7 +126,7 @@ t_tabla_segmento* encontrar_tabla_segmento_por_pid(int pid) {
 
 int encontrar_descriptor_id(int pid, int segmento_id) {
 
-	t_list* tabla_encontrada = encontrar_tabla_segmentos(pid, segmento_id);
+	t_list* tabla_encontrada = encontrar_tabla_segmentos(pid);
 
 	if (tabla_encontrada != NULL) {
 		bool encontrar_segmento(void* elemento) {
@@ -168,11 +167,11 @@ void actualizar_hueco(t_hueco* hueco, int nuevo_piso, int nuevo_fin) {
 	hueco->fin = nuevo_fin;
 	// Si el hueco quedó vacío. Lo eliminamos.
 	if(hueco->inicio > hueco->fin) { // si el inicio y el fin son iguales es porque es de tamaño 1
-		log_info(logger, "El hueco quedó vacío. Eliminado hueco...");
+//		log_info(logger, "El hueco quedó vacío. Eliminado hueco...");
 		eliminar_hueco(hueco);
 	}
 	else{
-		log_info(logger, "Hueco Libre actualizado: [%d-%d]", hueco->inicio, hueco->fin);
+		//log_info(logger, "Hueco Libre actualizado: [%d-%d]", hueco->inicio, hueco->fin);
 	}
 }
 
@@ -187,7 +186,7 @@ t_tabla_segmento* crear_tabla_segmento(int pid) {
 	tabla_segmento->pid = pid;
 
 	list_add(tabla_segmento->tabla, list_get(espacio_usuario->segmentos_activos, 0));
-	log_info(logger, "Creada tabla de segmentos para PID %d", pid);
+//	log_info(logger, "Creada tabla de segmentos para PID %d", pid);
 	list_add(tablas_segmentos, tabla_segmento);
 	//log_info(logger, "Tablas totales de segmentos: %d", tablas_segmentos->elements_count);
 	return tabla_segmento;
@@ -207,7 +206,7 @@ t_tabla_segmento* buscar_tabla_segmentos(int pid) {
     } else {
     	//log_info(logger, "Encontrada tabla de segmentos para el PID %d con %d segmentos", pid, list_size(tabla->tabla));
     }
-    loggear_tablas_segmentos();
+    //loggear_tablas_segmentos();
 
     return tabla;
 }
@@ -222,7 +221,6 @@ void loggear_tablas_segmentos(void) {
 		for (int i = 0; i < cantidad; i++) {
 			t_tabla_segmento* tabla_segmentos = list_get(tablas_segmentos, i);
 			log_info(logger, "Tabla de PID: %d", tabla_segmentos->pid);
-
 			int max_tam_segmento = obtener_max_tam_segmento_para_log(tabla_segmentos->tabla);
 
 			for (int j = 0; j < tabla_segmentos->tabla->elements_count; j++) {
@@ -251,26 +249,19 @@ int obtener_max_tam_segmento_para_log(t_list* tabla_segmentos) {
 }
 
 void destroy_tabla_segmento(void* elemento) {
-	t_tabla_segmento* tabla_segmento = (t_tabla_segmento*)elemento;
-	int pid = tabla_segmento->pid;
-    bool encontrar_por_pid(void* elemento) {
-        t_tabla_segmento* tabla_segmento = (t_tabla_segmento*)elemento;
-        return tabla_segmento->pid == pid;
-    }
 
-    t_tabla_segmento* tabla = (t_tabla_segmento*)list_find(tablas_segmentos, encontrar_por_pid);
+	t_tabla_segmento* proceso = (t_tabla_segmento*)elemento;
 
-    if (tabla == NULL) {
-    	log_error(logger, "No se encontró la tabla de segmentos a eliminar para el PID %d\n", pid);
-        return;
-    }
-    liberar_huecos_ocupados(tabla->tabla);
-    destroy_segmentos_propios_de_tabla(tabla->tabla); // Libera memoria para todos los segmentos menos el 0;
+    liberar_huecos_ocupados(proceso->tabla);
+    destroy_elementos_tabla(proceso->tabla);
+    //destroy_segmentos_propios_de_tabla(tabla->tabla); // Libera memoria para todos los segmentos menos el 0;
     //list_destroy_and_destroy_elements(tabla->tabla, free); // Liberar la memoria de los segmentos en la tabla
-    log_info(logger, "Eliminada tabla de segmentos de PID %d", pid);
-    list_remove_and_destroy_by_condition(tablas_segmentos, encontrar_por_pid, free); // Remover y liberar la memoria de la tabla
-    log_info(logger, "Eliminada entrada en tablas de segmentos para PID %d", pid);
-    loggear_tablas_segmentos();
+//    log_info(logger, "Eliminada tabla de segmentos de PID %d", pid);
+    list_remove_element(tablas_segmentos, proceso);
+    free(proceso);
+    //list_remove_and_destroy_by_condition(tablas_segmentos, encontrar_por_pid, free); // Remover y liberar la memoria de la tabla
+//    log_info(logger, "Eliminada entrada en tablas de segmentos para PID %d", pid);
+//  loggear_tablas_segmentos();
 }
 
 void destroy_segmentos_propios_de_tabla(t_list* tabla) {
@@ -279,9 +270,21 @@ void destroy_segmentos_propios_de_tabla(t_list* tabla) {
         return segmento->segmento_id != SEGMENTO_0;
     }
 
-    list_remove_and_destroy_by_condition(tabla, condition, free);
+    list_remove_and_destroy_by_condition(tabla, condition, free);//solo elimina AL PRIMERO que cumple con la condicion
 }
 
+void destroy_elementos_tabla(t_list* tabla) {
+	list_remove(tabla, 0);// saco al segmento_0 para poder eliminar la lista
+
+	void _aux(void* elem) {
+		t_segmento* segmento = (t_segmento*) elem;
+		list_remove_element(espacio_usuario->segmentos_activos, segmento);//elimino la referencia en segmentos_activos
+		free(segmento);
+	}
+	list_destroy_and_destroy_elements(tabla, &_aux);
+}
+
+//MARCA COMO HUECOS LOS SEGMENTOS
 void liberar_huecos_ocupados(t_list* tabla) {
 
 	t_list_iterator* segmento_iterator = list_iterator_create(tabla);
@@ -301,25 +304,25 @@ t_memoria_config* leer_config(char *path) {
     t_memoria_config* tmp = malloc(sizeof(t_memoria_config));
 
     tmp->puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
-    log_info(logger, "Puerto de escucha: %s", tmp->puerto_escucha);
+//    log_info(logger, "Puerto de escucha: %s", tmp->puerto_escucha);
 
     tmp->tam_memoria = config_get_int_value(config,"TAM_MEMORIA");
-    log_info(logger, "Tamaño de memoria: %d", tmp->tam_memoria);
+//    log_info(logger, "Tamaño de memoria: %d", tmp->tam_memoria);
 
     tmp->tam_segmento_0 = config_get_int_value(config,"TAM_SEGMENTO_0");
-    log_info(logger, "Tamaño de segmento 0: %d", tmp->tam_segmento_0);
+//    log_info(logger, "Tamaño de segmento 0: %d", tmp->tam_segmento_0);
 
     tmp->cant_segmentos = config_get_int_value(config,"CANT_SEGMENTOS");
-    log_info(logger, "Cantidad de segmentos: %d", tmp->cant_segmentos);
+//    log_info(logger, "Cantidad de segmentos: %d", tmp->cant_segmentos);
 
     tmp->retardo_memoria = config_get_int_value(config,"RETARDO_MEMORIA");
-    log_info(logger, "Retardo de memoria: %d", tmp->retardo_memoria);
+//    log_info(logger, "Retardo de memoria: %d", tmp->retardo_memoria);
 
     tmp->retardo_compactacion = config_get_int_value(config,"RETARDO_COMPACTACION");
-    log_info(logger, "Retardo de compactación: %d", tmp->retardo_compactacion);
+//    log_info(logger, "Retardo de compactación: %d", tmp->retardo_compactacion);
 
     tmp->algoritmo_asignacion = config_get_string_value(config,"ALGORITMO_ASIGNACION");
-    log_info(logger, "Algoritmo de asignación: %s", tmp->algoritmo_asignacion);
+//    log_info(logger, "Algoritmo de asignación: %s", tmp->algoritmo_asignacion);
 
     //config_destroy(config);
     return tmp;
@@ -347,37 +350,24 @@ int aceptar_cliente(int socket_servidor) {
 }
 
 void consolidar_huecos_contiguos(int inicio_nuevo_espacio, int tamanio_nuevo_espacio) {
-	bool inicio_contiguo(void* elem) {
-		t_hueco* hueco = (t_hueco*) elem;
-		return hueco->inicio == (inicio_nuevo_espacio + tamanio_nuevo_espacio);
-	}
 
-	bool fin_contiguo(void* elem) {
-		t_hueco* hueco = (t_hueco*) elem;
-		return hueco->fin == (inicio_nuevo_espacio - 1);
-	}
-
-	t_hueco* hueco_derecho = list_find(espacio_usuario->huecos_libres,&inicio_contiguo);
-	t_hueco* hueco_izquierdo = list_find(espacio_usuario->huecos_libres,&fin_contiguo);
+	t_hueco* hueco_derecho = buscar_hueco_por_inicio(inicio_nuevo_espacio + tamanio_nuevo_espacio);
+	t_hueco* hueco_izquierdo = buscar_hueco_por_fin(inicio_nuevo_espacio - 1);
 
 	if(hueco_izquierdo != NULL){
 		if(hueco_derecho != NULL){
-//			log_info(logger,"Tengo ambos vecinos :')");
 			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_derecho->fin);
 			eliminar_hueco(hueco_derecho);
 		}
 		else {
-//			log_info(logger, "Tengo vecino izquierdo, Haremos fusion");
 			actualizar_hueco(hueco_izquierdo, hueco_izquierdo->inicio, hueco_izquierdo->fin + tamanio_nuevo_espacio);
 		}
 	}
 	else if(hueco_derecho != NULL){
-//		log_info(logger, "Tengo vecino derecho, Haremos fusion");
 		actualizar_hueco(hueco_derecho, inicio_nuevo_espacio, hueco_derecho->fin);
 	}
 	else{
-//		log_info(logger,"No tengo vecinos :(");
-		crear_hueco(inicio_nuevo_espacio, inicio_nuevo_espacio + tamanio_nuevo_espacio - 1); //TODO REVISAR
+		crear_hueco(inicio_nuevo_espacio, inicio_nuevo_espacio + tamanio_nuevo_espacio - 1);
 	}
 }
 
@@ -389,6 +379,7 @@ t_hueco* buscar_hueco(int tamanio) {
 	if(string_equals_ignore_case(algoritmo, "BEST")){
 		//@Nullable
 		hueco = buscar_hueco_por_best_fit(tamanio);
+//		printf("Pase el buscar_hueco\n");
 	}
 	else if(string_equals_ignore_case(algoritmo, "FIRST")){
 		//TODO: @NULLABLE
@@ -410,13 +401,13 @@ t_list* filtrar_huecos_libres_por_tamanio(int tamanio) {
 	return list_filter(espacio_usuario->huecos_libres, &_func_aux);
 }
 
-
 //@Nullable
 t_hueco* buscar_hueco_por_best_fit(int tamanio){
 
 	t_list* huecos_candidatos = filtrar_huecos_libres_por_tamanio(tamanio);
+//	printf("Pase el filtrar_huecos\n");
 	if (list_size(huecos_candidatos) <= 0) {
-		log_error(logger, "No hay huecos candidatos => OUT OF MEMORY");
+		//log_error(logger, "No hay huecos candidatos => OUT OF MEMORY");
 		return NULL;
 	}
 	void* _fun_aux_2(void* elem1, void* elem2){
@@ -482,4 +473,78 @@ void escribir_en_direccion(int direccion, int tamanio, char* valor_a_escribir, i
 	usleep(memoria_config->retardo_memoria * 1000);
 }
 
+// COMPACTACION
+int memoria_disponible(void) {
+
+	int _total(int elem1, void* elem2){
+		return elem1 + tamanio_hueco((t_hueco*) elem2);
+	}
+
+	int total = list_fold(espacio_usuario->huecos_libres, 0, &_total); //suma por cada hueco el tamaño que tiene
+
+	log_info(logger, "Espacio disponible en memoria : %d ", total); //Tamaño total no contiguo
+	return total;
+}
+
+void compactar_memoria(void) {
+
+	log_info(logger, "SEGMENTOS ACTIVOS - antes de compactar");
+	loggear_segmentos(espacio_usuario->segmentos_activos, logger);
+	loggear_huecos(espacio_usuario->huecos_libres);
+
+	for(int i=0; i < list_size(espacio_usuario->segmentos_activos); i++){
+		t_segmento* segmento_a_mover = list_get(espacio_usuario->segmentos_activos, i);
+		t_hueco* hueco_a_usar = buscar_hueco_por_fin(segmento_a_mover->inicio - 1); //por cada segmento activo busca si tiene un hueco en la posicion anterior
+
+		if(hueco_a_usar == NULL){
+			continue;
+		}
+
+		int tam_hueco = tamanio_hueco(hueco_a_usar);
+		//muevo los datos que habian en ese segmento, uso memmove por si se solapan
+		memmove(espacio_usuario->espacio_usuario + hueco_a_usar->inicio, espacio_usuario->espacio_usuario + segmento_a_mover->inicio, segmento_a_mover->tam_segmento);
+		segmento_a_mover->inicio -= tam_hueco ;
+		eliminar_hueco(hueco_a_usar);
+		//si despues de ese segmento venia otro hueco, uso llamo a la funcion para que me una los huecos
+		consolidar_huecos_contiguos( segmento_a_mover->inicio + segmento_a_mover->tam_segmento , tam_hueco);
+		//TODO borrar lo que queda en el hueco?
+	}
+	log_info(logger, "SEGMENTOS ACTIVOS - despues de compactar");
+	loggear_segmentos(espacio_usuario->segmentos_activos, logger);
+	loggear_huecos(espacio_usuario->huecos_libres);
+}
+
+void resultado_compactacion(void) {
+
+	void _loggear_tabla(void* elem){
+		t_tabla_segmento* proceso = (t_tabla_segmento*) elem;
+
+		void _log_segmento(void* elem) {
+			t_segmento* segmento = (t_segmento*) elem;
+			log_info(logger, "PID: <%d> - Segmento: <%d> - Base: <%d> - Tamaño <%d>", proceso->pid, segmento->segmento_id, segmento->inicio, segmento->tam_segmento);
+		}
+
+		list_iterate(proceso->tabla, &_log_segmento);
+	}
+
+	list_iterate(tablas_segmentos, &_loggear_tabla);
+}
+
+t_hueco* buscar_hueco_por_fin(int posicion) {
+
+	bool _comparar_fin(void* elem) {
+		t_hueco* hueco = (t_hueco*) elem;
+		return hueco->fin == posicion;
+	}
+	return list_find(espacio_usuario->huecos_libres,&_comparar_fin);
+}
+
+t_hueco* buscar_hueco_por_inicio(int posicion) {
+
+	bool _comparar_inicio(void* elem) {
+		t_hueco* hueco = (t_hueco*) elem;
+		return hueco->inicio == posicion;
+	}
+	return list_find(espacio_usuario->huecos_libres,&_comparar_inicio);
+}
 

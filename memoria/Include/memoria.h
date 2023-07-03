@@ -24,4 +24,5 @@ void procesar_cpu_fs(int socket_cliente, char* modulo);
 void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento, int cod_op);
 void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id, int cod_op);
 
+void enviar_procesos_actualizados(int socket);
 #endif
