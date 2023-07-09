@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 	cpu_logger = iniciar_logger("cpu.log");
 	cargar_config(config_path);
 
-	//conexion_a_memoria(cpu_config->ip_memoria,cpu_config->puerto_memoria,cpu_logger);
+	conexion_a_memoria(cpu_config->ip_memoria,cpu_config->puerto_memoria,cpu_logger);
 
 	correr_servidor();
 
@@ -62,9 +62,11 @@ void cargar_config(char* path){
 }
 
 void conexion_a_memoria(char* ip,char* puerto,t_log* logger){
+	log_info(logger,"El módulo CPU se conectará con el MEMORIA con ip %s y puerto: %s  ",ip,puerto);
 	socket_memoria = crear_conexion(ip,puerto);
 	enviar_handshake(socket_memoria,CPU);
-	log_info(logger,"El módulo CPU se conectará con el ip %s y puerto: %s  ",ip,puerto);
+	recibir_operacion(socket_memoria);
+	recibir_mensaje(socket_memoria, cpu_logger);
 
 }
 
@@ -85,7 +87,7 @@ void correr_servidor(void){
 				int operacion = recibir_operacion(socket_kernel);
 				if(operacion == CONTEXTO_PROCESO){ //TODO
 					proceso = recibir_contexto(socket_kernel, cpu_logger);
-					loggear_segmentos(proceso->tabla_segmentos, cpu_logger);
+					//loggear_segmentos(proceso->tabla_segmentos, cpu_logger);
 					setear_registros_desde_proceso(proceso);
 					ciclo_de_instruccion(proceso,socket_kernel);
 					liberar_proceso(proceso);

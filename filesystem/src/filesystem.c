@@ -257,7 +257,7 @@ int abrirArchivo(const char* nombreArchivo) {
             if (strcmp(fcb->NOMBRE_ARCHIVO, nombreArchivo) == 0) {
                 log_info(logger, "El archivo %s existe.", nombreArchivo);
                 closedir(dir);
-                return F_EXISTS; // OK
+                return F_OPEN_OK; // OK
             }
         }
     }

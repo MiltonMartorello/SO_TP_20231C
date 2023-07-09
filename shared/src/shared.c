@@ -76,6 +76,11 @@ int recibir_entero(int socket){
 	return recibir_operacion(socket);
 }
 
+int recibir_entero_2(int socket){
+	recibir_entero(socket);
+	return recibir_entero(socket);
+}
+
 void* recibir_buffer(int* size, int socket_cliente)
 {
 	void * buffer;

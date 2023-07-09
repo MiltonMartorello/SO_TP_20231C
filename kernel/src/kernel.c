@@ -8,12 +8,13 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	//char* config_path = argv[1];
-	char* config_path = "./kernel_hrrn.config";
-//	if(argc < 1){
-//		printf("Falta path a archivo de configuración.\n");
-//		return EXIT_FAILURE;
-//	}
+	char* config_path = argv[1];
+
+	//char* config_path = "./kernel_hrrn.config";
+	if(argc < 1){
+		printf("Falta path a archivo de configuración.\n");
+		return EXIT_FAILURE;
+	}
 	t_config* config_kernel = iniciar_config(config_path);
 	cargar_config_kernel(config_kernel);
 
@@ -29,7 +30,7 @@ int main(int argc, char **argv) {
 	socket_memoria = conectar_con_memoria();
 
     /* -- CONEXIÓN CON FILESYSTEM -- */
-	//socket_filesystem = conectar_con_filesystem();
+	socket_filesystem = conectar_con_filesystem();
 
 	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
 

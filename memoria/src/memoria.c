@@ -1,12 +1,18 @@
 #include "../Include/memoria.h"
 
-int main(void) {
+int main(int argc, char **argv) {
 
 	logger = iniciar_logger("memoria.log");
 
 	log_info(logger, "MODULO MEMORIA");
 
-	memoria_config = leer_config("memoria.config");
+	if(argc < 1) {
+		printf("Falta path a archivo de configuración.\n");
+		return EXIT_FAILURE;
+	}
+	/* -- INICIAR CONFIGURACIÓN -- */
+	char* config_path = argv[1];
+	memoria_config = leer_config(config_path);
 
 	iniciar_estructuras();
 	crear_segmento(SEGMENTO_0, memoria_config->tam_segmento_0, 0);
@@ -30,7 +36,7 @@ void procesar_cliente(void *args_hilo) {
 	case CPU:
 		log_info(logger, "CPU conectado.");
 		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente);
-		//procesar_pedidos_cpu(socket_cliente);
+		procesar_cpu_fs(socket_cliente, "CPU");
 		break;
 
 	case KERNEL:
@@ -42,6 +48,7 @@ void procesar_cliente(void *args_hilo) {
 	case FILESYSTEM:
 		log_info(logger, "FileSystem conectado.");
 		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente);
+		procesar_cpu_fs(socket_cliente, "FS");
 		break;
 	case -1:
 		log_error(logger, "Se desconectó el cliente.");
@@ -83,15 +90,17 @@ void procesar_kernel(int socket_kernel) {
 	while(true) {
 		validar_conexion(socket_kernel);
 		int cod_op = recibir_operacion(socket_kernel);
+		recibir_entero(socket_kernel);//size_paquete
 		switch (cod_op) {
 			case MEMORY_CREATE_TABLE:
-				pid = recibir_entero(socket_kernel);
+				pid = recibir_entero_2(socket_kernel);
 				log_info(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
 				t_tabla_segmento* tabla_segmento = crear_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento, MEMORY_SEGMENT_TABLE_CREATED);
+				log_info(logger, "Creación de Proceso PID: <%d>", pid);
 				break;
 			case MEMORY_DELETE_TABLE:
-				pid = recibir_entero(socket_kernel);
+				pid = recibir_entero_2(socket_kernel);
 				log_info(logger, "Recibido MEMORY_DELETE_TABLE para PID: %d", pid);
 				t_tabla_segmento* tabla = encontrar_tabla_segmento_por_pid(pid);
 				if (tabla == NULL) {
@@ -101,22 +110,25 @@ void procesar_kernel(int socket_kernel) {
 				log_info(logger, "Encontrada Tabla a eliminar para PID: %d (%d Segmentos)",tabla->pid , tabla->tabla->elements_count);
 				destroy_tabla_segmento(tabla);
 				enviar_entero(socket_kernel, MEMORY_SEGMENT_TABLE_DELETED);
+				log_info(logger, "Eliminación de Proceso PID: <%d>", pid);
 				break;
 			case MEMORY_CREATE_SEGMENT:
-				pid = recibir_entero(socket_kernel);
-				int id_crear = recibir_entero(socket_kernel);
-				int tamanio = recibir_entero(socket_kernel);
+				pid = recibir_entero_2(socket_kernel);
+				int id_crear = recibir_entero_2(socket_kernel);
+				int tamanio = recibir_entero_2(socket_kernel);
 
 				log_info(logger, "MEMORY_CREATE_SEGMENT PID: %d, SEG_ID: %d [%d bytes]", pid, id_crear, tamanio);
 				if (crear_segmento(pid, tamanio, id_crear) == NULL) {
 					log_error(logger, "OUT_OF_MEMORY EXCEPTION -> Retornando a Kernel");
 					enviar_entero(socket_kernel, MEMORY_ERROR_OUT_OF_MEMORY);
 				}
-				enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_CREATED);
+				else{
+					enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_CREATED);
+				}
 				break;
 			case MEMORY_DELETE_SEGMENT:
-				pid = recibir_entero(socket_kernel);
-				int id_eliminar = recibir_entero(socket_kernel);
+				pid = recibir_entero_2(socket_kernel);
+				int id_eliminar = recibir_entero_2(socket_kernel);
 				log_info(logger, "MEMORY_DELETE_SEGMENT PID: %d, SEG_ID: %d", pid , id_eliminar);
 				delete_segmento(pid, id_eliminar);
 				enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_DELETED);
@@ -130,32 +142,42 @@ void procesar_kernel(int socket_kernel) {
 	}
 }
 
-
-
-void procesar_pedidos_cpu(int socket_cpu) {
+void procesar_cpu_fs(int socket, char* modulo) {
 
 	while(1){
-		int operacion = recibir_operacion(socket_cpu);
+		validar_conexion(socket);
+		int operacion = recibir_operacion(socket);
+		int pid;
 		int direccion_fisica;
-//		switch(operacion) {
-//		case LEER_DIRECCION:
-//			direccion_fisica = recibir_entero(socket_cpu);
-//			char* valor_leido = leer_direccion(direccion_fisica);
-//			enviar_mensaje(valor_leido, socket_cpu, logger);
-//			break;
-//		case ESCRIBIR_DIRECCION:
-//			direccion_fisica = recibir_entero(socket_cpu);
-//			char* valor_a_escribir = recibir_string(socket_cpu);
-//			escribir_en_direccion(direccion_fisica, valor_a_escribir);
-//			break;
-//		default:d
-//		log_info(logger, "No pude reconocer operacion que CPU me mando.");
-//		break;
-//		}
+		switch(operacion) {
+		case MEMORY_READ_ADRESS:
+			pid = recibir_entero(socket);
+			direccion_fisica = recibir_entero(socket);
+			int cant_bytes = recibir_entero(socket);
+			char* valor_leido = leer_direccion(direccion_fisica, cant_bytes);
+			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
+			//log_info(logger, "Valor leido: _%s_", valor_leido);
+			enviar_mensaje(valor_leido, socket, logger);
+			free(valor_leido);
+			break;
+		case MEMORY_WRITE_ADRESS:
+			pid = recibir_entero(socket);
+			direccion_fisica = recibir_entero(socket);
+			int tamanio = recibir_entero(socket);
+			char* valor_a_escribir = recibir_string(socket);
+			
+			log_info(logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, tamanio, modulo);
+			//log_info(logger, "Valor a escribir : _%s_", valor_a_escribir);
+			escribir_en_direccion(direccion_fisica, tamanio, valor_a_escribir, socket);
+			break;
+		default:
+			log_info(logger, "No pude reconocer operacion de %s.", modulo);
+			liberar_conexion(socket);
+			return;
+			break;
+		}
 	}
 }
-
-
 
 void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id, int cod_op) {
 	t_tabla_segmento* tabla_segmento_aux = malloc(sizeof(t_tabla_segmento));
@@ -194,5 +216,3 @@ void enviar_tabla_segmento(int socket_kernel, t_tabla_segmento* tabla_segmento, 
 	buffer_destroy(buffer);
 
 }
-
-
