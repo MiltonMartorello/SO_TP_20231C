@@ -81,6 +81,15 @@ typedef struct
 
 } t_kernel_config;
 
+typedef struct {
+    int file_id;
+    char* nombre;
+    int puntero;
+    int cant_aperturas;
+    t_squeue* cola_bloqueados;
+    pthread_mutex_t* mutex;
+} t_archivo_abierto;
+
 void iniciar_colas_planificacion(void);
 void destroy_colas_planificacion(void);
 void iniciar_semaforos(int);
@@ -123,4 +132,8 @@ void* squeue_peek(t_squeue* queue);
 void procesar_respuesta_memoria(t_pcb *pcb);
 t_segmento* recibir_segmento(void);
 t_list* recibir_tabla_segmentos(int socket);
+
+void loggear_tablas_archivos(void);
+void archivo_abierto_destroy(t_archivo_abierto* archivo);
+t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

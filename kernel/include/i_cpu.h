@@ -9,7 +9,11 @@ extern t_colas* colas_planificacion;
 extern sem_t cpu_liberada;
 extern sem_t proceso_enviado;
 extern sem_t request_file_system;
+extern sem_t f_seek_done;
+extern sem_t f_close_done;
+extern sem_t f_open_done;
 extern t_list* lista_recursos;
+extern t_list* archivos_abiertos;
 
 void manejar_respuesta_cpu(void* args_hilo);
 
@@ -31,4 +35,8 @@ void procesar_create_segment(t_pcb* pcb);
 void procesar_delete_segment(t_pcb* pcb);
 
 void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb);
+
+void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero);
+void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo);
+
 #endif
