@@ -28,10 +28,10 @@ void iniciar_estructuras(void) {
 }
 
 void destroy_estructuras(void) {
-	list_destroy(espacio_usuario->huecos_libres);
+	list_destroy(espacio_usuario->huecos_libres); //TODO AND DESTROY ELEMENTS
 	list_destroy(espacio_usuario->segmentos_activos);
-	list_destroy_and_destroy_elements(tablas_segmentos, destroy_tabla_segmento); //TODO AND DESTROY ELEMENTS
-	//delete_segmento(SEGMENTO_0, SEGMENTO_0); //TODO already free en la linea de arriba, pero revisar.
+	list_destroy_and_destroy_elements(tablas_segmentos, destroy_tabla_segmento);
+	//delete_segmento(SEGMENTO_0, SEGMENTO_0);
 	free(espacio_usuario->espacio_usuario);
 	free(espacio_usuario);
 }

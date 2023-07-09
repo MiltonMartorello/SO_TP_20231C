@@ -178,7 +178,7 @@ typedef struct{
 /*
  * KERNEL - MEMORIA
  * */
-// TODO: ES NECESARIO UN DESCRIPTOR ? TIPO ID DE SISTEMA UNIQUE ?
+
 typedef struct {
 	uint32_t descriptor_id;
 	uint32_t segmento_id;

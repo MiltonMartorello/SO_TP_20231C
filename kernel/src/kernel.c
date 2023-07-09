@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 	socket_filesystem = conectar_con_filesystem();
 
 	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
-	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+
 	args->log = logger;
 	args->config = config_kernel;
 
@@ -86,11 +86,11 @@ int main(int argc, char **argv) {
 					pthread_t hilo_consola;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
-					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+
 					args->socket = socket_consola;
 					args->socket_cpu = socket_cpu;
 					args->log = logger;
-					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
+					enviar_mensaje("Handshake Consola-Kernel", socket_consola);
 
 					//args->mutex = mutex;
 

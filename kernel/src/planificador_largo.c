@@ -22,6 +22,7 @@ int planificador_largo_plazo(void* args_hilo) {
 }
 
 void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
+	pthread_mutex_lock(&mutex_socket_memoria);
 	validar_conexion(socket_memoria);
 	log_info(logger, "P_LARGO -> Solicitando Tabla de Segmentos para PID: %d...", pcb->pid);
 
@@ -34,8 +35,8 @@ void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
 	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
 	enviar_paquete(paquete, socket_memoria);
 	//RECV
-	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
 	procesar_respuesta_memoria(pcb);
+	pthread_mutex_unlock(&mutex_socket_memoria);
 }
 
 void loggear_tabla(t_pcb* pcb, char* origen) {

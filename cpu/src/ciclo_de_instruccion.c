@@ -49,7 +49,7 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 				execute_mov_out(direccion_fisica, atoi(list_get(parametros,0)),list_get(parametros,1));
 			}
 			break;
-		case ci_IO: //TODO funcion para loguear instrucciones
+		case ci_IO:
 			execute_io(atoi(list_get(parametros,0)));
 			fin_de_ciclo = true;
 			break;
@@ -148,19 +148,19 @@ void execute_io(int tiempo) {
 void execute_f_open(char* nombre_archivo) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>", proceso->pid, nombre_archivo);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_OPEN, cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 }
 
 void execute_f_close(char* nombre_archivo) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_CLOSE> - <%s>", proceso->pid, nombre_archivo);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_CLOSE, cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 }
 
 void execute_f_seek(char* nombre_archivo, int posicion) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_SEEK> - <%s> - <%d>", proceso->pid, nombre_archivo, posicion);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_SEEK, cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 	enviar_entero(socket_kernel, posicion);
 }
 
@@ -169,12 +169,12 @@ void execute_f_read(char* nombre_archivo, int direccion_logica, int cant_bytes) 
 	if(direccion_fisica != -1){
 		log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_READ> - <%s> - <%d> - <%d>", proceso->pid, nombre_archivo, direccion_logica, cant_bytes);
 		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_READ, cpu_logger);
-		enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+		enviar_mensaje(nombre_archivo, socket_kernel);
 		enviar_entero(socket_kernel, direccion_fisica);
 		enviar_entero(socket_kernel, cant_bytes);
 	}
 	else{
-		devolver_proceso(proceso, SEG_FAULT, cpu_logger); //TODO : usar este enum? o crear otro?
+		devolver_proceso(proceso, SEG_FAULT, cpu_logger);
 	}
 }
 
@@ -184,7 +184,7 @@ void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes)
 	if(direccion_fisica != -1){
 		log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_WRITE> - <%s> - <%d> - <%d>", proceso->pid, nombre_archivo, direccion_logica, cant_bytes);
 		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_WRITE, cpu_logger);
-		enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+		enviar_mensaje(nombre_archivo, socket_kernel);
 		enviar_entero(socket_kernel, direccion_fisica);
 		enviar_entero(socket_kernel, cant_bytes);
 
@@ -197,14 +197,14 @@ void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes)
 void execute_f_truncate(char* nombre_archivo, int tamanio) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_TRUNCATE> - <%s> - <%d>",proceso->pid,nombre_archivo,tamanio);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE,cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 	enviar_entero(socket_kernel, tamanio);
 }
 
 void execute_wait(char* recurso) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT> - <%s>", proceso->pid, recurso);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_WAIT, cpu_logger);
-	enviar_mensaje(recurso, socket_kernel, cpu_logger);
+	enviar_mensaje(recurso, socket_kernel);
 
 	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
 }
@@ -212,7 +212,7 @@ void execute_wait(char* recurso) {
 void execute_signal(char* recurso) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL> - <%s>", proceso->pid, recurso);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SIGNAL, cpu_logger);
-	enviar_mensaje(recurso, socket_kernel, cpu_logger);
+	enviar_mensaje(recurso, socket_kernel);
 
 	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
 }
@@ -284,7 +284,7 @@ void escribir_memoria(int direccion_fisica, char* valor_a_escribir, int tamanio)
 	enviar_entero(socket_memoria, proceso->pid);
 	enviar_entero(socket_memoria, direccion_fisica);
 	enviar_entero(socket_memoria, tamanio);
-	enviar_mensaje(valor_a_escribir, socket_memoria, cpu_logger);
+	enviar_mensaje(valor_a_escribir, socket_memoria);
 }
 
 //-------------MANEJO DE REGISTROS
