@@ -1,12 +1,18 @@
 #include "../Include/memoria.h"
 
-int main(void) {
+int main(int argc, char **argv) {
 
 	logger = iniciar_logger("memoria.log");
 
 	log_info(logger, "MODULO MEMORIA");
 
-	memoria_config = leer_config("memoria.config");
+	if(argc < 1) {
+		printf("Falta path a archivo de configuración.\n");
+		return EXIT_FAILURE;
+	}
+	/* -- INICIAR CONFIGURACIÓN -- */
+	char* config_path = argv[1];
+	memoria_config = leer_config(config_path);
 
 	iniciar_estructuras();
 	crear_segmento(SEGMENTO_0, memoria_config->tam_segmento_0, 0);
