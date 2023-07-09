@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
 	iniciar_colas_planificacion();
 	iniciar_semaforos(kernel_config->GRADO_MAX_MULTIPROGRAMACION);
 
+	procesos_en_kernel = list_create();
 	/* -- CONEXIÓN CON CPU -- */
 	socket_cpu = conectar_con_cpu();
 

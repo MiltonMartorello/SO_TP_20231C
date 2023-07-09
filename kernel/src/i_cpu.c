@@ -214,7 +214,6 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	free(nombre);
 }
 
-
 void procesar_f_open(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
@@ -270,14 +269,12 @@ void procesar_create_segment(t_pcb* pcb) {
 	pthread_mutex_lock(&mutex_socket_memoria);
 	t_paquete* paquete = crear_paquete(MEMORY_CREATE_SEGMENT);
 	paquete->buffer = crear_buffer();
-	//enviar_entero(socket_memoria,MEMORY_CREATE_SEGMENT);
+
 	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
 	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
 	agregar_a_paquete(paquete, &tamanio, sizeof(int));
 	enviar_paquete(paquete, socket_memoria);
-//	enviar_entero(socket_memoria, pcb->pid);
-//	enviar_entero(socket_memoria,id_segmento);
-//	enviar_entero(socket_memoria,tamanio);
+
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
 
 	//RECV
@@ -296,9 +293,7 @@ void procesar_delete_segment(t_pcb* pcb) {
 	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
 	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
 	enviar_paquete(paquete, socket_memoria);
-//	enviar_entero(socket_memoria,MEMORY_DELETE_SEGMENT);
-//	enviar_entero(socket_memoria, pcb->pid);
-//	enviar_entero(socket_memoria,id_segmento);
+
 	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
 
 	//RECV
@@ -312,8 +307,6 @@ void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) {
 	log_info(logger, "P_LARGO -> Solicitando Eliminación de Tabla de Segmentos para PID: %d...", pcb->pid);
 
 	//SEND
-//	enviar_entero(socket_memoria, MEMORY_DELETE_TABLE);
-//	enviar_entero(socket_memoria, pcb->pid);
 	t_paquete* paquete = crear_paquete(MEMORY_DELETE_TABLE);
 	paquete->buffer = crear_buffer();
 	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));

@@ -40,6 +40,7 @@ char** indice_recursos;
 // MEMORIA
 pthread_mutex_t mutex_socket_memoria;
 t_list* archivos_abiertos;
+t_list* procesos_en_kernel;//para usar con compactacion
 
 
 t_squeue* squeue_create(void) {
@@ -486,6 +487,17 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			pasar_a_cola_exit(pcb, logger, OUT_OF_MEMORY);
 			sem_post(&cpu_liberada);
 			break;
+		case MEMORY_NEEDS_TO_COMPACT:
+			//TODO chequear que fs no este usando memoria
+			enviar_entero(socket_memoria, MEMORY_COMPACT);
+			log_info(logger, "Compactación: <Se solicitó compactación / Esperando Fin de Operaciones de FS>");
+			procesar_respuesta_memoria(pcb);
+			break;
+		case MEMORY_COMPACT:
+			log_info(logger, "Se finalizó el proceso de compactación");
+			sincronizar_tablas_procesos();
+			reenviar_create_segment(pcb);
+			break;
 		default:
 			log_error(logger,"Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d", pcb->pid, cod_op);
 			break;
@@ -505,7 +517,6 @@ t_segmento* recibir_segmento(void) {
 	return segmento;
 }
 
-
 t_list* recibir_tabla_segmentos(int socket_memoria) {
 	pthread_mutex_lock(&mutex_socket_memoria);
 	validar_conexion(socket_memoria);
@@ -518,6 +529,59 @@ t_list* recibir_tabla_segmentos(int socket_memoria) {
 	}
 	pthread_mutex_unlock(&mutex_socket_memoria);
 	return tabla_segmentos;
+}
+
+void sincronizar_tablas_procesos(void) {
+
+	int size = 0;
+	void* stream = recibir_buffer(&size, socket_memoria);
+	int cantidad_procesos;
+	int offset = 0;
+
+	memcpy(&cantidad_procesos, stream, sizeof(int));
+	offset += sizeof(int);
+
+	for(int i = 0; i < cantidad_procesos; i++) {
+
+		int pid;
+		int size_stream_tabla;
+
+		memcpy(&pid, stream + offset, sizeof(int));
+		offset += sizeof(int);
+		memcpy(&size_stream_tabla, stream + offset, sizeof(int));
+		offset += sizeof(int);
+		void* stream_tabla = malloc(size_stream_tabla);
+		memcpy(stream_tabla, stream + offset, size_stream_tabla);
+		offset += size_stream_tabla;
+
+		bool _buscar_por_pid(void* elem) {
+			t_pcb* proceso = (t_pcb*) elem;
+			return proceso->pid == pid;
+		}
+
+		t_pcb* pcb = list_find(procesos_en_kernel, &_buscar_por_pid);
+		list_destroy_and_destroy_elements(pcb->tabla_segmento, &free);
+		pcb->tabla_segmento = deserializar_tabla_segmentos(stream_tabla);
+		//loggear_segmentos(pcb->tabla_segmento, logger);
+	}
+
+	free(stream);
+}
+
+void reenviar_create_segment(t_pcb* pcb) {
+
+	t_instruccion* instruccion = list_get(pcb->instrucciones, pcb->program_counter - 1);
+	int id_segmento = atoi(list_get(instruccion->parametros, 0));
+	int tamanio = atoi(list_get(instruccion->parametros, 1));
+	t_paquete* paquete = crear_paquete(MEMORY_CREATE_SEGMENT);
+	paquete->buffer = crear_buffer();
+
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
+	agregar_a_paquete(paquete, &tamanio, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
+
+	procesar_respuesta_memoria(pcb);
 }
 
 void loggear_tablas_archivos(void) {

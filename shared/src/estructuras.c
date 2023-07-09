@@ -184,8 +184,8 @@ t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos) {
 	int cant_segmentos = list_size(tabla_segmentos);
 	int offset = 0;
 
-	// CANTIDAD DE SEGMENTO * 3 + CANTIDAD DE SEGMENTOS
-	buffer->size = cant_segmentos * 3 * sizeof(uint32_t) + sizeof(int);
+	// TAMANIIO SEGMENTO * CANT_SEGMENTO + NUMERO CANTIDAD DE SEGMENTOS
+	buffer->size = cant_segmentos * 4 * sizeof(uint32_t) + sizeof(int);
 	buffer->stream = malloc(buffer->size);
 
 	memcpy(buffer->stream, &(cant_segmentos), sizeof(int));
@@ -194,6 +194,8 @@ t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos) {
 	for(int i=0; i< cant_segmentos; i++){
 		t_segmento* segmento = (t_segmento*) list_get(tabla_segmentos, i);
 
+		memcpy(buffer->stream + offset, &(segmento->descriptor_id), sizeof(uint32_t));
+		offset += sizeof(uint32_t);
 		memcpy(buffer->stream + offset, &(segmento->segmento_id), sizeof(uint32_t));
 		offset += sizeof(uint32_t);
 		memcpy(buffer->stream + offset, &(segmento->inicio), sizeof(uint32_t));
@@ -214,6 +216,8 @@ t_list* deserializar_tabla_segmentos(void* stream){
 	offset += sizeof(int);
 	for(int i=0; i< cant_segmentos; i++){
 		t_segmento* segmento = malloc(sizeof(t_segmento));
+		memcpy(&(segmento->descriptor_id), stream + offset, sizeof(uint32_t));
+		offset += sizeof(uint32_t);
 		memcpy(&(segmento->segmento_id), stream + offset, sizeof(uint32_t));
 		offset += sizeof(uint32_t);
 		memcpy(&(segmento->inicio), stream + offset, sizeof(uint32_t));
@@ -417,11 +421,11 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 
 void loggear_segmentos(t_list* lista_segmentos, t_log* logger){
 	log_info(logger,"----------SEGMENTOS--------");
-	log_info(logger,"SEG_INICIO	SEG_FIN");
+	log_info(logger,"D_ID	ID	INICIO	FIN	TAMANIO");
 	void _log(void* elem){
 		t_segmento* seg  = (t_segmento*) elem;
 
-		log_info(logger,"	%d	%d",seg->inicio,seg->inicio + seg->tam_segmento - 1);
+		log_info(logger,"%d	%d	%d	%d	%d",seg->descriptor_id,seg->segmento_id,seg->inicio,seg->inicio + seg->tam_segmento - 1,seg->tam_segmento);
 	}
 
 	list_iterate(lista_segmentos,&_log);
