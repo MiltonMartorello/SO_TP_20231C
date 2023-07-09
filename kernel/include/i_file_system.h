@@ -28,7 +28,6 @@ void enviar_request_fs(int pid, t_instruccion* instruccion, char* nombre_archivo
 
 //Internos
 void procesar_file_system(void);
-t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);
 char* obtener_nombre_archivo(t_pcb* pcb);
 t_instruccion* obtener_instruccion(t_pcb* pcb);
 // Estructuras

@@ -112,23 +112,6 @@ t_archivo_abierto* fs_crear_archivo(char* nombre_archivo) {
 	return archivo;
 }
 
-t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {
-    t_archivo_abierto* archivo_encontrado = NULL;
-    void buscar_archivo(t_archivo_abierto* archivo) {
-        if (strcmp(archivo->nombre, nombre_archivo) == 0) {
-            archivo_encontrado = archivo;
-        }
-    }
-    list_iterate(archivos_abiertos, (void*)buscar_archivo);
-    if (archivo_encontrado == NULL) {
-    	log_info(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
-    	archivo_encontrado = crear_archivo_abierto();
-    	archivo_encontrado->nombre = nombre_archivo;
-    	log_info(logger, "FS_THREAD -> Creado entrada de archivo para %s...", archivo_encontrado->nombre);
-    }
-    return archivo_encontrado;
-}
-
 char* obtener_nombre_archivo(t_pcb* pcb) {
 	//log_info(logger, "PID: %d Y PC: %d y SIZE %d", pcb->pid, pcb->program_counter, list_size(pcb->instrucciones));
 	t_instruccion* instruccion = (t_instruccion*)list_get(pcb->instrucciones ,pcb->program_counter - 1);

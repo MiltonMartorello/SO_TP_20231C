@@ -529,4 +529,20 @@ void archivo_abierto_destroy(t_archivo_abierto* archivo) {
     free(archivo);
 }
 
+t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {
+    t_archivo_abierto* archivo_encontrado = NULL;
+    void buscar_archivo(t_archivo_abierto* archivo) {
+        if (strcmp(archivo->nombre, nombre_archivo) == 0) {
+            archivo_encontrado = archivo;
+        }
+    }
+    list_iterate(archivos_abiertos, (void*)buscar_archivo);
+    if (archivo_encontrado == NULL) {
+    	log_info(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
+    	archivo_encontrado = crear_archivo_abierto();
+    	archivo_encontrado->nombre = nombre_archivo;
+    	log_info(logger, "FS_THREAD -> Creado entrada de archivo para %s...", archivo_encontrado->nombre);
+    }
+    return archivo_encontrado;
+}
 
