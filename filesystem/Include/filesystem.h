@@ -1,33 +1,19 @@
 #ifndef FILESYSTEM_H_
 #define FILESYSTEM_H_
 
-#define PATH_CONFIG "./file_system.config"
-
-#include <stdio.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <shared.h>
+#include <pthread.h>
+#include <fcntl.h>
+#include <dirent.h>
 #include <commons/config.h>
 #include <commons/txt.h>
-#include <pthread.h>
-#include <shared.h>
 #include "estructuras.h"
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <dirent.h>
 
-/* -- ESTRUCTURAS -- */
-
-typedef struct {
-    uint32_t block_size;
-    uint32_t block_count;
-} Superbloque;
-
-typedef struct {
-    char* NOMBRE_ARCHIVO; // Corregido: debe ser un array de caracteres para almacenar el nombre
-    int TAMANIO_ARCHIVO;
-    int PUNTERO_DIRECTO;
-    int PUNTERO_INDIRECTO;
-} FCB;
-
+/* ESTRUCTURAS */
 typedef struct {
     char* IP_MEMORIA;
     char* PUERTO_MEMORIA;
@@ -42,55 +28,74 @@ typedef struct {
     int BLOCK_SIZE;
 } t_fs_config;
 
-/* -- VARIABLES -- */
-t_config* config_fs;
-t_fs_config* fs_config;
-int socket_fs;
-int socket_kernel;
-int socket_memoria;
-int estado_socket_mem;
-int estado_socket_kernel;
-char* superBloqueMap;
-Superbloque superbloque;
-t_bitarray* bitmap;
-FCB* fcb;
+typedef struct {
+    int BLOCK_COUNT;
+    int BLOCK_SIZE;
+} Superbloque;
+
+typedef struct {
+	char* datos;
+	int inicio;
+	int fin;
+} t_bloque;
+
+typedef struct {
+    char* NOMBRE_ARCHIVO;
+    int TAMANIO_ARCHIVO;
+    int PUNTERO_DIRECTO;
+    int PUNTERO_INDIRECTO;
+} FCB;
+
 
 /* CONSTANTES */
+#define MAX_ARCHIVOS 50
+
+
+/* VARIABLES */
+t_config* config;
+int socket_kernel;
+int socket_memoria;
+int socket_fs;
 char* mapBitmap;
+t_bitarray* bitmap;
+t_fs_config* fs_config;
+Superbloque* superbloque;
+FCB* fcb;
+void* bloques;
+t_bitarray* bloques_bitarray;
+FCB lista_archivos[100];
+int arch_en_mem;
 
-
-/* -- FUNCIONES -- */
-
-void cargarConfigFS(t_config* config_fs);
-void inicializarFS();
-int existeFS();
-void finalizarFS(int conexion, t_log* logger, t_config* config);
-
-void procesar_f_truncate(char * nombre_archivo);
-void procesar_f_read(char * nombre_archivo);
-void procesar_f_write(char * nombre_archivo);
-
-
+/* PROCEDIMIENTOS */
+void cargar_config_fs(t_config* config);
 void conectar_con_memoria();
+void iniciar_fs();
+void crear_directorio(char* path);
+void iniciar_superbloque();
+void iniciar_bitmap();
+void iniciar_bloques();
 void correr_servidor();
-void leerArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
-void escribirArchivo(const char* nombreArchivo, uint32_t puntero, uint32_t direccionMemoria, uint32_t tamano);
+void recibir_request_kernel(int socket_kernel);
+void leer_archivo(const char* nombreArchivo);
+void escribir_archivo(const char* nombreArchivo);
+void levantar_fcb(const char* nombreArchivo);
+void cargar_config_fcb(t_config* config_file);
+void actualizar_fcb(FCB* archivo, int nuevo_tamanio, int nuevo_directo, int nuevo_indirecto);
+void persistir_fcb(FCB* archivo);
 void accederBitmap(uint32_t numeroBloque, int estado);
 void accederBloque(const char* nombreArchivo, uint32_t numeroBloqueArchivo, uint32_t numeroBloqueFS);
-int existeArchivo(char* ruta);
-
-int abrirArchivo(const char* nombreArchivo);
-int crearArchivo(const char* nombreArchivo);
-int truncarArchivo(const char* nombreArchivo);
-void levantarFCB(const char* nombreArchivo);
-void persistirFCB(FCB* archivo, const char* nombre_archivo);
-void actualizarFCB(FCB* archivo, int nuevo_tamanio, int nuevo_directo, int nuevo_indirecto);
-int obtenerPosIniDeNBloquesLibresEnBitmap(int cantidadBloques);
-void inicializarSuperBloque();
-void inicializarBloques();
-void inicializarBitmap();
-void crearDirectorio(char* path);
-
-void recibir_request_kernel(int socket_kernel);
-
+void finalizar_fs(int conexion, t_log* logger, t_config* config);
+void liberarBloque(int index);
+void reservarBloque(int index);
+void iniciar_fcbs();
+void escribir_en_bloque(uint32_t numero_bloque, char* contenido);
+/* FUNCIONES */
+int existe_fs();
+int abrir_archivo(const char* nombreArchivo);
+int crear_archivo(const char* nombreArchivo);
+int truncar_archivo(const char* nombreArchivo);
+int obtener_bloque_libre(void);
+t_bloque* crear_bloque(int bloque_index_dir);
+int cargar_archivos(FCB* lis_archivos);
+t_bloque* obtener_bloque(int bloque_index);
 #endif /* FILESYSTEM_H_ */

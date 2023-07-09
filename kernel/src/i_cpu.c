@@ -234,6 +234,7 @@ void procesar_f_seek(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
+	log_info(kernel_logger,"PID: <%dprocesar_f_truncate> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
 	ejectuar_f_seek(pcb->pid, nombre_archivo, posicion);
 }
 
@@ -258,6 +259,8 @@ void procesar_f_truncate(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
 }
 
 void procesar_create_segment(t_pcb* pcb) {

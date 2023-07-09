@@ -17,8 +17,9 @@ void procesar_file_system(void) {
 	    log_info(logger, "FS_THREAD -> El estado del PCB es %s", estado_string(pcb->estado_actual));
 	    t_archivo_abierto* archivo;
 	    t_instruccion* instruccion = obtener_instruccion(pcb);
-	    log_info(logger, "FS_THREAD -> Recibido PID con PC en %d", pcb->program_counter);
+	   // log_info(logger, "FS_THREAD -> Recibido PID con PC en %d", pcb->program_counter);
 	    log_info(logger, "FS_THREAD -> Llamando a FS por la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
+
 
 	    enviar_request_fs(pid, instruccion, nombre_archivo);
 	    int cod_respuesta = recibir_entero(socket_filesystem);
@@ -43,6 +44,12 @@ void procesar_file_system(void) {
 				//pasar_a_cola_ready(pcb, logger);
 				sem_post(&f_open_done);
 				break;
+			case F_OP_OK:
+				// TODO: ALGO CON EL ARCHIVO;
+				// TODO: ALGO CON EL PROCESO BLOQUEADO
+				break;
+			case F_OP_ERROR:
+				log_error(logger, "FS_THREAD -> Error al enviar la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
 			default:
 				break;
 		}
@@ -104,9 +111,9 @@ t_archivo_abierto* fs_crear_archivo(char* nombre_archivo) {
 		log_error(logger, "FS_THREAD -> Error al crear archivo %s. Cod op recibido: %d", nombre_archivo, cod_op);
 		return EXIT_FAILURE;
 	}
-	int size_buffer = recibir_entero(socket_filesystem);
-	char* path = (char*)recibir_buffer(&size_buffer, socket_filesystem);
-	t_archivo_abierto* archivo = crear_archivo_abierto();
+	//int size_buffer = recibir_entero(socket_filesystem);
+	//char* path = (char*)recibir_buffer(&size_buffer, socket_filesystem);
+	t_archivo_abierto* archivo = crear_archivo_abierto(nombre_archivo);
 	archivo->nombre = nombre_archivo;
 
 	return archivo;
@@ -127,7 +134,7 @@ void destroy_tablas_archivos_abiertos(void) {
 	list_destroy(archivos_abiertos);
 }
 
-t_archivo_abierto* crear_archivo_abierto(void) {
+t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo) {
 
 	t_archivo_abierto* archivo = malloc(sizeof(t_archivo_abierto));
 	archivo->cant_aperturas = 0;
@@ -139,5 +146,14 @@ t_archivo_abierto* crear_archivo_abierto(void) {
 	archivo->cola_bloqueados = squeue_create();
 
 	return archivo;
+}
+
+
+void archivo_abierto_destroy(t_archivo_abierto* archivo) {
+
+    pthread_mutex_destroy(archivo->mutex);
+    free(archivo->mutex);
+    //free(archivo->path);
+    free(archivo);
 }
 
