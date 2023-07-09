@@ -66,9 +66,9 @@ void inicializarFS();
 int existeFS();
 void finalizarFS(int conexion, t_log* logger, t_config* config);
 
-void procesar_f_truncate(char * nombre_archivo);//TODO
-void procesar_f_read(char * nombre_archivo);//TODO
-void procesar_f_write(char * nombre_archivo);//TODO
+void procesar_f_truncate(char * nombre_archivo);
+void procesar_f_read(char * nombre_archivo);
+void procesar_f_write(char * nombre_archivo);
 
 
 void conectar_con_memoria();

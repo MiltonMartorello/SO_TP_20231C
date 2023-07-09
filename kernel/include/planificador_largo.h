@@ -20,6 +20,7 @@ extern sem_t sem_grado_multiprogramacion;
 extern sem_t sem_nuevo_proceso;
 extern sem_t sem_ready_proceso;
 extern sem_t sem_exec_proceso;
+extern pthread_mutex_t mutex_socket_memoria;
 extern t_kernel_config* kernel_config;
 
 

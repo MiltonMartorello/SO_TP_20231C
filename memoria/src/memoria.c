@@ -1,12 +1,18 @@
 #include "../Include/memoria.h"
 
-int main(void) {
+int main(int argc, char **argv) {
 
 	logger = iniciar_logger("memoria.log");
 
 	log_info(logger, "MODULO MEMORIA");
 
-	memoria_config = leer_config("memoria.config");
+	if(argc < 1) {
+		printf("Falta path a archivo de configuración.\n");
+		return EXIT_FAILURE;
+	}
+	/* -- INICIAR CONFIGURACIÓN -- */
+	char* config_path = argv[1];
+	memoria_config = leer_config(config_path);
 
 	iniciar_estructuras();
 	crear_segmento(SEGMENTO_0, memoria_config->tam_segmento_0, 0);
@@ -29,19 +35,19 @@ void procesar_cliente(void *args_hilo) {
 
 	case CPU:
 		log_info(logger, "CPU conectado.");
-		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente, logger);
+		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente);
 		procesar_cpu_fs(socket_cliente, "CPU");
 		break;
 
 	case KERNEL:
 		log_info(logger, "Kernel conectado.");
-		enviar_mensaje("Hola KERNEL! -Memoria ", socket_cliente, logger);
+		enviar_mensaje("Hola KERNEL! -Memoria ", socket_cliente);
 		procesar_kernel(socket_cliente);
 		break;
 
 	case FILESYSTEM:
 		log_info(logger, "FileSystem conectado.");
-		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente, logger);
+		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente);
 		procesar_cpu_fs(socket_cliente, "FS");
 		break;
 	case -1:

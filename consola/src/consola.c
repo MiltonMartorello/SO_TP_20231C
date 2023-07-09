@@ -65,8 +65,6 @@ void correr_consola(char* archivo_config, char* archivo_programa) {
 }
 
 
-//TODO GENERALIZAR ESTA FUNCION EN LAS SHARED
-
 int conexion_a_kernel(char* ip, char* puerto,t_log* logger) {
 	int socket_kernel = crear_conexion(ip, puerto);
 	enviar_handshake(socket_kernel,CONSOLA);
@@ -168,7 +166,6 @@ int serializar_buffer_programa(int size_buffer, int cant_instrucciones, t_list* 
 			// Mientras existra otro parámetro, tal vez queda medio redundante con el if de arriba.
 			while (list_iterator_has_next(iterador_parametros)) {
 				parametro = (char*) list_iterator_next(iterador_parametros);
-				// TODO revisar si es necesario el + 1
 				size_parametro = strlen(parametro) + 1;
 				// Tamaño del parámetro
 				memcpy(buffer->stream + offset, &(size_parametro),

@@ -169,7 +169,7 @@ void correr_servidor(void) {
     switch (modulo) {
         case KERNEL:
             log_info(logger, "Kernel Conectado.");
-            enviar_mensaje("TODO: Generico", socket_kernel, logger);
+            enviar_mensaje("TODO: Generico", socket_kernel);
             recibir_request_kernel(socket_kernel);
             break;
         case -1:
@@ -231,13 +231,11 @@ void recibir_request_kernel(int socket_kernel) {
 void procesar_f_read(char * nombre_archivo) {
 	char* direccion_logica = recibir_string(socket_kernel);
 	char* cantidad_de_bytes = recibir_string(socket_kernel);
-	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
 	// Ej: int tamanio_int = atoi(tamanio);
 }
 void procesar_f_write(char * nombre_archivo) {
 	char* direccion_logica = recibir_string(socket_kernel);
 	char* cantidad_de_bytes = recibir_string(socket_kernel);
-	//TODO: recordar que existe atoi que toma un char* y devuelve un entero
 	// Ej: int tamanio_int = atoi(tamanio);
 }
 
@@ -259,7 +257,7 @@ int abrirArchivo(const char* nombreArchivo) {
             if (strcmp(fcb->NOMBRE_ARCHIVO, nombreArchivo) == 0) {
                 log_info(logger, "El archivo %s existe.", nombreArchivo);
                 closedir(dir);
-                return F_EXISTS; // OK
+                return F_OPEN_OK; // OK
             }
         }
     }

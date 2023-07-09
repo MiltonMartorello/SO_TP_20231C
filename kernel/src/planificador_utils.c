@@ -31,10 +31,17 @@ pthread_mutex_t mutex_cola_exit;
 
 // FILE SYSTEM
 sem_t request_file_system;
+sem_t f_seek_done;
+sem_t f_close_done;
+sem_t f_open_done;
 t_list* lista_recursos;
 char** indice_recursos;
 
+// MEMORIA
+pthread_mutex_t mutex_socket_memoria;
+t_list* archivos_abiertos;
 t_list* procesos_en_kernel;//para usar con compactacion
+
 
 t_squeue* squeue_create(void) {
 	t_squeue* squeue = malloc (sizeof(t_squeue));
@@ -100,7 +107,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_grado_multiprogramacion, 0, grado_multiprogramacion);
 	sem_init(&sem_nuevo_proceso, 0, 0);
 	sem_init(&sem_ready_proceso, 0, 0);
-	sem_init(&sem_exec_proceso, 0, 0);
+	//sem_init(&sem_exec_proceso, 0, 0);
 	sem_init(&sem_block_proceso, 0, 0);
 	sem_init(&sem_exit_proceso, 0, 0);
 	sem_init(&cpu_liberada, 0, 1);
@@ -109,7 +116,11 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	pthread_mutex_init(&mutex_cola_ready, NULL);
 	pthread_mutex_init(&mutex_cola_exec, NULL);
 	pthread_mutex_init(&mutex_cola_exit, NULL);
+	pthread_mutex_init(&mutex_socket_memoria, NULL);
 	sem_init(&request_file_system, 0, 0);
+	sem_init(&f_seek_done, 0, 0);
+	sem_init(&f_close_done, 0, 0);
+	sem_init(&f_open_done, 0, 0);
 }
 
 void destroy_semaforos(void) {
@@ -117,12 +128,21 @@ void destroy_semaforos(void) {
 	sem_destroy(&sem_grado_multiprogramacion);
 	sem_destroy(&sem_nuevo_proceso);
 	sem_destroy(&sem_ready_proceso);
-	sem_destroy(&sem_exec_proceso);
+	//sem_destroy(&sem_exec_proceso);
 	sem_destroy(&sem_block_proceso);
 	sem_destroy(&sem_exit_proceso);
 
 	sem_destroy(&cpu_liberada);
 	sem_destroy(&proceso_enviado);
+	sem_destroy(&request_file_system);
+	sem_destroy(&f_seek_done);
+	sem_destroy(&f_close_done);
+	sem_destroy(&f_open_done);
+
+	pthread_mutex_destroy(&mutex_cola_new);
+	pthread_mutex_destroy(&mutex_cola_ready);
+	pthread_mutex_destroy(&mutex_cola_exec);
+	pthread_mutex_destroy(&mutex_cola_exit);
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
@@ -279,7 +299,6 @@ void pasar_a_cola_exec(t_pcb* pcb, t_log* logger) {
 	squeue_push(colas_planificacion->cola_exec, pcb);
 	squeue_push(colas_planificacion->log_ejecucion, pcb->pid);
 	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	sem_post(&sem_exec_proceso); //TODO : para que se usa este semforo?
 }
 
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola) {
@@ -331,7 +350,7 @@ void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	free(contexto_pcb);
 }
 
-//TODO: arreglar harcodeo
+
 void loggear_cola_ready(t_log* logger, char* algoritmo) {
 	pthread_mutex_lock(colas_planificacion->cola_ready->mutex);
     char* pids = concatenar_pids(colas_planificacion->cola_ready->cola->elements);
@@ -388,7 +407,6 @@ char* estado_string(int cod_op) {
 	return NULL;
 }
 
-//TODO revisar
 t_registro crear_registro(void) {
 
 	t_registro registro;
@@ -439,7 +457,6 @@ void sincronizar_tabla_segmentos(int socket, t_pcb *pcb) {
 
 void procesar_respuesta_memoria(t_pcb *pcb) {
 	//RECV
-	//TODO: MUTEX AL SOCKET_MEMORIA ? POSIBLE RACE_CONDITION ENTRE PLANIFICADOR LARGO Y EL I_CPU
 	validar_conexion(socket_memoria);
 	int cod_op = recibir_entero(socket_memoria);
 	log_info(logger, "Recibido memoria op_code: %d", cod_op);
@@ -465,6 +482,7 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			loggear_tabla(pcb, "P_CORTO");
 			break;
 		case MEMORY_ERROR_OUT_OF_MEMORY: // 71
+			pthread_mutex_unlock(&mutex_socket_memoria); // TODO: PATCH
 			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, OUT_OF_MEMORY);
 			sem_post(&cpu_liberada);
@@ -500,6 +518,7 @@ t_segmento* recibir_segmento(void) {
 }
 
 t_list* recibir_tabla_segmentos(int socket_memoria) {
+	pthread_mutex_lock(&mutex_socket_memoria);
 	validar_conexion(socket_memoria);
 	t_list* tabla_segmentos = list_create();
 	int cant_segmentos = recibir_entero(socket_memoria);
@@ -508,7 +527,7 @@ t_list* recibir_tabla_segmentos(int socket_memoria) {
 		t_segmento* segmento_aux = recibir_segmento();
 		list_add(tabla_segmentos, segmento_aux);
 	}
-
+	pthread_mutex_unlock(&mutex_socket_memoria);
 	return tabla_segmentos;
 }
 
@@ -564,3 +583,34 @@ void reenviar_create_segment(t_pcb* pcb) {
 
 	procesar_respuesta_memoria(pcb);
 }
+
+void loggear_tablas_archivos(void) {
+	log_info(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
+}
+
+void archivo_abierto_destroy(t_archivo_abierto* archivo) {
+
+	//free(archivo->nombre); no eliminar, esto elimina 1 parametro de la instruccion
+	squeue_destroy(archivo->cola_bloqueados);
+    pthread_mutex_destroy(archivo->mutex);
+    free(archivo->mutex);
+    free(archivo);
+}
+
+t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {
+    t_archivo_abierto* archivo_encontrado = NULL;
+    void buscar_archivo(t_archivo_abierto* archivo) {
+        if (strcmp(archivo->nombre, nombre_archivo) == 0) {
+            archivo_encontrado = archivo;
+        }
+    }
+    list_iterate(archivos_abiertos, (void*)buscar_archivo);
+    if (archivo_encontrado == NULL) {
+    	log_info(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
+    	archivo_encontrado = crear_archivo_abierto();
+    	archivo_encontrado->nombre = nombre_archivo;
+    	log_info(logger, "FS_THREAD -> Creado entrada de archivo para %s...", archivo_encontrado->nombre);
+    }
+    return archivo_encontrado;
+}
+
