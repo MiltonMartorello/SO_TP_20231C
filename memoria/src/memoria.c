@@ -35,19 +35,19 @@ void procesar_cliente(void *args_hilo) {
 
 	case CPU:
 		log_info(logger, "CPU conectado.");
-		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente, logger);
+		enviar_mensaje("Hola CPU! -Memoria ", socket_cliente);
 		procesar_cpu_fs(socket_cliente, "CPU");
 		break;
 
 	case KERNEL:
 		log_info(logger, "Kernel conectado.");
-		enviar_mensaje("Hola KERNEL! -Memoria ", socket_cliente, logger);
+		enviar_mensaje("Hola KERNEL! -Memoria ", socket_cliente);
 		procesar_kernel(socket_cliente);
 		break;
 
 	case FILESYSTEM:
 		log_info(logger, "FileSystem conectado.");
-		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente, logger);
+		enviar_mensaje("Hola FILESYSTEM! -Memoria ", socket_cliente);
 		procesar_cpu_fs(socket_cliente, "FS");
 		break;
 	case -1:

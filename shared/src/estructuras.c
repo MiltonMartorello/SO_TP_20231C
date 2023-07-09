@@ -46,7 +46,6 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 			// Mientras exista otro parámetro más
 			while(list_iterator_has_next(iterador_parametros)) {
 				// Tamaño del parámetro + Tamaño del String + 1 por el endline
-				// TODO revisar si es necesario el + 1
 				antes = size_buffer;
 				size_buffer += sizeof(int) + strlen((char*)list_iterator_next(iterador_parametros)) + 1;
 //				log_info(logger, "Este parámetro de instruccion pesa %d", size_buffer - antes - 5);
@@ -102,7 +101,6 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 			// Mientras existra otro parámetro, tal vez queda medio redundante con el if de arriba.
 			while (list_iterator_has_next(iterador_parametros)) {
 				parametro = (char*) list_iterator_next(iterador_parametros);
-				// TODO revisar si es necesario el + 1
 //				log_info(logger, "el parámetro %s, mide %d", parametro, (int)(strlen(parametro) + 1));
 				size_parametro = strlen(parametro) + 1;
 				// Tamaño del parámetro
