@@ -468,7 +468,7 @@ char* leer_direccion(int direccion, int tamanio) {
 
 void escribir_en_direccion(int direccion, int tamanio, char* valor_a_escribir, int socket_cliente) {
 	memcpy(espacio_usuario->espacio_usuario + direccion, valor_a_escribir, tamanio);
-	enviar_mensaje("OK", socket_cliente, logger);
+	enviar_mensaje("OK", socket_cliente);
 	free(valor_a_escribir);
 	usleep(memoria_config->retardo_memoria * 1000);
 }

@@ -178,7 +178,7 @@ void procesar_cpu_fs(int socket, char* modulo) {
 			char* valor_leido = leer_direccion(direccion_fisica, cant_bytes);
 			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
 			//log_info(logger, "Valor leido: _%s_", valor_leido);
-			enviar_mensaje(valor_leido, socket, logger);
+			enviar_mensaje(valor_leido, socket);
 			free(valor_leido);
 			break;
 		case MEMORY_WRITE_ADRESS:
