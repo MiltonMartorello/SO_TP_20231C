@@ -1,7 +1,7 @@
 #include "shared.h"
 #include <errno.h>
 
-t_log* logger; //TODO se necesita aca?
+t_log* logger;
 
 /*
  * SERVIDOR
@@ -74,6 +74,11 @@ int recibir_operacion(int socket_cliente){
 
 int recibir_entero(int socket){
 	return recibir_operacion(socket);
+}
+
+int recibir_entero_2(int socket){
+	recibir_entero(socket);
+	return recibir_entero(socket);
 }
 
 void* recibir_buffer(int* size, int socket_cliente)
@@ -184,7 +189,7 @@ int crear_conexion(char *ip, char* puerto)
 	return socket_cliente;
 }
 
-void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
+void enviar_mensaje(char* mensaje, int socket_cliente)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 
@@ -330,11 +335,13 @@ int validar_conexion(int socket) {
 	    if (optval != 0) {
 	        // hay un error de conexión pendiente
 	        fprintf(stderr, "Error de conexión pendiente: %s\n", strerror(optval));
+	        liberar_conexion(socket);
 	        return -1;
 	    }
 	} else {
 	    // hubo un error al obtener el estado de la conexión
 	    fprintf(stderr, "Error al obtener el estado de la conexión: %s\n", strerror(errno));
+	    liberar_conexion(socket);
 	    return -1;
 	}
 	return 1;

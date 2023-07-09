@@ -48,8 +48,8 @@ typedef struct {
 
 
 /* CONSTANTES */
-
 #define MAX_ARCHIVOS 50
+
 
 /* VARIABLES */
 t_config* config;

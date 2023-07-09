@@ -18,6 +18,8 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 		//log_info(cpu_logger, "Cód instrucción: %d", una_instruccion->codigo);
 		parametros = una_instruccion->parametros;
 		proceso->program_counter++;
+		int direccion_fisica;
+		int direccion_logica;
 
 		switch (una_instruccion->codigo)
 		{
@@ -25,12 +27,29 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 			execute_set(list_get(parametros,0),list_get(parametros,1));
 			break;
 		case ci_MOV_IN:
-			execute_mov_in(list_get(parametros,0),atoi(list_get(parametros,1)));
+			direccion_logica = atoi(list_get(parametros,1));
+			direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(list_get(parametros,0)));
+
+			if(direccion_fisica == -1){
+				devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
+				return;
+			}
+			else{
+				execute_mov_in(direccion_fisica, list_get(parametros,0),direccion_logica);
+			}
 			break;
+				
 		case ci_MOV_OUT:
-			execute_mov_out(atoi(list_get(parametros,0)),list_get(parametros,1));
+			direccion_logica = atoi(list_get(parametros,0));
+			direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, tamanio_registro(list_get(parametros,1)));
+			if(direccion_fisica == -1){
+				devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
+				return;
+			}else{
+				execute_mov_out(direccion_fisica, atoi(list_get(parametros,0)),list_get(parametros,1));
+			}
 			break;
-		case ci_IO: //TODO funcion para loguear instrucciones
+		case ci_IO:
 			execute_io(atoi(list_get(parametros,0)));
 			fin_de_ciclo = true;
 			break;
@@ -97,29 +116,26 @@ void execute_set(char* registro, char* valor) {
 	set_valor_registro(registro,valor);
 }
 
-void execute_mov_in(char* registro,int direccion_logica) {
+void execute_mov_in(int direccion_fisica, char* registro,int direccion_logica) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <MOV_IN> - <%s> - <%d>",proceso->pid, registro, direccion_logica);
-	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, 0);
+
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
-
-	int valor = leer_memoria(direccion_fisica);
-	log_info(cpu_logger, "PID: <%d> - Acción: <LEER> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%d>",proceso->pid,segmento->segmento_id,direccion_fisica,valor);
-
+	char* valor = leer_memoria(direccion_fisica, tamanio_registro(registro));
+	log_info(cpu_logger, "PID: <%d> - Acción: <LEER> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%s>", proceso->pid, segmento->segmento_id, direccion_fisica, valor);
 	set_valor_registro(registro, valor);
+	free(valor);
 }
 
-void execute_mov_out(int direccion_logica, char* registro) {
-	log_info(cpu_logger,"PID: <%d> - Ejecutando: <MOV_OUT> - <%d> - <%s>",proceso->pid,direccion_logica,registro);
-	char* valor_registro = get_valor_registro(registro);
-	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso, 0);
+void execute_mov_out(int direccion_fisica, int direccion_logica, char* registro) {
+	log_info(cpu_logger,"PID: <%d> - Ejecutando: <MOV_OUT> - <%d> - <%s>", proceso->pid, direccion_logica, registro);
+
+	char* valor_registro = get_valor_registro(registro); //TODO: hay que verificar que tamaño lee en memoria
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
-
-	escribir_memoria(direccion_fisica, valor_registro);
-
-	//	char* respuesta = recibir_string(socket_memoria);
-	//	if(string_equals_ignore_case(respuesta, "OK")){
-	//		log_info(cpu_logger, "PID: <%d> - Acción: <ESCRIBIR> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%d>",proceso->pid,segmento->id,direccion_fisica,valor);
-	//	}
+	log_info(cpu_logger, "PID: <%d> - Acción: <ESCRIBIR> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%s>", proceso->pid, segmento->segmento_id, direccion_fisica, valor_registro);
+	escribir_memoria(direccion_fisica, valor_registro, tamanio_registro(registro));
+	char* respuesta = recibir_string(socket_memoria);
+	log_info(cpu_logger, "Respuesta MEMORIA: %s", respuesta);
+	free(respuesta);
 }
 
 void execute_io(int tiempo) {
@@ -132,19 +148,19 @@ void execute_io(int tiempo) {
 void execute_f_open(char* nombre_archivo) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_OPEN> - <%s>", proceso->pid, nombre_archivo);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_OPEN, cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 }
 
 void execute_f_close(char* nombre_archivo) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_CLOSE> - <%s>", proceso->pid, nombre_archivo);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_CLOSE, cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 }
 
 void execute_f_seek(char* nombre_archivo, int posicion) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_SEEK> - <%s> - <%d>", proceso->pid, nombre_archivo, posicion);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_SEEK, cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 	enviar_entero(socket_kernel, posicion);
 }
 
@@ -153,12 +169,12 @@ void execute_f_read(char* nombre_archivo, int direccion_logica, int cant_bytes) 
 	if(direccion_fisica != -1){
 		log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_READ> - <%s> - <%d> - <%d>", proceso->pid, nombre_archivo, direccion_logica, cant_bytes);
 		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_READ, cpu_logger);
-		enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+		enviar_mensaje(nombre_archivo, socket_kernel);
 		enviar_entero(socket_kernel, direccion_fisica);
 		enviar_entero(socket_kernel, cant_bytes);
 	}
 	else{
-		devolver_proceso(proceso, SEG_FAULT, cpu_logger); //TODO : usar este enum? o crear otro?
+		devolver_proceso(proceso, SEG_FAULT, cpu_logger);
 	}
 }
 
@@ -168,7 +184,7 @@ void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes)
 	if(direccion_fisica != -1){
 		log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_WRITE> - <%s> - <%d> - <%d>", proceso->pid, nombre_archivo, direccion_logica, cant_bytes);
 		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_WRITE, cpu_logger);
-		enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+		enviar_mensaje(nombre_archivo, socket_kernel);
 		enviar_entero(socket_kernel, direccion_fisica);
 		enviar_entero(socket_kernel, cant_bytes);
 
@@ -181,14 +197,14 @@ void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes)
 void execute_f_truncate(char* nombre_archivo, int tamanio) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_TRUNCATE> - <%s> - <%d>",proceso->pid,nombre_archivo,tamanio);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE,cpu_logger);
-	enviar_mensaje(nombre_archivo, socket_kernel, cpu_logger);
+	enviar_mensaje(nombre_archivo, socket_kernel);
 	enviar_entero(socket_kernel, tamanio);
 }
 
 void execute_wait(char* recurso) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <WAIT> - <%s>", proceso->pid, recurso);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_WAIT, cpu_logger);
-	enviar_mensaje(recurso, socket_kernel, cpu_logger);
+	enviar_mensaje(recurso, socket_kernel);
 
 	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
 }
@@ -196,7 +212,7 @@ void execute_wait(char* recurso) {
 void execute_signal(char* recurso) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <SIGNAL> - <%s>", proceso->pid, recurso);
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SIGNAL, cpu_logger);
-	enviar_mensaje(recurso, socket_kernel, cpu_logger);
+	enviar_mensaje(recurso, socket_kernel);
 
 	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
 }
@@ -227,45 +243,52 @@ void execute_exit(void) {
 }
 
 //--------------MMU
-int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proceso,int cant_bytes) {
+int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proceso, int cant_bytes) {
 
 	int desplazamiento_segmento = direccion_logica%cpu_config->tam_max_segmento;
-	t_segmento* segmento = obtener_segmento(direccion_logica,proceso->tabla_segmentos);
+	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
 
-	int offset = desplazamiento_segmento + cant_bytes;
-	if (offset > segmento->tam_segmento){ //SEG_FAULT
-		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>",proceso->pid,segmento->segmento_id,offset,segmento->tam_segmento);
+	//int desp_total = desplazamiento_segmento + cant_bytes;
+	if (desplazamiento_segmento + cant_bytes > segmento->tam_segmento){ //SEG_FAULT
+		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", proceso->pid, segmento->segmento_id, desplazamiento_segmento, segmento->tam_segmento);
 		return -1;
 	}
 	return segmento->inicio + desplazamiento_segmento;
 }
 
-t_segmento* obtener_segmento(int direccion_logica,t_list* tabla_segmentos){
+t_segmento* obtener_segmento(int direccion_logica, t_list* tabla_segmentos) {
 	int num_segmento = floor(direccion_logica/cpu_config->tam_max_segmento);
-	return (t_segmento*) list_get(tabla_segmentos, num_segmento);
+
+	bool encontrar_segmento(void* elem){
+		t_segmento* segmento = (t_segmento*) elem;
+		return segmento->segmento_id == num_segmento;
+	}
+	return list_find(tabla_segmentos, &encontrar_segmento);
 }
 
 //--------------LLAMADAS A MEMORIA
-int leer_memoria(int direccion_fisica){
-
-	t_paquete* paquete = crear_paquete(LEER_DIRECCION);
-	agregar_a_paquete(paquete, direccion_fisica, sizeof(int));
-	enviar_paquete(paquete, socket_memoria);
-
-	return recibir_entero(socket_memoria);
+char* leer_memoria(int direccion_fisica, int cant_de_bytes) {
+	enviar_entero(socket_memoria, MEMORY_READ_ADRESS);
+	enviar_entero(socket_memoria, proceso->pid);
+	enviar_entero(socket_memoria, direccion_fisica);
+	enviar_entero(socket_memoria, cant_de_bytes);
+//	char* respuesta = malloc(cant_de_bytes + 1);
+//	strcpy(respuesta, recibir_string(socket_memoria));
+//	char* respuesta = new_string();
+//	string_n_append(&respuesta, recibir_string)
+	return recibir_string(socket_memoria);
 }
 
-void escribir_memoria(int direccion_fisica, char* valor_a_escribir){
-
-	t_paquete* paquete = crear_paquete(ESCRIBIR_DIRECCION);
-	agregar_a_paquete(paquete, (void*) direccion_fisica, sizeof(int));
-	agregar_a_paquete(paquete, valor_a_escribir, string_length(valor_a_escribir));
-	enviar_paquete(paquete, socket_memoria);
-
+void escribir_memoria(int direccion_fisica, char* valor_a_escribir, int tamanio) {
+	enviar_entero(socket_memoria, MEMORY_WRITE_ADRESS);
+	enviar_entero(socket_memoria, proceso->pid);
+	enviar_entero(socket_memoria, direccion_fisica);
+	enviar_entero(socket_memoria, tamanio);
+	enviar_mensaje(valor_a_escribir, socket_memoria);
 }
 
 //-------------MANEJO DE REGISTROS
-void set_valor_registro(char* nombre_registro, char* valor){
+void set_valor_registro(char* nombre_registro, char* valor) {
 
 	char tipo_registro = nombre_registro[0];
 	int posicion = posicion_registro(nombre_registro);
@@ -289,7 +312,24 @@ void set_valor_registro(char* nombre_registro, char* valor){
 	}
 }
 
-char* get_valor_registro(char* nombre_registro){
+int tamanio_registro(char* nombre_registro) {
+	char tipo_registro = nombre_registro[0];
+
+	switch (tipo_registro)
+	{
+	case 'R':
+		return 16;
+		break;
+	case 'E':
+		return 8;
+		break;
+	default:
+		return 4;
+		break;
+	}
+}
+
+char* get_valor_registro(char* nombre_registro) {
 	char tipo_registro = nombre_registro[0];
 	int posicion = posicion_registro(nombre_registro);
 
@@ -307,11 +347,11 @@ char* get_valor_registro(char* nombre_registro){
 	}
 }
 
-int posicion_registro(char* nombre_registro){
+int posicion_registro(char* nombre_registro) {
 
     int l = strlen(nombre_registro);
     char tipo[2];
-    strcpy(tipo,&nombre_registro[l-2]);
+    strcpy(tipo, &nombre_registro[l-2]);
 
 	if(strcmp(tipo,"AX") == 0) return 0;
 	if(strcmp(tipo,"BX") == 0) return 1;
@@ -321,7 +361,7 @@ int posicion_registro(char* nombre_registro){
 }
 
 //--------------------
-void devolver_proceso(t_contexto_proceso* proceso,int codigo,t_log* logger){
+void devolver_proceso(t_contexto_proceso* proceso, int codigo, t_log* logger){
 	actualizar_registros_pcb(&proceso->registros);
-	enviar_contexto(socket_kernel,proceso,codigo,logger);
+	enviar_contexto(socket_kernel, proceso, codigo, logger);
 }

@@ -146,8 +146,8 @@ void correr_servidor(void) {
 
     switch (modulo) {
         case KERNEL:
-        	log_debug(logger, "Kernel Conectado.");
-            enviar_mensaje("TOC TOC: Soy FS!", socket_kernel, logger);
+            log_info(logger, "Kernel Conectado.");
+            enviar_mensaje("TODO: Generico", socket_kernel);
             recibir_request_kernel(socket_kernel);
             break;
         case -1:
@@ -213,7 +213,7 @@ int abrir_archivo(const char* nombreArchivo) {
             if (strcmp(fcb->NOMBRE_ARCHIVO, nombreArchivo) == 0) {
                 log_debug(logger, "El archivo %s existe.", nombreArchivo);
                 closedir(dir);
-                return F_EXISTS; // OK
+                return F_OPEN_OK; // OK
             }
         }
     }

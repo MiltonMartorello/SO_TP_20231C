@@ -46,7 +46,6 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 			// Mientras exista otro parámetro más
 			while(list_iterator_has_next(iterador_parametros)) {
 				// Tamaño del parámetro + Tamaño del String + 1 por el endline
-				// TODO revisar si es necesario el + 1
 				antes = size_buffer;
 				size_buffer += sizeof(int) + strlen((char*)list_iterator_next(iterador_parametros)) + 1;
 //				log_info(logger, "Este parámetro de instruccion pesa %d", size_buffer - antes - 5);
@@ -102,7 +101,6 @@ t_buffer* serializar_instrucciones(t_list* instrucciones, t_log* logger) {
 			// Mientras existra otro parámetro, tal vez queda medio redundante con el if de arriba.
 			while (list_iterator_has_next(iterador_parametros)) {
 				parametro = (char*) list_iterator_next(iterador_parametros);
-				// TODO revisar si es necesario el + 1
 //				log_info(logger, "el parámetro %s, mide %d", parametro, (int)(strlen(parametro) + 1));
 				size_parametro = strlen(parametro) + 1;
 				// Tamaño del parámetro
@@ -182,19 +180,67 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger) {
 }
 
 t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos) {
+	t_buffer* buffer = crear_buffer(); //buffer a retornar
+	int cant_segmentos = list_size(tabla_segmentos);
+	int offset = 0;
 
+	// TAMANIIO SEGMENTO * CANT_SEGMENTO + NUMERO CANTIDAD DE SEGMENTOS
+	buffer->size = cant_segmentos * 4 * sizeof(uint32_t) + sizeof(int);
+	buffer->stream = malloc(buffer->size);
+
+	memcpy(buffer->stream, &(cant_segmentos), sizeof(int));
+	offset += sizeof(int);
+
+	for(int i=0; i< cant_segmentos; i++){
+		t_segmento* segmento = (t_segmento*) list_get(tabla_segmentos, i);
+
+		memcpy(buffer->stream + offset, &(segmento->descriptor_id), sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		memcpy(buffer->stream + offset, &(segmento->segmento_id), sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		memcpy(buffer->stream + offset, &(segmento->inicio), sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		memcpy(buffer->stream + offset, &(segmento->tam_segmento), sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+	}
+
+	return buffer;
+}
+
+t_list* deserializar_tabla_segmentos(void* stream){
+	t_list* segmentos = list_create();
+	int cant_segmentos;
+	int offset = 0;
+
+	memcpy(&(cant_segmentos), stream + offset, sizeof(int));
+	offset += sizeof(int);
+	for(int i=0; i< cant_segmentos; i++){
+		t_segmento* segmento = malloc(sizeof(t_segmento));
+		memcpy(&(segmento->descriptor_id), stream + offset, sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		memcpy(&(segmento->segmento_id), stream + offset, sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		memcpy(&(segmento->inicio), stream + offset, sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		memcpy(&(segmento->tam_segmento), stream + offset, sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+		list_add(segmentos,segmento);
+	}
+	free(stream);
+	return segmentos;
 }
 
 void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log* logger){
 
 	t_paquete* paquete = crear_paquete(codigo);
 	t_buffer* buffer_instrucciones = serializar_instrucciones(contexto->instrucciones,logger);
+	t_buffer* buffer_tabla_segmentos = serializar_tabla_segmentos(contexto->tabla_segmentos);
 	t_buffer* buffer_paquete = crear_buffer();
 	paquete->codigo_operacion = codigo;
 
 	int offset = 0;
-	// PID + PC + Size de Instrucciones
-	int tamanio_paquete = sizeof(int) *3 + size_of_registros(contexto) + buffer_instrucciones->size; //TODO agregar size tabla
+	// PID + PC + Size de Instrucciones + size_segmentos
+	int tamanio_paquete = sizeof(int) *4 + size_of_registros(contexto) + buffer_instrucciones->size + buffer_tabla_segmentos->size;
 //	log_info(logger, "Tamaño Paquete: %d", tamanio_paquete);
 //	log_info(logger, "Tamaño PID + PC + Size Instrucciones: %d", sizeof(int)*3);
 //	log_info(logger, "Tamaño Instrucciones: %d", buffer_instrucciones->size);
@@ -212,6 +258,11 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
 	//cant_instrucciones.stream_instrucciones
 	memcpy(paquete->buffer->stream + offset, buffer_instrucciones->stream, buffer_instrucciones->size);
 	offset+= buffer_instrucciones->size;
+
+	memcpy(paquete->buffer->stream + offset, &(buffer_tabla_segmentos->size),sizeof(int));
+	offset+=sizeof(int);
+	memcpy(paquete->buffer->stream + offset, buffer_tabla_segmentos->stream, buffer_tabla_segmentos->size);
+	offset+= buffer_tabla_segmentos->size;
 
 	//serializar_registros(contexto->registros, paquete->buffer->stream, &offset);
 
@@ -254,15 +305,26 @@ void enviar_contexto(int socket, t_contexto_proceso* contexto, int codigo, t_log
     memcpy(paquete->buffer->stream + offset, contexto->registros.RDX, sizeof(contexto->registros.RDX));
     offset += sizeof(contexto->registros.RDX);
 
-
 //	log_info(logger, "Offset = %d", offset);
 	enviar_paquete(paquete, socket);
 
 	free(buffer_instrucciones->stream);
 	free(buffer_instrucciones);
+	free(buffer_tabla_segmentos->stream);
+	free(buffer_tabla_segmentos);
 	eliminar_paquete(paquete);
 }
 
+t_list* recibir_tabla_de_segmentos(int socket){
+	int size;
+	void* stream;
+
+	recv(socket, &size, sizeof(int), MSG_WAITALL);
+	stream = malloc(size);
+	recv(socket, stream, size, MSG_WAITALL);
+
+	return deserializar_tabla_segmentos(stream);
+}
 
 int size_of_registros(t_contexto_proceso* contexto) {
 	int size = 0;
@@ -289,6 +351,7 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	void * buffer;
 	t_contexto_proceso* proceso = malloc(sizeof(t_contexto_proceso));
 	t_buffer* buffer_instrucciones = malloc(sizeof(t_buffer));
+	int size_stream_segmentos;
 
 	buffer = recibir_buffer(&size,socket);
 	//log_info(logger, "Recibí un buffer de: %d", size);
@@ -304,8 +367,14 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	proceso->instrucciones = deserializar_instrucciones(buffer_instrucciones,logger);
 	desplazamiento+=buffer_instrucciones->size;
 
-	//memcpy(&(proceso->registros),buffer + desplazamiento, sizeof(t_registro));
+    memcpy(&size_stream_segmentos, buffer + desplazamiento, sizeof(int));
+    desplazamiento += sizeof(int);
+	void* stream_segmentos = malloc(size_stream_segmentos);
+	memcpy(stream_segmentos, buffer + desplazamiento, size_stream_segmentos);
+	proceso->tabla_segmentos = deserializar_tabla_segmentos(stream_segmentos);
+	desplazamiento += size_stream_segmentos;
 
+	//memcpy(&(proceso->registros),buffer + desplazamiento, sizeof(t_registro));
     memcpy(&(proceso->registros.AX), buffer + desplazamiento, sizeof(proceso->registros.AX));
     desplazamiento += sizeof(proceso->registros.AX);
 
@@ -350,4 +419,15 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 	return proceso;
 }
 
+void loggear_segmentos(t_list* lista_segmentos, t_log* logger){
+	log_info(logger,"----------SEGMENTOS--------");
+	log_info(logger,"D_ID	ID	INICIO	FIN	TAMANIO");
+	void _log(void* elem){
+		t_segmento* seg  = (t_segmento*) elem;
+
+		log_info(logger,"%d	%d	%d	%d	%d",seg->descriptor_id,seg->segmento_id,seg->inicio,seg->inicio + seg->tam_segmento - 1,seg->tam_segmento);
+	}
+
+	list_iterate(lista_segmentos,&_log);
+}
 

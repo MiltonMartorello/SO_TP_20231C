@@ -25,6 +25,7 @@ void enviar_handshake(int, int);
 void enviar_entero(int socket, int valor);
 int recibir_operacion(int);
 int recibir_entero(int socket);
+int recibir_entero_2(int socket);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
 char * recibir_string(int socket_cliente);
@@ -34,7 +35,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes);
  * CLIENTE
  * */
 int crear_conexion(char* ip, char* puerto);
-void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger);
+void enviar_mensaje(char* mensaje, int socket_cliente);
 t_buffer* crear_buffer();
 t_paquete* crear_paquete(int);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);

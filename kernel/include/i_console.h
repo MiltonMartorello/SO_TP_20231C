@@ -23,7 +23,9 @@ extern pthread_mutex_t mutex_cola_exit;
 
 extern t_kernel_config* kernel_config;
 
-int pid_contador = 0;
+int pid_contador = 1;
+
+extern t_list* procesos_en_kernel;
 
 t_buffer* recibir_buffer_programa(int, t_log*);
 t_programa* deserializar_programa(t_buffer*, t_log*);

@@ -40,14 +40,13 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 	switch(cod_op) {
 		case PROCESO_DESALOJADO_POR_YIELD:
 			log_info(logger, "P_CORTO -> Proceso desalojado por Yield");
-			pasar_a_cola_ready(pcb, logger);// TODO: no era pasar_segun_algo?
-
+			pasar_a_cola_ready(pcb, logger);
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_FINALIZADO:
 			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
+			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
-			sleep(15); //TODO QUITAR;
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_BLOQUEADO: //BLOQUEADO POR IO
@@ -123,7 +122,11 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_CREATE_SEGMENT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por CREATE_SEGMENT");
 			procesar_create_segment(pcb);
-			ejecutar_proceso(socket_cpu, pcb, logger);
+			if (pcb->estado_actual == EXEC) {
+				ejecutar_proceso(socket_cpu, pcb, logger);
+			} else {
+				log_error(logger, "P_CORTO -> Proceso desalojado por OUT_OF_MEMORY");
+			}
 			break;
 		case PROCESO_DESALOJADO_POR_DELETE_SEGMENT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por DELETE_SEGMENT");
@@ -132,8 +135,8 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_DESALOJADO_POR_SEG_FAULT:
 			log_info(logger, "P_CORTO -> Proceso desalojado por SEG_FAULT");
+			solicitar_eliminar_tabla_de_segmento(pcb);
 			pasar_a_cola_exit(pcb, logger, SEG_FAULT);
-
 			sem_post(&cpu_liberada);
 			return;
 			break;
@@ -155,6 +158,7 @@ void bloqueo_io(void* vArgs){
 	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", pcb->pid, tiempo);
 	sleep(tiempo);
 	pasar_a_ready_segun_algoritmo(algoritmo,pcb,logger);
+	//TODO REFACTORIZAR A pasar_a_cola_ready
 }
 
 void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger) {
@@ -176,7 +180,8 @@ void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger
 	}
 	else{
 		log_info(logger, "No se encontro recurso %s , pasando PROCESO <%d> a EXIT",nombre,pcb->pid);
-		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
+		solicitar_eliminar_tabla_de_segmento(pcb);
+		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND);
 		sem_post(&cpu_liberada);
 	}
 
@@ -195,38 +200,46 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 
 		if(recurso->instancias <= 0){
 			pasar_a_ready_segun_algoritmo(algoritmo, squeue_pop(recurso->cola_bloqueados),logger);
+			//TODO REFACTORIZAR A pasar_a_cola_ready
 		}
 		ejecutar_proceso(socket_cpu, pcb, logger);
 	}
 	else{
 		log_info(logger, "No se encontro recurso, pasando a EXIT");
-		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND); //TODO
+		solicitar_eliminar_tabla_de_segmento(pcb);
+		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND);
 		sem_post(&cpu_liberada);
 	}
 
 	free(nombre);
 }
 
-
 void procesar_f_open(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
 	squeue_push(colas_planificacion->cola_archivos, pcb);
 	sem_post(&request_file_system);
+	sem_wait(&f_open_done);
 }
 
 void procesar_f_close(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Cerrar Archivo: <%s>", pcb->pid, nombre_archivo);
+	ejecutar_f_close(pcb, nombre_archivo);
 }
 
 void procesar_f_seek(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%dprocesar_f_truncate> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
+	ejectuar_f_seek(pcb->pid, nombre_archivo, posicion);
 }
 
 void procesar_f_read(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
@@ -234,6 +247,7 @@ void procesar_f_read(t_pcb* pcb) {
 }
 
 void procesar_f_write(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
@@ -241,6 +255,7 @@ void procesar_f_write(t_pcb* pcb) {
 }
 
 void procesar_f_truncate(t_pcb* pcb) {
+	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
@@ -249,13 +264,100 @@ void procesar_f_truncate(t_pcb* pcb) {
 }
 
 void procesar_create_segment(t_pcb* pcb) {
+	//RECV
 	int id_segmento = recibir_entero(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
+
+	//SEND
+	pthread_mutex_lock(&mutex_socket_memoria);
+	t_paquete* paquete = crear_paquete(MEMORY_CREATE_SEGMENT);
+	paquete->buffer = crear_buffer();
+
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
+	agregar_a_paquete(paquete, &tamanio, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
+
 	log_info(kernel_logger,"PID: <%d> - Crear Segmento - Id: <%d> - Tamaño: <%d>", pcb->pid, id_segmento, tamanio);
+
+	//RECV
+	procesar_respuesta_memoria(pcb);
+	pthread_mutex_unlock(&mutex_socket_memoria);
 }
 
 void procesar_delete_segment(t_pcb* pcb) {
+	//RECV
 	int id_segmento = recibir_entero(socket_cpu);
+
+	//SEND
+	pthread_mutex_lock(&mutex_socket_memoria);
+	t_paquete* paquete = crear_paquete(MEMORY_DELETE_SEGMENT);
+	paquete->buffer = crear_buffer();
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
+
 	log_info(kernel_logger,"PID: <%d> -  Eliminar Segmento - Id Segmento: <%d>", pcb->pid, id_segmento);
+
+	//RECV
+	procesar_respuesta_memoria(pcb);
+	pthread_mutex_unlock(&mutex_socket_memoria);
 }
 
+void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) {
+	pthread_mutex_lock(&mutex_socket_memoria);
+	validar_conexion(socket_memoria);
+	log_info(logger, "P_LARGO -> Solicitando Eliminación de Tabla de Segmentos para PID: %d...", pcb->pid);
+
+	//SEND
+	t_paquete* paquete = crear_paquete(MEMORY_DELETE_TABLE);
+	paquete->buffer = crear_buffer();
+	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	enviar_paquete(paquete, socket_memoria);
+	//RECV
+	procesar_respuesta_memoria(pcb);
+	pthread_mutex_unlock(&mutex_socket_memoria);
+}
+
+void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+
+	if (archivo == NULL) {
+		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
+		return;
+	}
+	// SI SOLO ESTE PID TIENE ABIERTO EL ARCHIVO
+	if (queue_size(archivo->cola_bloqueados->cola) <= 1) {
+		log_info(logger, "FS_THREAD -> Eliminando entrada en archivo %s para PID %d", nombre_archivo, pcb->pid);
+		archivo_abierto_destroy(archivo);
+		list_remove_element(archivos_abiertos, archivo);
+		loggear_tablas_archivos();
+	}
+	// SI OTROS PROCESOS ESTAN BLOQUEADOS POR ESTE ARCHIVO -> SE DESBLOQUEA EL PRIMERO
+	else
+	{
+		int pid_desbloqueado = squeue_pop(archivo->cola_bloqueados);
+		log_info(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_desbloqueado, pcb->pid);
+		// TODO: DESBLOQUEAR OTRO PID
+
+
+	}
+	//sem_post(&f_close_done);
+}
+
+
+void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+	if (archivo == NULL) {
+		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
+		return;
+	}
+
+	pthread_mutex_lock(archivo->mutex);
+	archivo->puntero = posicion_puntero;
+	pthread_mutex_unlock(archivo->mutex);
+
+	log_info(logger, "FS_THREAD -> Actualizar Puntero Archivo: “PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <%d>", pid, archivo->nombre, archivo->puntero);
+
+	//sem_post(&f_seek_done);
+}

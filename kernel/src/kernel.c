@@ -8,12 +8,13 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO KERNEL");
 
 	/* -- INICIAR CONFIGURACIÓN -- */
-	//char* config_path = argv[1];
-	char* config_path = "./kernel_hrrn.config";
-//	if(argc < 1){
-//		printf("Falta path a archivo de configuración.\n");
-//		return EXIT_FAILURE;
-//	}
+	char* config_path = argv[1];
+
+	//char* config_path = "./kernel_hrrn.config";
+	if(argc < 1){
+		printf("Falta path a archivo de configuración.\n");
+		return EXIT_FAILURE;
+	}
 	t_config* config_kernel = iniciar_config(config_path);
 	cargar_config_kernel(config_kernel);
 
@@ -22,6 +23,7 @@ int main(int argc, char **argv) {
 	iniciar_colas_planificacion();
 	iniciar_semaforos(kernel_config->GRADO_MAX_MULTIPROGRAMACION);
 
+	procesos_en_kernel = list_create();
 	/* -- CONEXIÓN CON CPU -- */
 	socket_cpu = conectar_con_cpu();
 
@@ -32,7 +34,7 @@ int main(int argc, char **argv) {
 	socket_filesystem = conectar_con_filesystem();
 
 	t_args_hilo_planificador* args = malloc(sizeof(t_args_hilo_planificador));
-	//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+
 	args->log = logger;
 	args->config = config_kernel;
 
@@ -85,11 +87,11 @@ int main(int argc, char **argv) {
 					pthread_t hilo_consola;
 
 					t_args_hilo_cliente* args = malloc(sizeof(t_args_hilo_cliente));
-					//TODO INSERTAR MUTEX AL HILO PARA MANEJAR CONCURRENCIA SOBRE ARCHIVO DE LOG
+
 					args->socket = socket_consola;
 					args->socket_cpu = socket_cpu;
 					args->log = logger;
-					enviar_mensaje("Handshake Consola-Kernel", socket_consola, logger);
+					enviar_mensaje("Handshake Consola-Kernel", socket_consola);
 
 					//args->mutex = mutex;
 
