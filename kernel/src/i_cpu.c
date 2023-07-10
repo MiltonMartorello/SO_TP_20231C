@@ -115,7 +115,6 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_F_TRUNCATE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_TRUNCATE");
 			procesar_f_truncate(pcb);
-
 			sem_post(&cpu_liberada);
 			break;
 		case PROCESO_DESALOJADO_POR_CREATE_SEGMENT:
@@ -256,9 +255,10 @@ void procesar_f_truncate(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
-	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>",pcb->pid,nombre_archivo,tamanio);
+	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>", pcb->pid, nombre_archivo, tamanio);
 	squeue_push(colas_planificacion->cola_archivos, pcb);
 	sem_post(&request_file_system);
+	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 }
 
 void procesar_create_segment(t_pcb* pcb) {
@@ -381,6 +381,4 @@ void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
 	pthread_mutex_unlock(archivo->mutex);
 
 	log_info(logger, "FS_THREAD -> Actualizar Puntero Archivo: “PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <%d>", pid, archivo->nombre, archivo->puntero);
-
-	//sem_post(&f_seek_done);
 }

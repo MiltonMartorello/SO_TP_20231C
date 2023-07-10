@@ -18,7 +18,6 @@ void procesar_file_system(void) {
 	   // log_info(logger, "FS_THREAD -> Recibido PID con PC en %d", pcb->program_counter);
 	    log_info(logger, "FS_THREAD -> Llamando a FS por la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
 
-
 	    enviar_request_fs(pid, instruccion, nombre_archivo);
 	    int cod_respuesta = recibir_entero(socket_filesystem);
 	    log_info(logger, "FS_THREAD -> Recibida respuesta de FILESYSTEM -> %d", cod_respuesta);
@@ -26,7 +25,6 @@ void procesar_file_system(void) {
 			case F_NOT_EXISTS:
 				log_info(logger, "FS_THREAD -> El Archivo que se intentó abrir no existe. Enviando F_CREATE %s", nombre_archivo);
 				archivo = fs_crear_archivo(nombre_archivo);
-
 				enviar_request_fs(pid, instruccion, nombre_archivo);
 				log_info(logger, "FS_THREAD -> Se creó el archivo %s en el path: %s", archivo->nombre);
 				break;
@@ -38,10 +36,17 @@ void procesar_file_system(void) {
 				log_info(logger, "FS_THREAD -> Abriendo archivo -> %s", archivo->nombre);
 				list_add(archivos_abiertos, archivo);
 				archivo->cant_aperturas++;
-				//squeue_push(archivo->cola_bloqueados, pid);
-				//pasar_a_cola_ready(pcb, logger);
+				//squeue_push(archivo->cola_bloqueados, pid);  no es necesario bloquear al que hace el open. solo a los subsiguientes
+				//pasar_a_cola_ready(pcb, logger); el proceso debe seguir ejecutando.
 				sem_post(&f_open_done);
 				break;
+			case F_TRUNCATE_OK:
+				archivo = obtener_archivo_abierto(nombre_archivo);
+				if (archivo == NULL) {
+					log_error(logger, "FS_THREAD -> ERROR: archivo is null");
+				}
+				log_info(logger, "FS_THREAD -> Archivo Truncado: %s", archivo->nombre);
+				pasar_a_cola_ready(pcb, logger);
 			case F_OP_OK:
 				// TODO: ALGO CON EL ARCHIVO;
 				// TODO: ALGO CON EL PROCESO BLOQUEADO
@@ -56,17 +61,10 @@ void procesar_file_system(void) {
 
 void enviar_request_fs(int pid, t_instruccion* instruccion, char* nombre_archivo) {
 	switch (instruccion->codigo) {
-		case ci_F_CLOSE:
-			ejecutar_f_close(pid, nombre_archivo);
-			break;
-		case ci_F_SEEK:
-			ejectuar_f_seek(pid, nombre_archivo, instruccion);
-			break;
 		case ci_F_OPEN:
 			log_info(logger, "Enviando Request de ci_F_OPEN para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_OPEN); // f_open ARCHIVO
 			enviar_mensaje(nombre_archivo, socket_filesystem);
-
 			break;
 		case ci_F_READ:
 			log_info(logger, "Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);
