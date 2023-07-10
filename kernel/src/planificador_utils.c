@@ -36,6 +36,7 @@ sem_t f_close_done;
 sem_t f_open_done;
 t_list* lista_recursos;
 char** indice_recursos;
+int file_id = 0;
 
 // MEMORIA
 pthread_mutex_t mutex_socket_memoria;
@@ -607,10 +608,25 @@ t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {
     list_iterate(archivos_abiertos, (void*)buscar_archivo);
     if (archivo_encontrado == NULL) {
     	log_info(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
-    	archivo_encontrado = crear_archivo_abierto();
+    	archivo_encontrado = crear_archivo_abierto(nombre_archivo);
     	archivo_encontrado->nombre = nombre_archivo;
     	log_info(logger, "FS_THREAD -> Creado entrada de archivo para %s...", archivo_encontrado->nombre);
     }
     return archivo_encontrado;
 }
+
+t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo) {
+
+	t_archivo_abierto* archivo = malloc(sizeof(t_archivo_abierto));
+	archivo->cant_aperturas = 0;
+	archivo->puntero = 0;
+	archivo->file_id = file_id++;
+	archivo->mutex = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(archivo->mutex , 0);
+	archivo->nombre = string_new();
+	archivo->cola_bloqueados = squeue_create();
+
+	return archivo;
+}
+
 

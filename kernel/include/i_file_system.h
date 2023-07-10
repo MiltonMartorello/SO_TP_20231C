@@ -35,5 +35,4 @@ t_instruccion* obtener_instruccion(t_pcb* pcb);
 void iniciar_tablas_archivos_abiertos(void);
 void destroy_tablas_archivos_abiertos(void);
 
-t_archivo_abierto* crear_archivo_abierto(void);
 #endif /* I_FILE_SYSTEM_H_ */

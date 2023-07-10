@@ -63,6 +63,7 @@ void enviar_request_fs(int pid, t_instruccion* instruccion, char* nombre_archivo
 			break;
 		case ci_F_SEEK:
 			ejectuar_f_seek(pid, nombre_archivo, instruccion);
+			break;
 		case ci_F_OPEN:
 			log_info(logger, "Enviando Request de ci_F_OPEN para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_OPEN); // f_open ARCHIVO
