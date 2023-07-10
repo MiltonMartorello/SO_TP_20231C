@@ -366,7 +366,6 @@ void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
 		}
 		pasar_a_cola_ready(pcb_a_desbloquear, logger);
 	}
-	//sem_post(&f_close_done);
 }
 
 

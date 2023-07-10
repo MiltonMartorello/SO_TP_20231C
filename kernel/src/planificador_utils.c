@@ -193,7 +193,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 			break;
 		case BLOCK:
 			//pcb = squeue_pop(colas_planificacion->cola_block);
-			list_remove_element(colas_planificacion->cola_block->cola->elements,pcb);
+			list_remove_element(colas_planificacion->cola_block->cola->elements, pcb);
 			break;
 		case BLOCK_RECURSO:
 			break;
