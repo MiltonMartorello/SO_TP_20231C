@@ -84,7 +84,6 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_F_OPEN:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_OPEN");
 			procesar_f_open(pcb);
-			ejecutar_proceso(socket_cpu, pcb, logger);
 			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_CLOSE:
@@ -157,7 +156,7 @@ void bloqueo_io(void* vArgs){
 
 	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", pcb->pid, tiempo);
 	sleep(tiempo);
-	pasar_a_ready_segun_algoritmo(algoritmo,pcb,logger);
+	pasar_a_ready_segun_algoritmo(algoritmo, pcb, logger);
 	//TODO REFACTORIZAR A pasar_a_cola_ready
 }
 
@@ -218,9 +217,8 @@ void procesar_f_open(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
-	squeue_push(colas_planificacion->cola_archivos, pcb);
-	sem_post(&request_file_system);
-	sem_wait(&f_open_done);
+	ejecutar_f_open(pcb, nombre_archivo);
+
 }
 
 void procesar_f_close(t_pcb* pcb) {
@@ -319,6 +317,29 @@ void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) {
 	pthread_mutex_unlock(&mutex_socket_memoria);
 }
 
+void ejecutar_f_open(t_pcb* pcb, char* nombre_archivo) {
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+
+	// EL ARCHIVO NO ESTA ABIERTO => SE SOLICITA A FILE SYSTEM QUE SE ABRA
+	// GOTO EXEC
+	if (archivo == NULL) {
+		log_info(logger, "FS_THREAD -> El archivo %s no esta abierto. Solicitando apertura...", nombre_archivo);
+		squeue_push(colas_planificacion->cola_archivos, pcb);
+		sem_post(&request_file_system);
+		sem_wait(&f_open_done);
+		ejecutar_proceso(socket_cpu, pcb, logger);
+	}
+	// SI EL ARCHIVO ESTA ABIERTO, SE BLOQUEA EL PROCESO HASTA QUE EL PROCESO ANTERIOR HAGA UN F_CLOSE
+	// GOTO BLOCKED
+	else {
+		log_info(logger, "FS_THREAD -> El archivo %s esta abierto por otro proceso. Bloqueando pid %d...", nombre_archivo, pcb->pid);
+		pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
+		squeue_push(archivo->cola_bloqueados, pcb->pid);
+	}
+
+
+}
+
 void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
 	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
 
@@ -336,11 +357,14 @@ void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
 	// SI OTROS PROCESOS ESTAN BLOQUEADOS POR ESTE ARCHIVO -> SE DESBLOQUEA EL PRIMERO
 	else
 	{
-		int pid_desbloqueado = squeue_pop(archivo->cola_bloqueados);
-		log_info(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_desbloqueado, pcb->pid);
+		int pid_a_desbloquear = squeue_pop(archivo->cola_bloqueados);
+		log_info(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_a_desbloquear, pcb->pid);
 		// TODO: DESBLOQUEAR OTRO PID
-
-
+		t_pcb* pcb_a_desbloquear = buscar_pcb_en_lista(pid_a_desbloquear, colas_planificacion->cola_block->cola->elements);
+		if (pcb_a_desbloquear == NULL) {
+			log_error(logger, "FS_THREAD -> ERROR: no se encontró el pid %d entre los bloqueados para desbloquear", pid_a_desbloquear);
+		}
+		pasar_a_cola_ready(pcb_a_desbloquear, logger);
 	}
 	//sem_post(&f_close_done);
 }

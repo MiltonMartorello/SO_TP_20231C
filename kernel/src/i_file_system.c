@@ -1,7 +1,5 @@
 #include "../include/i_file_system.h"
 
-int file_id = 0;
-
 void procesar_file_system(void) {
 
 	iniciar_tablas_archivos_abiertos();
@@ -39,8 +37,8 @@ void procesar_file_system(void) {
 				}
 				log_info(logger, "FS_THREAD -> Abriendo archivo -> %s", archivo->nombre);
 				list_add(archivos_abiertos, archivo);
-				squeue_push(archivo->cola_bloqueados, pid);
 				archivo->cant_aperturas++;
+				//squeue_push(archivo->cola_bloqueados, pid);
 				//pasar_a_cola_ready(pcb, logger);
 				sem_post(&f_open_done);
 				break;
@@ -134,27 +132,3 @@ void iniciar_tablas_archivos_abiertos(void) {
 void destroy_tablas_archivos_abiertos(void) {
 	list_destroy(archivos_abiertos);
 }
-
-t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo) {
-
-	t_archivo_abierto* archivo = malloc(sizeof(t_archivo_abierto));
-	archivo->cant_aperturas = 0;
-	archivo->puntero = 0;
-	archivo->file_id = file_id++;
-	archivo->mutex = malloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(archivo->mutex , 0);
-	archivo->nombre = string_new();
-	archivo->cola_bloqueados = squeue_create();
-
-	return archivo;
-}
-
-
-void archivo_abierto_destroy(t_archivo_abierto* archivo) {
-
-    pthread_mutex_destroy(archivo->mutex);
-    free(archivo->mutex);
-    //free(archivo->path);
-    free(archivo);
-}
-
