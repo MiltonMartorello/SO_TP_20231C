@@ -101,14 +101,12 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_F_READ:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_READ");
 			procesar_f_read(pcb);
-
 			sem_post(&cpu_liberada);
 			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_WRITE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_WRITE");
 			procesar_f_write(pcb);
-
 			sem_post(&cpu_liberada);
 			return;
 			break;
@@ -217,7 +215,6 @@ void procesar_f_open(t_pcb* pcb) {
 	char* nombre_archivo = recibir_string(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Abrir Archivo: <%s>", pcb->pid, nombre_archivo);
 	ejecutar_f_open(pcb, nombre_archivo);
-
 }
 
 void procesar_f_close(t_pcb* pcb) {
@@ -241,6 +238,9 @@ void procesar_f_read(t_pcb* pcb) {
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Leer Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
+	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 }
 
 void procesar_f_write(t_pcb* pcb) {
@@ -249,6 +249,9 @@ void procesar_f_write(t_pcb* pcb) {
 	int direccion_logica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
 	log_info(kernel_logger,"PID: <%d> - Escrbir Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
+	squeue_push(colas_planificacion->cola_archivos, pcb);
+	sem_post(&request_file_system);
+	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 }
 
 void procesar_f_truncate(t_pcb* pcb) {
@@ -335,6 +338,7 @@ void ejecutar_f_open(t_pcb* pcb, char* nombre_archivo) {
 		log_info(logger, "FS_THREAD -> El archivo %s esta abierto por otro proceso. Bloqueando pid %d...", nombre_archivo, pcb->pid);
 		pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 		squeue_push(archivo->cola_bloqueados, pcb->pid);
+		sem_post(&cpu_liberada);
 	}
 
 

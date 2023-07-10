@@ -47,12 +47,25 @@ void procesar_file_system(void) {
 				}
 				log_info(logger, "FS_THREAD -> Archivo Truncado: %s", archivo->nombre);
 				pasar_a_cola_ready(pcb, logger);
-			case F_OP_OK:
-				// TODO: ALGO CON EL ARCHIVO;
-				// TODO: ALGO CON EL PROCESO BLOQUEADO
+			case F_READ_OK:
+				archivo = obtener_archivo_abierto(nombre_archivo);
+				if (archivo == NULL) {
+					log_error(logger, "FS_THREAD -> ERROR: archivo is null");
+				}
+				log_info(logger, "FS_THREAD -> F_READ exitoso: %s", archivo->nombre);
+				pasar_a_cola_ready(pcb, logger);
+				break;
+			case F_WRITE_OK:
+				archivo = obtener_archivo_abierto(nombre_archivo);
+				if (archivo == NULL) {
+					log_error(logger, "FS_THREAD -> ERROR: archivo is null");
+				}
+				log_info(logger, "FS_THREAD -> F_WRITE exitoso: %s", archivo->nombre);
+				pasar_a_cola_ready(pcb, logger);
 				break;
 			case F_OP_ERROR:
 				log_error(logger, "FS_THREAD -> Error al enviar la instrucción -> %d: %s", instruccion->codigo, nombre_de_instruccion(instruccion->codigo));
+				break;
 			default:
 				break;
 		}
