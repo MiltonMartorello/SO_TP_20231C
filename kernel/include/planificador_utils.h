@@ -138,8 +138,9 @@ t_list* recibir_tabla_segmentos(int socket);
 void sincronizar_tablas_procesos(void);
 
 void loggear_tablas_archivos(void);
-void archivo_abierto_destroy(t_archivo_abierto* archivo);
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);
 t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo);
+void archivo_abierto_destroy(t_archivo_abierto* archivo);
+t_pcb* buscar_pcb_en_lista(int pid, t_list* lista);
 
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

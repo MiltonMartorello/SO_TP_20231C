@@ -41,7 +41,7 @@ int file_id = 0;
 // MEMORIA
 pthread_mutex_t mutex_socket_memoria;
 t_list* archivos_abiertos;
-t_list* procesos_en_kernel;//para usar con compactacion
+t_list* procesos_en_kernel; //para usar con compactacion
 
 
 t_squeue* squeue_create(void) {
@@ -193,7 +193,7 @@ void pasar_a_cola_ready(t_pcb* pcb, t_log* logger) {
 			break;
 		case BLOCK:
 			//pcb = squeue_pop(colas_planificacion->cola_block);
-			list_remove_element(colas_planificacion->cola_block->cola->elements,pcb);
+			list_remove_element(colas_planificacion->cola_block->cola->elements, pcb);
 			break;
 		case BLOCK_RECURSO:
 			break;
@@ -589,15 +589,6 @@ void loggear_tablas_archivos(void) {
 	log_info(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
 }
 
-void archivo_abierto_destroy(t_archivo_abierto* archivo) {
-
-	//free(archivo->nombre); no eliminar, esto elimina 1 parametro de la instruccion
-	squeue_destroy(archivo->cola_bloqueados);
-    pthread_mutex_destroy(archivo->mutex);
-    free(archivo->mutex);
-    free(archivo);
-}
-
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {
     t_archivo_abierto* archivo_encontrado = NULL;
     void buscar_archivo(t_archivo_abierto* archivo) {
@@ -627,6 +618,24 @@ t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo) {
 	archivo->cola_bloqueados = squeue_create();
 
 	return archivo;
+}
+
+
+void archivo_abierto_destroy(t_archivo_abierto* archivo) {
+
+	//free(archivo->nombre); no eliminar, esto elimina 1 parametro de la instruccion
+	squeue_destroy(archivo->cola_bloqueados);
+    pthread_mutex_destroy(archivo->mutex);
+    free(archivo->mutex);
+    free(archivo);
+}
+
+t_pcb* buscar_pcb_en_lista(int pid, t_list* lista) {
+	bool encontrar_pcb(void* elemento) {
+		t_pcb* pcb = (t_pcb*)elemento;
+		return pcb->pid == pid;
+	}
+	return (t_pcb*)list_find(lista, encontrar_pcb);
 }
 
 
