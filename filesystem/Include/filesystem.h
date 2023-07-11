@@ -23,9 +23,6 @@ typedef struct {
     char* PATH_BLOQUES;
     char* PATH_FCB;
     int RETARDO_ACCESO_BLOQUE;
-    char* PATH_FS;
-    int BLOCK_COUNT;
-    int BLOCK_SIZE;
 } t_fs_config;
 
 typedef struct {
@@ -44,7 +41,7 @@ typedef struct {
     int TAMANIO_ARCHIVO;
     int PUNTERO_DIRECTO;
     int PUNTERO_INDIRECTO;
-} FCB;
+} t_fcb;
 
 
 /* CONSTANTES */
@@ -60,11 +57,13 @@ char* mapBitmap;
 t_bitarray* bitmap;
 t_fs_config* fs_config;
 Superbloque* superbloque;
-FCB* fcb;
+t_fcb* fcb;
 void* bloques;
 t_bitarray* bloques_bitarray;
-FCB lista_archivos[100];
+t_fcb lista_archivos[100];
 int arch_en_mem;
+
+t_list* lista_fcb;
 
 /* PROCEDIMIENTOS */
 void cargar_config_fs(t_config* config);
@@ -80,22 +79,28 @@ void leer_archivo(const char* nombreArchivo);
 void escribir_archivo(const char* nombreArchivo);
 void levantar_fcb(const char* nombreArchivo);
 void cargar_config_fcb(t_config* config_file);
-void actualizar_fcb(FCB* archivo, int nuevo_tamanio, int nuevo_directo, int nuevo_indirecto);
-void persistir_fcb(FCB* archivo);
+void actualizar_fcb(t_fcb* fcb);
+void persistir_fcb(t_fcb* archivo);
 void accederBitmap(uint32_t numeroBloque, int estado);
 void accederBloque(const char* nombreArchivo, uint32_t numeroBloqueArchivo, uint32_t numeroBloqueFS);
 void finalizar_fs(int conexion, t_log* logger, t_config* config);
-void liberarBloque(int index);
-void reservarBloque(int index);
-void iniciar_fcbs();
+void liberar_bloque(int index);
+void reservar_bloque(int index);
+void iniciar_FCBs();
 void escribir_en_bloque(uint32_t numero_bloque, char* contenido);
 /* FUNCIONES */
 int existe_fs();
 int abrir_archivo(const char* nombreArchivo);
 int crear_archivo(const char* nombreArchivo);
 int truncar_archivo(const char* nombreArchivo);
-int obtener_bloque_libre(void);
+uint32_t obtener_bloque_libre(void);
 t_bloque* crear_bloque(int bloque_index_dir);
-int cargar_archivos(FCB* lis_archivos);
+int cargar_archivos(t_fcb* lis_archivos);
 t_bloque* obtener_bloque(int bloque_index);
+t_fcb* leer_fcb(char* nombre, uint32_t tamanio, uint32_t puntero_directo, uint32_t puntero_indirecto);
+t_fcb* crear_fcb(char* nombre);
+void imprimir_bitmap(t_bitarray* bitmap);
+t_fcb* obtener_fcb(char* archivo);
+int existe_archivo(char* nombre);
+void leer_en_bloques(void* aLeer, int posicion, int cantidad);
 #endif /* FILESYSTEM_H_ */
