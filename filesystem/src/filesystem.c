@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
 
 	log_info(logger, "MODULO FILE SYSTEM");
 
-	config = iniciar_config("file_system.config");//argv[1]);
+	config = iniciar_config(argv[1]);
     if (config == NULL){
 		log_error(logger, "NO se inicializó la configuración del FS");
 		exit(2);
