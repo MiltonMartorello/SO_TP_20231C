@@ -93,7 +93,7 @@ void finalizar_fs(int conexion, t_log* logger, t_config* config);
 void liberar_bloque(int index);
 void reservar_bloque(int index);
 void iniciar_FCBs();
-void escribir_en_bloque(uint32_t numero_bloque, char* contenido);
+void escribir_en_bloque(uint32_t numero_bloque, void* contenido);
 /* FUNCIONES */
 int existe_fs();
 int abrir_archivo(const char* nombreArchivo);
@@ -114,5 +114,5 @@ int existe_archivo(char* nombre);
 void leer_en_bloques(void* aLeer, int posicion, int cantidad);
 
 void sincronizar_punteros_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
-char* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
+void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 #endif /* FILESYSTEM_H_ */
