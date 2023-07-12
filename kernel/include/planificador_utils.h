@@ -114,6 +114,8 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 void pasar_a_cola_exec(t_pcb*, t_log*);
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
+void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo);
+void cerrar_archivos_asociados(t_pcb* pcb);
 char* concatenar_pids(t_list*);
 void loggear_cola_ready(t_log* logger, char* algoritmo);
 char* estado_string(int);

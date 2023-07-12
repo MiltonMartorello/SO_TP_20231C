@@ -35,12 +35,12 @@ sem_t f_seek_done;
 sem_t f_close_done;
 sem_t f_open_done;
 t_list* lista_recursos;
+t_list* archivos_abiertos;
 char** indice_recursos;
 int file_id = 0;
 
 // MEMORIA
 pthread_mutex_t mutex_socket_memoria;
-t_list* archivos_abiertos;
 t_list* procesos_en_kernel; //para usar con compactacion
 
 
@@ -325,6 +325,7 @@ void pasar_a_cola_exit(t_pcb* pcb, t_log* logger, return_code motivo) {
 		log_error(logger, "Error, no es un estado válido");
 		EXIT_FAILURE;
 	}
+	//cerrar_archivos_asociados(pcb);
 	squeue_pop(colas_planificacion->cola_exec);
 	char* estado_anterior = estado_string(pcb->estado_actual);
 	pcb->estado_actual = EXIT;
@@ -333,6 +334,26 @@ void pasar_a_cola_exit(t_pcb* pcb, t_log* logger, return_code motivo) {
 	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
 	sem_post(&sem_exit_proceso);
 }
+
+void cerrar_archivos_asociados(t_pcb* pcb) {
+    t_list* archivos_abiertos_pcb = pcb->tabla_archivos_abiertos;
+
+    void cerrar_archivo(void* elemento) {
+        t_archivo_abierto* archivo = (t_archivo_abierto*)elemento;
+        // TABLA GLOBAL DE ARCFHIVOS ABIERTOS.
+        ejecutar_f_close(pcb, archivo->nombre);
+
+    }
+    if (list_size(archivos_abiertos_pcb) > 0) {
+		list_iterate(archivos_abiertos_pcb, cerrar_archivo);
+    }
+    // Liberar la memoria utilizada por la lista de archivos abiertos
+    list_destroy(archivos_abiertos_pcb);
+
+    // Limpiar la referencia a la lista de archivos abiertos en el PCB
+    pcb->tabla_archivos_abiertos = NULL;
+}
+
 
 void ejecutar_proceso(int socket_cpu, t_pcb* pcb, t_log* logger){
 	log_info(logger,"P_CORTO -> Ejecutando PID: %d...",pcb->pid);
@@ -460,14 +481,14 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 	//RECV
 	validar_conexion(socket_memoria);
 	int cod_op = recibir_entero(socket_memoria);
-	log_info(logger, "Recibido memoria op_code: %d", cod_op);
+	log_debug(logger, "Recibido memoria op_code: %d", cod_op);
 	int pid;
 	switch (cod_op) {
 		case MEMORY_SEGMENT_TABLE_CREATED: // 67
 			pid = recibir_entero(socket_memoria);
 			log_info(logger, "P_LARGO -> Asignada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
 			sincronizar_tabla_segmentos(socket_memoria, pcb);
-			loggear_tabla(pcb, "P_LARGO");
+			//loggear_tabla(pcb, "P_LARGO");
 			break;
 		case MEMORY_SEGMENT_TABLE_DELETED: // 69
 			log_info(logger, "P_LARGO -> Eliminada Tabla de Segmentos de Memoria para PID: %d", pcb->pid);
@@ -475,12 +496,12 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 		case MEMORY_SEGMENT_CREATED: // 65
 			pid = recibir_entero(socket_memoria);
 			sincronizar_tabla_segmentos(socket_memoria, pcb);
-			loggear_tabla(pcb, "P_CORTO");
+//			loggear_tabla(pcb, "P_CORTO");
 			break;
 		case MEMORY_SEGMENT_DELETED: // 66
 			pid = recibir_entero(socket_memoria);
 			sincronizar_tabla_segmentos(socket_memoria, pcb);
-			loggear_tabla(pcb, "P_CORTO");
+//			loggear_tabla(pcb, "P_CORTO");
 			break;
 		case MEMORY_ERROR_OUT_OF_MEMORY: // 71
 			pthread_mutex_unlock(&mutex_socket_memoria); // TODO: PATCH
@@ -597,12 +618,6 @@ t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {
         }
     }
     list_iterate(archivos_abiertos, (void*)buscar_archivo);
-    if (archivo_encontrado == NULL) {
-    	log_info(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
-    	archivo_encontrado = crear_archivo_abierto(nombre_archivo);
-    	archivo_encontrado->nombre = nombre_archivo;
-    	log_info(logger, "FS_THREAD -> Creado entrada de archivo para %s...", archivo_encontrado->nombre);
-    }
     return archivo_encontrado;
 }
 
@@ -638,4 +653,30 @@ t_pcb* buscar_pcb_en_lista(int pid, t_list* lista) {
 	return (t_pcb*)list_find(lista, encontrar_pcb);
 }
 
+void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
 
+	if (archivo == NULL) {
+		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
+		return;
+	}
+	// SI SOLO ESTE PID TIENE ABIERTO EL ARCHIVO
+	if (queue_size(archivo->cola_bloqueados->cola) <= 1) {
+		log_info(logger, "FS_THREAD -> Eliminando entrada en archivo %s para PID %d", nombre_archivo, pcb->pid);
+		archivo_abierto_destroy(archivo);
+		list_remove_element(archivos_abiertos, archivo); // TABLA GENERAL DE ARCHIVOS ABIERTOS
+		loggear_tablas_archivos();
+	}
+	// SI OTROS PROCESOS ESTAN BLOQUEADOS POR ESTE ARCHIVO -> SE DESBLOQUEA EL PRIMERO
+	else
+	{
+		int pid_a_desbloquear = squeue_pop(archivo->cola_bloqueados);
+		log_debug(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_a_desbloquear, pcb->pid);
+		// TODO: DESBLOQUEAR OTRO PID
+		t_pcb* pcb_a_desbloquear = buscar_pcb_en_lista(pid_a_desbloquear, colas_planificacion->cola_block->cola->elements);
+		if (pcb_a_desbloquear == NULL) {
+			log_error(logger, "FS_THREAD -> ERROR: no se encontró el pid %d entre los bloqueados para desbloquear", pid_a_desbloquear);
+		}
+		pasar_a_cola_ready(pcb_a_desbloquear, logger);
+	}
+}
