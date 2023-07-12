@@ -37,10 +37,16 @@ typedef struct {
 } t_bloque;
 
 typedef struct {
+    t_list* punteros; // uint32_t
+    t_bloque* bloque_propio;
+} t_bloque_indirecto;
+
+typedef struct {
     char* NOMBRE_ARCHIVO;
     int TAMANIO_ARCHIVO;
-    int PUNTERO_DIRECTO;
-    int PUNTERO_INDIRECTO;
+    uint32_t PUNTERO_DIRECTO;
+    uint32_t PUNTERO_INDIRECTO;
+    t_bloque_indirecto* bloque_indirecto;
 } t_fcb;
 
 
@@ -93,8 +99,11 @@ int existe_fs();
 int abrir_archivo(const char* nombreArchivo);
 int crear_archivo(const char* nombreArchivo);
 int truncar_archivo(const char* nombreArchivo);
+int aumentar_tamanio_archivo(int bloquesNecesarios, t_fcb *fcb);
+int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb);
 uint32_t obtener_bloque_libre(void);
-t_bloque* crear_bloque(int bloque_index_dir);
+t_bloque* crear_bloque(int bloque_index);
+t_bloque_indirecto* crear_bloque_indirecto(int bloque_index);
 int cargar_archivos(t_fcb* lis_archivos);
 t_bloque* obtener_bloque(int bloque_index);
 t_fcb* leer_fcb(char* nombre, uint32_t tamanio, uint32_t puntero_directo, uint32_t puntero_indirecto);
@@ -103,4 +112,7 @@ void imprimir_bitmap(t_bitarray* bitmap);
 t_fcb* obtener_fcb(char* archivo);
 int existe_archivo(char* nombre);
 void leer_en_bloques(void* aLeer, int posicion, int cantidad);
+
+void sincronizar_punteros_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
+char* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 #endif /* FILESYSTEM_H_ */
