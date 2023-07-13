@@ -483,64 +483,68 @@ int aumentar_tamanio_archivo(int bloquesNecesarios, t_fcb *fcb) {
 			fcb->PUNTERO_DIRECTO = obtener_bloque_libre();
 			t_bloque *bloque = crear_bloque(fcb->PUNTERO_DIRECTO);
 			escribir_en_bloque(fcb->PUNTERO_DIRECTO, bloque->datos);
-			fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO
-					+ superbloque->BLOCK_SIZE;
+			fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO + superbloque->BLOCK_SIZE;
 			bloquesAsignados++;
 		} else {
 			if (bloquesAsignados < 2) {
 				//si no tiene asignado un puntero indirecto
-				log_info(logger, "Creado Bloque Directo...");
+				log_info(logger, "Creando Bloque Indirecto...");
 				fcb->PUNTERO_INDIRECTO = obtener_bloque_libre();
 				fcb->bloque_indirecto = crear_bloque_indirecto(fcb->PUNTERO_INDIRECTO);
 				escribir_en_bloque(fcb->PUNTERO_INDIRECTO, fcb->bloque_indirecto->bloque_propio->datos);
 				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
 				bloquesAsignados++;
+				// todo crear bloque de datos.
 			} else {
 				// los bloques dentro del puntero indirecto
 				log_info(logger, "Creado Bloque de datos (IS)...");
 				uint32_t indice_bloque = obtener_bloque_libre();
-				t_bloque *bloque_adicional = crear_bloque(indice_bloque);
+				t_bloque* bloque_adicional = crear_bloque(indice_bloque);
 				escribir_en_bloque(indice_bloque, bloque_adicional->datos);
 				list_add(fcb->bloque_indirecto->punteros, indice_bloque);
-				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO
-						+ superbloque->BLOCK_SIZE;
+				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
 				bloquesAsignados++;
 			}
 		}
 	}
 	// asigna todos los punteros de la lista (fcb->bloque_indirecto->punteros) al fcb->bloque_indirecto->bloque_propio
 	if (bloquesAsignados >= 2) {
-		sincronizar_punteros_bloque_indirecto(fcb->bloque_indirecto);
+		sincronizar_punteros_bloque_indirecto(fcb);
 	}
 	return bloquesAsignados;
 }
 
-void sincronizar_punteros_bloque_indirecto(t_bloque_indirecto* bloque_indirecto) {
-    log_info(logger, "Sincronizando punteros a bloque %d[Dir: %d]", (bloque_indirecto->bloque_propio->inicio/ superbloque->BLOCK_SIZE), bloque_indirecto->bloque_propio->inicio);
+void sincronizar_punteros_bloque_indirecto(t_fcb* fcb) {
+    log_info(logger, "Sincronizando punteros a bloque %d[Dir: %d]", (fcb->bloque_indirecto->bloque_propio->inicio/ superbloque->BLOCK_SIZE), fcb->bloque_indirecto->bloque_propio->inicio);
 
-    void* datos_actualizados = obtener_datos_bloque_indirecto(bloque_indirecto);
+    void* datos_actualizados = obtener_datos_bloque_indirecto(fcb->bloque_indirecto);
     log_info(logger, "Escribiendo en bloque indirecto con datos de tamaño %zu...", sizeof(datos_actualizados));
-   // log_info(logger, "Datos: %s", (char*)datos_actualizados);
-    escribir_en_bloque(bloque_indirecto->bloque_propio->inicio, datos_actualizados);
+    //log_info(logger, "Datos: %s", (char*)datos_actualizados);
+    escribir_en_bloque(fcb->PUNTERO_INDIRECTO, datos_actualizados);
     free(datos_actualizados);
 }
 
 void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto) {
-    size_t cantidad_punteros = list_size(bloque_indirecto->punteros);
-    size_t tamano_datos = cantidad_punteros * sizeof(uint32_t);
+	int cantidad_punteros = list_size(bloque_indirecto->punteros);
+	int tamano_datos = cantidad_punteros * sizeof(uint32_t);
 
-    void* datos = malloc(tamano_datos);
-   // log_info(logger, "Se van a guardar %d punteros [%d bytes]", cantidad_punteros, tamano_datos);
-    int offset = 0;
-    for (int i = 0; i < cantidad_punteros; i++) {
-        uint32_t puntero = (uint32_t)list_get(bloque_indirecto->punteros, i);
-        log_info(logger, "Guardando puntero %d...", puntero);
-        memcpy(datos + offset, &puntero, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-    }
-
-    return datos;
+	void* datos = malloc(superbloque->BLOCK_SIZE);
+	log_info(logger, "Se van a guardar %d punteros [%d bytes]", cantidad_punteros, tamano_datos);
+	int offset = 0;
+	for (int i = 0; i < cantidad_punteros; i++) {
+		uint32_t puntero = (uint32_t)list_get(bloque_indirecto->punteros, i);
+		log_info(logger, "Guardando puntero %d...", puntero);
+		memcpy(datos + offset, &puntero, sizeof(uint32_t));
+		offset += sizeof(uint32_t);
+	}
+	int bytes_restantes = superbloque->BLOCK_SIZE - tamano_datos;
+	log_info(logger, "Bytes restantes a completar: %d", bytes_restantes);
+	if (bytes_restantes > 0) {
+		memset(datos + offset, 9, bytes_restantes);
+	}
+	return datos;
 }
+
 
 int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
 	int bloquesAsignados = fcb->TAMANIO_ARCHIVO / superbloque->BLOCK_SIZE;

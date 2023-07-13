@@ -113,6 +113,6 @@ t_fcb* obtener_fcb(char* archivo);
 int existe_archivo(char* nombre);
 void leer_en_bloques(void* aLeer, int posicion, int cantidad);
 
-void sincronizar_punteros_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
+void sincronizar_punteros_bloque_indirecto(t_fcb* fcb);
 void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 #endif /* FILESYSTEM_H_ */
