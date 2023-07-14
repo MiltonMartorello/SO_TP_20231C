@@ -1,27 +1,25 @@
-CC = gcc
-HFLAGS = -g -I"shared/src" -Wall -w
-CFLAGS = -g -Wall -w
-LIBS = -lcommons
-HEADERS = $(shell find src -name "*.h")
-SOURCES = $(shell find src -name "*.c")
-HOBJECTS = $(patsubst %.h, Debug/%.o, $(HEADERS))
-COBJECTS = $(patsubst %.c, Debug/%.o, $(SOURCES))
+include settings.mk
 
-all: shared
+################################################################################
 
-shared: create-Debug-dir $(COBJECTS)
-	$(CC) $(CFLAGS) -shared -o Debug/libshared.so $(COBJECTS) $(LIBS)
-	$(CC) $(HFLAGS) -shared -o Debug/libshared.so $(HOBJECTS) $(LIBS)
+filename = lib$(1).so
 
-create-Debug-dir:
-	mkdir -p Debug/src
+define compile_bin
+	$(CC) $(CFLAGS) -shared -o "$@" $^ $(LIBDIRS:%=-L%) $(RUNDIRS:%=-Wl,-rpath,%) $(LIBS:%=-l%)
+endef
 
-Debug/%.o: %.c
-	$(CC) $(CFLAGS) -fPIC -c $< -o $@
-	$(CC) $(HFLAGS) -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -c $< -o $@
+define compile_objs
+	$(CC) $(CFLAGS) -fPIC -c -o "$@" $< $(IDIRS:%=-I%)
+endef
 
-clean:
-	rm -rf Debug
-	
-sources:
-	@echo $(SOURCES) $(HEADERS)	
+################################################################################
+
+include ../compilation.mk
+
+################################################################################
+
+include ../testing.mk
+
+################################################################################
+
+include ../installation.mk

@@ -1,39 +1,25 @@
+include settings.mk
+
 ################################################################################
-# Makefile for "kernel" project
+
+filename = $(1).out
+
+define compile_bin
+	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(RUNDIRS:%=-Wl,-rpath,%) $(LIBS:%=-l%)
+endef
+
+define compile_objs
+	$(CC) $(CFLAGS) -c -o "$@" $< $(IDIRS:%=-I%)
+endef
+
 ################################################################################
 
-CC := gcc
-CFLAGS := -I"../shared/src" -Wall -w
-LDFLAGS := -L"../shared/Debug" 
-LIBS := -lcommons -lshared
+include ../compilation.mk
 
-SRC_DIR := src
-INC_DIR := include
-OBJ_DIR := Debug
+################################################################################
 
-SRCS := $(wildcard $(SRC_DIR)/*.c)
-OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
-DEPS := $(OBJS:.o=.d)
+include ../execution.mk
 
-CONFIG := kernel.config
+################################################################################
 
-TARGET := kernel
-
-.PHONY: all clean run valgrind
-
-all: $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET)
-
-run: $(TARGET)
-	./$(TARGET) $(CONFIG)
-
-valgrind: $(TARGET)
-	valgrind ./$(TARGET) $(CONFIG)
+include ../testing.mk
