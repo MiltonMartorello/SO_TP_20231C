@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
 	log_info(logger, "MODULO FILE SYSTEM");
 
 	config = iniciar_config(argv[1]);
+	ip_config = iniciar_config("ip_config.config");
     if (config == NULL){
 		log_error(logger, "NO se inicializó la configuración del FS");
 		exit(2);
@@ -26,9 +27,9 @@ int main(int argc, char **argv) {
 
 void cargar_config_fs(t_config* config) {
     fs_config = malloc(sizeof(t_fs_config));
-    fs_config->IP_MEMORIA = config_get_string_value(config, "IP_MEMORIA");
-    fs_config->PUERTO_MEMORIA = config_get_string_value(config, "PUERTO_MEMORIA");
-    fs_config->PUERTO_ESCUCHA = config_get_string_value(config, "PUERTO_ESCUCHA");
+    fs_config->IP_MEMORIA = config_get_string_value(ip_config, "IP_MEMORIA");
+    fs_config->PUERTO_MEMORIA = config_get_string_value(ip_config, "PUERTO_MEMORIA");
+    fs_config->PUERTO_ESCUCHA = config_get_string_value(ip_config, "PUERTO_ESCUCHA");
     fs_config->PATH_SUPERBLOQUE = config_get_string_value(config, "PATH_SUPERBLOQUE");
     fs_config->PATH_BITMAP = config_get_string_value(config, "PATH_BITMAP");
     fs_config->PATH_BLOQUES = config_get_string_value(config, "PATH_BLOQUES");

@@ -6,6 +6,7 @@ int socket_cpu;
 int socket_kernel;
 int socket_memoria;
 t_cpu_config* cpu_config;
+t_cpu_config* ip_config;
 t_reg registros_cpu;
 t_contexto_proceso* proceso;
 
@@ -52,10 +53,10 @@ void terminar(void)
 void cargar_config(char* path){
 	config = iniciar_config(path);
 	cpu_config = malloc(sizeof(t_cpu_config));
-
-	cpu_config->ip_memoria = config_get_string_value(config,"IP_MEMORIA");
-	cpu_config->puerto_escucha = config_get_string_value(config,"PUERTO_ESCUCHA");
-	cpu_config->puerto_memoria = config_get_string_value(config,"PUERTO_MEMORIA");
+	ip_config = iniciar_config("ip_config.config");
+	cpu_config->ip_memoria = config_get_string_value(ip_config,"IP_MEMORIA");
+	cpu_config->puerto_escucha = config_get_string_value(ip_config,"PUERTO_ESCUCHA");
+	cpu_config->puerto_memoria = config_get_string_value(ip_config,"PUERTO_MEMORIA");
 	cpu_config->retardo_instruccion = config_get_int_value(config,"RETARDO_INSTRUCCION");
 	cpu_config->tam_max_segmento = config_get_int_value(config,"TAM_MAX_SEGMENTO");
 

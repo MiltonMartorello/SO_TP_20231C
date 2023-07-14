@@ -122,15 +122,16 @@ int main(int argc, char **argv) {
 
 void cargar_config_kernel(t_config* config){
 
+	t_config* ip_config = iniciar_config("ip_config.config");
 	kernel_config = malloc(sizeof(t_kernel_config));
 
-	kernel_config->IP_MEMORIA = config_get_string_value(config, "IP_MEMORIA");
-	kernel_config->PUERTO_MEMORIA = config_get_string_value(config, "PUERTO_MEMORIA");
-	kernel_config->IP_FILESYSTEM = config_get_string_value(config, "IP_FILESYSTEM");
-	kernel_config->PUERTO_FILESYSTEM = config_get_string_value(config, "PUERTO_FILESYSTEM");
-	kernel_config->IP_CPU = config_get_string_value(config, "IP_CPU");
-	kernel_config->PUERTO_CPU = config_get_string_value(config, "PUERTO_CPU");
-	kernel_config->PUERTO_ESCUCHA = config_get_string_value(config, "PUERTO_ESCUCHA");
+	kernel_config->IP_MEMORIA = config_get_string_value(ip_config, "IP_MEMORIA");
+	kernel_config->PUERTO_MEMORIA = config_get_string_value(ip_config, "PUERTO_MEMORIA");
+	kernel_config->IP_FILESYSTEM = config_get_string_value(ip_config, "IP_FILESYSTEM");
+	kernel_config->PUERTO_FILESYSTEM = config_get_string_value(ip_config, "PUERTO_FILESYSTEM");
+	kernel_config->IP_CPU = config_get_string_value(ip_config, "IP_CPU");
+	kernel_config->PUERTO_CPU = config_get_string_value(ip_config, "PUERTO_CPU");
+	kernel_config->PUERTO_ESCUCHA = config_get_string_value(ip_config, "PUERTO_ESCUCHA");
 	kernel_config->ALGORITMO_PLANIFICACION = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 	kernel_config->ESTIMACION_INICIAL = config_get_int_value(config, "ESTIMACION_INICIAL");
 	kernel_config->HRRN_ALFA = config_get_int_value(config, "HRRN_ALFA");

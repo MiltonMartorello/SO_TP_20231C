@@ -301,10 +301,11 @@ void liberar_huecos_ocupados(t_list* tabla) {
 
 t_memoria_config* leer_config(char *path) {
     t_config *config = iniciar_config(path);
+    t_config* ip_config = iniciar_config("ip_config.config");
     t_memoria_config* tmp = malloc(sizeof(t_memoria_config));
 
-    tmp->puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
-//    log_info(logger, "Puerto de escucha: %s", tmp->puerto_escucha);
+    tmp->puerto_escucha = config_get_string_value(ip_config, "PUERTO_ESCUCHA");
+    log_info(logger, "Puerto de escucha: %s", tmp->puerto_escucha);
 
     tmp->tam_memoria = config_get_int_value(config,"TAM_MEMORIA");
 //    log_info(logger, "Tamaño de memoria: %d", tmp->tam_memoria);

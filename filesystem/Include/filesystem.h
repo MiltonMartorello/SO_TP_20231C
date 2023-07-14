@@ -56,6 +56,7 @@ typedef struct {
 
 /* VARIABLES */
 t_config* config;
+t_config* ip_config;
 int socket_kernel;
 int socket_memoria;
 int socket_fs;
