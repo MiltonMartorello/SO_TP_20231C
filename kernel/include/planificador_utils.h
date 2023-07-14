@@ -91,6 +91,11 @@ typedef struct {
     pthread_mutex_t* mutex;
 } t_archivo_abierto;
 
+typedef struct{
+	t_pcb* pcb;
+	int direccion_fisica;
+} proceso_fs;
+
 void iniciar_colas_planificacion(void);
 void destroy_colas_planificacion(void);
 void iniciar_semaforos(int);

@@ -40,13 +40,13 @@ void cargar_config_fs(t_config* config) {
 
 void iniciar_fs() {
 	if (existe_fs() == 0) {
-        log_debug(logger, "File System encontrado, recuperando...");
+        log_info(logger, "File System encontrado, recuperando...");
         iniciar_superbloque();
         iniciar_bitmap();
         iniciar_bloques();
         iniciar_FCBs();
     } else {
-    	log_debug(logger, "File System NO encontrado, generando...");
+    	log_info(logger, "File System NO encontrado, generando...");
         crear_directorio(fs_config->PATH_FCB);
         iniciar_fs();
     }
@@ -188,21 +188,21 @@ void crear_directorio(char* ruta) {
 }
 
 void conectar_con_memoria() {
-    log_debug(logger, "Iniciando la conexión con MEMORIA [IP %s] y [PUERTO:%s]", fs_config->IP_MEMORIA, fs_config->PUERTO_MEMORIA);
+	log_info(logger, "Iniciando la conexión con MEMORIA [IP %s] y [PUERTO:%s]", fs_config->IP_MEMORIA, fs_config->PUERTO_MEMORIA);
     socket_memoria = crear_conexion(fs_config->IP_MEMORIA, fs_config->PUERTO_MEMORIA);
     enviar_handshake(socket_memoria, FILESYSTEM);
 }
 
 void correr_servidor(void) {
 	socket_fs = iniciar_servidor(fs_config->PUERTO_ESCUCHA);
-	log_debug(logger, "Iniciada la conexión servidor de FS: %d", socket_fs);
+	log_info(logger, "Iniciada la conexión servidor de FS: %d", socket_fs);
     socket_kernel = esperar_cliente(socket_fs, logger); // quedar a la espera de la conexión por parte del Kernel
     int modulo = recibir_operacion(socket_kernel);
 
     switch (modulo) {
         case KERNEL:
             log_info(logger, "Kernel Conectado.");
-            enviar_mensaje("TODO: Generico", socket_kernel);
+            //enviar_mensaje("TODO: Generico", socket_kernel);
             recibir_request_kernel(socket_kernel);
             break;
         case -1:
@@ -220,9 +220,9 @@ void recibir_request_kernel(int socket_kernel) {
 	while(true) {
 		int resultado;
     	int cod_op = recibir_operacion(socket_kernel); // t_codigo_operacionfs
-    	log_debug(logger, "Recibida operación %d", cod_op);
+    	log_info(logger, "Recibida operación %d", cod_op);
     	char* nombre_archivo = recibir_string(socket_kernel); //SE RECIBE TAMBIÉN EL NOMBRE DEL ARCHIVO YA QUE ES EL PRIMER PARAMETRO SIEMPRE
-    	log_debug(logger, "Recibido Archivo %s", nombre_archivo);
+    	log_info(logger, "Recibido Archivo %s", nombre_archivo);
 
     	switch (cod_op) {
 			case F_OPEN:
@@ -241,14 +241,14 @@ void recibir_request_kernel(int socket_kernel) {
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_READ:
-				//TODO
 				log_info(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
-				leer_archivo(nombre_archivo);
+				resultado = leer_archivo(nombre_archivo);
+				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_WRITE:
-				//TODO
 				log_info(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
-				escribir_archivo(nombre_archivo);
+				resultado = escribir_archivo(nombre_archivo);
+				enviar_entero(socket_kernel, resultado);
 				break;
 			default:
 				break;
@@ -381,6 +381,7 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
 
     uint32_t bloque_size = superbloque->BLOCK_SIZE;
     uint32_t offset = numero_bloque * bloque_size;
+    int cant_a_escribir = strlen((char*) contenido);
 
     FILE* archivo_bloques = fopen(fs_config->PATH_BLOQUES, "rb+");
     if (archivo_bloques == NULL) {
@@ -389,8 +390,8 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
     }
 
     fseek(archivo_bloques, offset, SEEK_SET);
-    size_t bytes_escritos = fwrite(contenido, sizeof(char), bloque_size, archivo_bloques);
-    if (bytes_escritos != bloque_size) {
+    size_t bytes_escritos = fwrite(contenido, sizeof(char), cant_a_escribir, archivo_bloques);
+    if (bytes_escritos != cant_a_escribir) {
         log_error(logger, "Error al escribir en el bloque");
     } else {
     	log_debug(logger, "Contenido escrito en el bloque %u", numero_bloque);
@@ -501,23 +502,86 @@ void finalizar_fs(int socket_servidor, t_log* logger, t_config* config) {
     config_destroy(config);
 }
 
-void leer_archivo(const char* nombreArchivo) {
-    //sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
-   // printf("Leer Archivo: %s - Puntero: %d - Memoria: %d - Tamaño: %d\n", nombreArchivo, puntero, direccionMemoria, tamano);
-	//char* direccion_logica = recibir_string(socket_kernel);
-	//char* cantidad_de_bytes = recibir_string(socket_kernel);
-	//recordar que existe atoi que toma un char* y devuelve un entero
-	// Ej: int tamanio_int = atoi(tamanio);
-	// Agregar código para leer el archivo
+int leer_archivo(const char* nombre_archivo) {
+
+    int direccion_fisica = recibir_entero(socket_kernel);
+    char* cantidad_de_bytes = recibir_string(socket_kernel);
+    int tamanio_bytes = atoi(cantidad_de_bytes);
+    int pid = recibir_entero(socket_kernel);
+    int posicion = recibir_entero(socket_kernel);
+   char* contenido;
+
+	log_info(logger, "Leer Archivo: <%s> - Memoria: %d - Tamaño: %d\n", nombre_archivo, direccion_fisica, tamanio_bytes);
+    t_fcb* fcb = obtener_fcb(nombre_archivo);
+    uint32_t bloque_inicial = fcb->PUNTERO_DIRECTO + posicion / superbloque->BLOCK_SIZE;
+
+    //Contenido lo tengo que recibir de los registros de memoria
+ 	enviar_entero(socket_memoria, MEMORY_WRITE_ADRESS);
+ 	enviar_entero(socket_memoria, pid);
+ 	enviar_entero(socket_memoria, direccion_fisica);
+ 	enviar_entero(socket_memoria, tamanio_bytes);
+
+ 	contenido = recibir_string(socket_memoria);
+
+	// Escribir los datos en el bloque correspondiente
+ 	leer_en_bloques(bloque_inicial, contenido);
+
+	return F_READ_OK;
+
+
+     //sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
+
 }
 
-void escribir_archivo(const char* nombreArchivo) {
- //   printf("Escribir Archivo: %s - Puntero: %d - Memoria: %d - Tamaño: %d\n", nombreArchivo, puntero, direccionMemoria,  tamano);
-	//char* direccion_logica = recibir_string(socket_kernel);
-	//char* cantidad_de_bytes = recibir_string(socket_kernel);
-	//recordar que existe atoi que toma un char* y devuelve un entero
-	// Ej: int tamanio_int = atoi(tamanio);
-	// Agregar código para escribir en el archivo
+int escribir_archivo(const char* nombre_archivo) {
+    int direccion_fisica = recibir_entero(socket_kernel);
+    char* cantidad_de_bytes = recibir_string(socket_kernel);
+    int tamanio_bytes = atoi(cantidad_de_bytes);
+    int pid = recibir_entero(socket_kernel);
+    int posicion = recibir_entero(socket_kernel);
+    char* contenido;
+
+    log_info(logger, "Escribir Archivo: %s - Memoria: %d - Tamaño: %d", nombre_archivo, direccion_fisica, tamanio_bytes);
+
+    // Obtener el FCB correspondiente al archivo
+    t_fcb* fcb = obtener_fcb(nombre_archivo);
+
+    // Calcular el número de bloque a partir de la dirección lógica
+    uint32_t bloque_inicial = fcb->PUNTERO_DIRECTO + posicion / superbloque->BLOCK_SIZE;
+
+    // Calcular el desplazamiento dentro del bloque
+//    int offset = tamanio % superbloque->BLOCK_SIZE;
+
+    // Verificar si el bloque inicial es válido
+    if (bloque_inicial >= superbloque->BLOCK_COUNT) {
+        log_error(logger, "El bloque inicial está fuera de rango");
+        return F_OP_ERROR;
+    }
+
+    // Verificar si hay suficiente espacio en el bloque para escribir
+//    if (offset + tamanio > superbloque->BLOCK_SIZE) {
+//        log_error(logger, "No hay suficiente espacio en el bloque para escribir los datos");
+//        return F_OP_ERROR;
+//    }
+
+    //Contenido lo tengo que recibir de los registros de memoria
+	enviar_entero(socket_memoria, MEMORY_READ_ADRESS);
+	enviar_entero(socket_memoria, pid);
+	enviar_entero(socket_memoria, direccion_fisica);
+	enviar_entero(socket_memoria, tamanio_bytes);
+
+	contenido = recibir_string(socket_memoria);
+
+    // Escribir los datos en el bloque correspondiente
+    escribir_en_bloque(bloque_inicial, contenido);
+
+    // Actualizar el tamaño del archivo en el FCB
+    fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO + tamanio_bytes;
+
+    // Actualizar el FCB en el disco
+    actualizar_fcb(fcb);
+
+    return F_WRITE_OK;
 }
 
 int aumentar_tamanio_archivo(int bloquesNecesarios, t_fcb *fcb) {
