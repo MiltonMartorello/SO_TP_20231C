@@ -8,12 +8,12 @@ int planificador_largo_plazo(void* args_hilo) {
 	log_info(logger, "P_LARGO -> Inicializado Hilo Planificador de Largo Plazo");
 
 	while(1) {
-		log_info(logger, "P_LARGO -> Esperando wait de nuevo proceso");
+		log_debug(logger, "P_LARGO -> Esperando wait de nuevo proceso");
 		sem_wait(&sem_nuevo_proceso);
-		log_info(logger, "P_LARGO -> Esperando wait de multiprogramación");
+		log_debug(logger, "P_LARGO -> Esperando wait de multiprogramación");
 		sem_wait(&sem_grado_multiprogramacion);
 		t_pcb* pcb = (t_pcb*)squeue_peek(colas_planificacion->cola_new);
-		log_info(logger, "P_LARGO -> Se va a aceptar un nuevo proceso %d", pcb->pid);
+		log_debug(logger, "P_LARGO -> Se va a aceptar un nuevo proceso %d", pcb->pid);
 		solicitar_nueva_tabla_de_segmento(pcb);
 		pasar_a_cola_ready(pcb, logger);
 	}
@@ -24,7 +24,7 @@ int planificador_largo_plazo(void* args_hilo) {
 void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
 	pthread_mutex_lock(&mutex_socket_memoria);
 	validar_conexion(socket_memoria);
-	log_info(logger, "P_LARGO -> Solicitando Tabla de Segmentos para PID: %d...", pcb->pid);
+	log_debug(logger, "P_LARGO -> Solicitando Tabla de Segmentos para PID: %d...", pcb->pid);
 
 	//SEND
 //	enviar_entero(socket_memoria, MEMORY_CREATE_TABLE);

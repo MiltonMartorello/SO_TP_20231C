@@ -235,10 +235,15 @@ void procesar_f_seek(t_pcb* pcb) {
 void procesar_f_read(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
-	int direccion_logica = recibir_entero(socket_cpu);
+	int direccion_fisica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
+
+	proceso_fs* proceso = malloc(sizeof(proceso_fs));
+	proceso->pcb = pcb;
+	proceso->direccion_fisica = direccion_fisica;
+
 	log_info(kernel_logger,"PID: <%d> - Leer Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
-	squeue_push(colas_planificacion->cola_archivos, pcb);
+	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 }
@@ -246,20 +251,30 @@ void procesar_f_read(t_pcb* pcb) {
 void procesar_f_write(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
-	int direccion_logica = recibir_entero(socket_cpu);
+	int direccion_fisica = recibir_entero(socket_cpu);
 	int cantidad_de_bytes = recibir_entero(socket_cpu);
+
+	proceso_fs* proceso = malloc(sizeof(proceso_fs));
+	proceso->pcb = pcb;
+	proceso->direccion_fisica = direccion_fisica;
+
 	log_info(kernel_logger,"PID: <%d> - Escrbir Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
-	squeue_push(colas_planificacion->cola_archivos, pcb);
+	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 }
+
 
 void procesar_f_truncate(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int tamanio = recibir_entero(socket_cpu);
+
+	proceso_fs* proceso = malloc(sizeof(proceso_fs));
+	proceso->pcb = pcb;
+
 	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>", pcb->pid, nombre_archivo, tamanio);
-	squeue_push(colas_planificacion->cola_archivos, pcb);
+	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
 }
@@ -323,11 +338,14 @@ void solicitar_eliminar_tabla_de_segmento(t_pcb* pcb) {
 void ejecutar_f_open(t_pcb* pcb, char* nombre_archivo) {
 	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
 
+	proceso_fs* proceso = malloc(sizeof(proceso_fs));
+	proceso->pcb = pcb;
+
+	if (archivo == NULL) {
 	// EL ARCHIVO NO ESTA ABIERTO => SE SOLICITA A FILE SYSTEM QUE SE ABRA
 	// GOTO EXEC
-	if (archivo == NULL) {
-		log_info(logger, "FS_THREAD -> El archivo %s no esta abierto. Solicitando apertura...", nombre_archivo);
-		squeue_push(colas_planificacion->cola_archivos, pcb);
+		log_debug(logger, "FS_THREAD -> El archivo %s no esta abierto. Solicitando apertura...", nombre_archivo);
+		squeue_push(colas_planificacion->cola_archivos, proceso);
 		sem_post(&request_file_system);
 		sem_wait(&f_open_done);
 		ejecutar_proceso(socket_cpu, pcb, logger);
@@ -343,35 +361,6 @@ void ejecutar_f_open(t_pcb* pcb, char* nombre_archivo) {
 
 
 }
-
-void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
-	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
-
-	if (archivo == NULL) {
-		log_error(logger, "FS_THREAD -> ERROR: No existe el archivo %s entre los archivos abiertos", nombre_archivo);
-		return;
-	}
-	// SI SOLO ESTE PID TIENE ABIERTO EL ARCHIVO
-	if (queue_size(archivo->cola_bloqueados->cola) <= 1) {
-		log_info(logger, "FS_THREAD -> Eliminando entrada en archivo %s para PID %d", nombre_archivo, pcb->pid);
-		archivo_abierto_destroy(archivo);
-		list_remove_element(archivos_abiertos, archivo);
-		loggear_tablas_archivos();
-	}
-	// SI OTROS PROCESOS ESTAN BLOQUEADOS POR ESTE ARCHIVO -> SE DESBLOQUEA EL PRIMERO
-	else
-	{
-		int pid_a_desbloquear = squeue_pop(archivo->cola_bloqueados);
-		log_info(logger, "FS_THREAD -> Desbloqueando PID %d por F_CLOSE del PID %d", pid_a_desbloquear, pcb->pid);
-		// TODO: DESBLOQUEAR OTRO PID
-		t_pcb* pcb_a_desbloquear = buscar_pcb_en_lista(pid_a_desbloquear, colas_planificacion->cola_block->cola->elements);
-		if (pcb_a_desbloquear == NULL) {
-			log_error(logger, "FS_THREAD -> ERROR: no se encontró el pid %d entre los bloqueados para desbloquear", pid_a_desbloquear);
-		}
-		pasar_a_cola_ready(pcb_a_desbloquear, logger);
-	}
-}
-
 
 void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
 	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);

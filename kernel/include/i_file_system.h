@@ -25,7 +25,9 @@ extern t_list* archivos_abiertos;
 
 //Interface
 t_archivo_abierto* fs_crear_archivo(char* nombre_archivo);
-void enviar_request_fs(int pid, t_instruccion* instruccion, char* nombre_archivo);
+void procesar_request_fs(t_instruccion *instruccion, proceso_fs *pcb);
+void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombre_archivo);
+void recibir_respuesta_fs(char *nombre_archivo, t_instruccion *instruccion, t_pcb *pcb);
 
 //Internos
 void procesar_file_system(void);
@@ -34,5 +36,6 @@ t_instruccion* obtener_instruccion(t_pcb* pcb);
 // Estructuras
 void iniciar_tablas_archivos_abiertos(void);
 void destroy_tablas_archivos_abiertos(void);
+
 
 #endif /* I_FILE_SYSTEM_H_ */
