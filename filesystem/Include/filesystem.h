@@ -113,7 +113,8 @@ void imprimir_bitmap(t_bitarray* bitmap);
 t_fcb* obtener_fcb(char* archivo);
 int existe_archivo(char* nombre);
 void* leer_en_bloques(int posicion, int cantidad);
-
+t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb);
+void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb);
 void sincronizar_punteros_bloque_indirecto(t_fcb* fcb);
 void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb);

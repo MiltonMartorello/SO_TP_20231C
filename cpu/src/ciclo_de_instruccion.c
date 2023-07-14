@@ -165,7 +165,7 @@ void execute_f_seek(char* nombre_archivo, int posicion) {
 }
 
 void execute_f_read(char* nombre_archivo, int direccion_logica, int cant_bytes) {
-	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso->tabla_segmentos,cant_bytes);
+	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso,cant_bytes);
 	if(direccion_fisica != -1){
 		log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_READ> - <%s> - <%d> - <%d>", proceso->pid, nombre_archivo, direccion_logica, cant_bytes);
 		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_READ, cpu_logger);
@@ -179,7 +179,7 @@ void execute_f_read(char* nombre_archivo, int direccion_logica, int cant_bytes) 
 }
 
 void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes) {
-	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso->tabla_segmentos,cant_bytes);
+	int direccion_fisica = traducir_a_direccion_fisica(direccion_logica, proceso,cant_bytes);
 
 	if(direccion_fisica != -1){
 		log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_WRITE> - <%s> - <%d> - <%d>", proceso->pid, nombre_archivo, direccion_logica, cant_bytes);
@@ -244,10 +244,10 @@ void execute_exit(void) {
 
 //--------------MMU
 int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proceso, int cant_bytes) {
-
+	printf("LLEGUE ACA \n");
 	int desplazamiento_segmento = direccion_logica%cpu_config->tam_max_segmento;
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
-
+	printf("Hice calculos\n");
 	//int desp_total = desplazamiento_segmento + cant_bytes;
 	if (desplazamiento_segmento + cant_bytes > segmento->tam_segmento){ //SEG_FAULT
 		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", proceso->pid, segmento->segmento_id, desplazamiento_segmento, segmento->tam_segmento);

@@ -401,6 +401,29 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
     fclose(archivo_bloques);
 }
 
+void escribir_memo_en_bloque(uint32_t numero_bloque, void* contenido, int desplazamiento) {
+
+    uint32_t bloque_size = superbloque->BLOCK_SIZE;
+    uint32_t offset = (numero_bloque * bloque_size) + desplazamiento;
+    int cant_a_escribir = strlen((char*) contenido);
+
+    FILE* archivo_bloques = fopen(fs_config->PATH_BLOQUES, "rb+");
+    if (archivo_bloques == NULL) {
+        log_error(logger, "No se pudo abrir el archivo de bloques");
+        return;
+    }
+
+    fseek(archivo_bloques, offset, SEEK_SET);
+    size_t bytes_escritos = fwrite(contenido, sizeof(char), cant_a_escribir, archivo_bloques);
+    if (bytes_escritos != cant_a_escribir) {
+        log_error(logger, "Error al escribir en el bloque");
+    } else {
+    	log_debug(logger, "Contenido escrito en el bloque %u", numero_bloque);
+    }
+
+    fclose(archivo_bloques);
+}
+
 uint32_t obtener_bloque_libre(void) {
 
 	for(int i = 0; i < superbloque->BLOCK_COUNT; i++){
@@ -536,8 +559,8 @@ int leer_archivo(const char* nombre_archivo) {
 
 int escribir_archivo(const char* nombre_archivo) {
     int direccion_fisica = recibir_entero(socket_kernel);
-    char* cantidad_de_bytes = recibir_string(socket_kernel);
-    int tamanio_bytes = atoi(cantidad_de_bytes);
+    int tamanio_bytes = atoi(recibir_string(socket_kernel));
+    int cantidad_bloques = ceil(tamanio_bytes / superbloque->BLOCK_SIZE);
     int pid = recibir_entero(socket_kernel);
     int posicion = recibir_entero(socket_kernel);
     char* contenido;
@@ -547,23 +570,8 @@ int escribir_archivo(const char* nombre_archivo) {
     // Obtener el FCB correspondiente al archivo
     t_fcb* fcb = obtener_fcb(nombre_archivo);
 
-    // Calcular el número de bloque a partir de la dirección lógica
-    uint32_t bloque_inicial = fcb->PUNTERO_DIRECTO + posicion / superbloque->BLOCK_SIZE;
-
-    // Calcular el desplazamiento dentro del bloque
-//    int offset = tamanio % superbloque->BLOCK_SIZE;
-
-    // Verificar si el bloque inicial es válido
-    if (bloque_inicial >= superbloque->BLOCK_COUNT) {
-        log_error(logger, "El bloque inicial está fuera de rango");
-        return F_OP_ERROR;
-    }
-
-    // Verificar si hay suficiente espacio en el bloque para escribir
-//    if (offset + tamanio > superbloque->BLOCK_SIZE) {
-//        log_error(logger, "No hay suficiente espacio en el bloque para escribir los datos");
-//        return F_OP_ERROR;
-//    }
+    void* bloques = obtener_n_bloques(cantidad_bloques, fcb);
+    t_list* punteros = obtener_n_punteros(cantidad_bloques, fcb);
 
     //Contenido lo tengo que recibir de los registros de memoria
 	enviar_entero(socket_memoria, MEMORY_READ_ADRESS);
@@ -573,14 +581,38 @@ int escribir_archivo(const char* nombre_archivo) {
 
 	contenido = recibir_string(socket_memoria);
 
+	memcpy(bloques+posicion, contenido, tamanio_bytes);
+	void* bloque64 = malloc(superbloque->BLOCK_SIZE);
+	int offset = 0;
+
+	for(int i=0; i < cantidad_bloques; i++){
+
+		memcpy(bloque64, bloques + offset, superbloque->BLOCK_SIZE);
+		offset = offset + superbloque->BLOCK_SIZE;
+		i++;
+
+		escribir_en_bloque(list_get(punteros, i), bloque64);
+
+	}
+
+    /*
+    // Calcular el número de bloque a partir de la dirección lógica
+    uint32_t puntero_bloque = (fcb->PUNTERO_DIRECTO * superbloque->BLOCK_SIZE);
+
+    // Verificar si el bloque inicial es válido
+    if (puntero_bloque >= superbloque->BLOCK_COUNT) {
+        log_error(logger, "El bloque inicial está fuera de rango");
+        return F_OP_ERROR;
+    }
+
+
+
     // Escribir los datos en el bloque correspondiente
-    escribir_en_bloque(bloque_inicial, contenido);
+	escribir_memo_en_bloque(puntero_bloque, contenido, posicion);
 
     // Actualizar el tamaño del archivo en el FCB
-    fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO + tamanio_bytes;
+*/
 
-    // Actualizar el FCB en el disco
-    actualizar_fcb(fcb);
 
     return F_WRITE_OK;
 }
@@ -699,3 +731,39 @@ int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
 	}
 	return bloquesAsignados;
 }
+
+void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb){
+	t_list* punteros = list_create();
+	int offset = 0;
+
+	list_add(punteros, fcb->PUNTERO_DIRECTO);
+
+	for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
+		list_add(punteros, list_get(fcb->bloque_indirecto->punteros,i));
+		i++;
+	}
+
+	void* bloques = malloc(list_size(punteros)*superbloque->BLOCK_SIZE);
+
+	for(int i =0; i< list_size(punteros); i++){
+		memcpy(bloques + offset, leer_en_bloques(list_get(punteros,i), superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
+		offset = offset + superbloque->BLOCK_SIZE;
+		i++;
+	}
+
+	return bloques;
+}
+
+t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb){
+	t_list* punteros = list_create();
+
+	list_add(punteros, fcb->PUNTERO_DIRECTO);
+
+	for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
+		list_add(punteros, list_get(fcb->bloque_indirecto->punteros,i));
+		i++;
+	}
+
+	return punteros;
+}
+

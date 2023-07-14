@@ -23,7 +23,7 @@ void procesar_request_fs(t_instruccion *instruccion, proceso_fs *p_fs) {
     char* nombre_archivo = obtener_nombre_archivo(p_fs->pcb);
     log_debug(logger, "FS_THREAD -> Request de pid %d para el archivo %s", p_fs->pcb->pid, nombre_archivo);
     // SEND
-	enviar_request_fs(p_fs->pcb->pid, instruccion, nombre_archivo);
+	enviar_request_fs(p_fs, instruccion, nombre_archivo);
 
 	// RECV
 	recibir_respuesta_fs(nombre_archivo, instruccion, p_fs->pcb);
