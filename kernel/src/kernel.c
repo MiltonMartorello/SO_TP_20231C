@@ -169,8 +169,8 @@ int conectar_con_filesystem(){
 
 	int socket_filesystem = crear_conexion(kernel_config->IP_FILESYSTEM, kernel_config->PUERTO_FILESYSTEM);
 	enviar_handshake(socket_filesystem, KERNEL);
-	recibir_operacion(socket_filesystem);
-	recibir_mensaje(socket_filesystem,logger);
+	//recibir_operacion(socket_filesystem);
+	//recibir_mensaje(socket_filesystem,logger);
 	return socket_filesystem;
 
 }
