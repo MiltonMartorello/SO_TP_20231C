@@ -412,11 +412,15 @@ void reservar_bloque(int index) {
 	//imprimir_bitmap(bitmap);
 }
 
-void leer_en_bloques(void* aLeer, int posicion, int cantidad){
+void* leer_en_bloques(int posicion, int cantidad){
+	void* datos = malloc(superbloque->BLOCK_SIZE);
 	FILE* archivo_bloques = fopen(fs_config->PATH_BLOQUES, "r+b");
 	fseek(archivo_bloques, posicion, SEEK_SET);
-	fread(aLeer, cantidad,1, archivo_bloques);
+	fread(datos, 1, cantidad, archivo_bloques);
+	int cod = feof(archivo_bloques);
+	log_info(logger, "Cod fread % d", cod);
 	fclose(archivo_bloques);
+	return datos;
 }
 
 void liberar_bloque(int index) {
@@ -439,13 +443,48 @@ t_bloque* crear_bloque(int bloque_index) {
 	return bloque;
 }
 
-t_bloque_indirecto* leer_bloque_indirecto(int bloque_index) {
-	log_info(logger, "Creado Bloque Indirecto...");
+t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb) {
+	log_info(logger, "Leyendo Bloque Indirecto [Index %d]", fcb->PUNTERO_INDIRECTO);
 	t_bloque_indirecto* bloque = malloc(sizeof(t_bloque_indirecto));
-	bloque->punteros = list_create();
-	bloque->bloque_propio = leer_en_bloques(bloque, bloque_index, superbloque->BLOCK_SIZE);
-
+	bloque->bloque_propio = malloc(sizeof(t_bloque));
+	//bloque->bloque_propio->datos = malloc(superbloque->BLOCK_SIZE);
+	bloque->bloque_propio->inicio = fcb->PUNTERO_INDIRECTO * superbloque->BLOCK_SIZE;
+	bloque->bloque_propio->fin = fcb->PUNTERO_INDIRECTO * superbloque->BLOCK_SIZE + superbloque->BLOCK_SIZE;
+	log_info(logger,"Inicio bloque %d" ,bloque->bloque_propio->inicio);
+	log_info(logger,"Fin bloque %d", bloque->bloque_propio->fin);
+	bloque->bloque_propio->datos = (char*)leer_en_bloques(fcb->PUNTERO_INDIRECTO, superbloque->BLOCK_SIZE);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[0]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[1]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[2]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[3]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[4]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[5]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[6]);
+	log_info(logger,"Dato char %c", bloque->bloque_propio->datos[7]);
+	char * aux = string_new();
+	string_append(&aux, bloque->bloque_propio->datos);
+	strcat(aux,"\0");
+	log_info(logger, "datos: %s", aux);
+	bloque->punteros = leer_punteros_bloque_indirecto(bloque->bloque_propio, fcb->TAMANIO_ARCHIVO);
+	// completar la lista de punteros;
 	return bloque;
+}
+
+t_list* leer_punteros_bloque_indirecto(t_bloque* bloque_indirecto, int tamanio_archivo) {
+	int punteros_a_leer = ((tamanio_archivo - superbloque->BLOCK_SIZE) / superbloque->BLOCK_SIZE);
+	log_info(logger, "Se leerán %d punteros", punteros_a_leer);
+	t_list* lista_punteros = list_create();
+	int offset = 0;
+	uint32_t puntero = 0;
+	//leer_en_bloques(bloque_indirecto->datos, bloque_indirecto->inicio, superbloque->BLOCK_SIZE);
+	for (int i = 0; i < 16; i++) {
+		memcpy(&puntero, bloque_indirecto->datos + offset, sizeof(uint32_t));
+		log_info(logger, "Leído puntero -> %d", puntero);
+		list_add(lista_punteros, puntero);
+		offset += sizeof(uint32_t);
+	}
+	log_info(logger, "Se leyeron %d punteros", list_size(lista_punteros));
+	return lista_punteros;
 }
 
 t_bloque_indirecto* crear_bloque_indirecto(int bloque_index) {
@@ -596,25 +635,34 @@ void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto) {
 
 int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
 	// bloquesALiberar = 3
+
+	/*
+	 * 4 BLOQUES
+	 * 1 BD
+	 * 3 IS
+	 * */
 	int bloquesAsignados = fcb->TAMANIO_ARCHIVO / superbloque->BLOCK_SIZE; // 4
-	for (int i = 0; i < bloquesALiberar; i++) {
+	log_info(logger, "Bloques Asignados: %d", bloquesAsignados);
+	log_info(logger, "Bloques A Liberar: %d", bloquesALiberar);
+	for (int i = 1; i <= bloquesALiberar; i++) {
 		// 3
+		log_info(logger, "Loop %d", i);
 		if (bloquesAsignados == 1) {
 			bitarray_clean_bit(bitmap, fcb->PUNTERO_DIRECTO);
 		} else { //TODO:REVISAR
-			t_bloque_indirecto* bloque_indirecto = leer_bloque_indirecto(fcb->PUNTERO_DIRECTO)
-			//leer_en_bloques(bloque_indirecto->bloque_propio, fcb->PUNTERO_INDIRECTO, superbloque->BLOCK_SIZE);
-			int posicion = fcb->PUNTERO_INDIRECTO * superbloque->BLOCK_SIZE	+ (bloquesAsignados - 2) * sizeof(uint32_t);
-			t_bloque* bloque_a_liberar = list_get(bloque_indirecto->punteros, i);
+			t_bloque_indirecto* bloque_indirecto = leer_bloque_indirecto(fcb);
+			log_info(logger, "List_get(..., %d)", bloquesALiberar - i);
+			log_info(logger, "Cantidad de bloques IS", list_size(bloque_indirecto->punteros));
+			t_bloque* bloque_a_liberar = list_get(bloque_indirecto->punteros, bloquesALiberar - i);
 			bitarray_clean_bit(bitmap, bloque_a_liberar->inicio / superbloque->BLOCK_SIZE);
-			list_remove
-			//uint32_t bloque_a_liberar;
-			//leer_en_bloques((void*) &bloque_a_liberar, posicion, sizeof(uint32_t));
-			//liberar_bloque(bloque_a_liberar);
+			list_remove_element(bloque_indirecto->punteros, bloque_a_liberar);
+			free(bloque_a_liberar);
+
 			if (bloquesAsignados == 2) {
 				bitarray_clean_bit(bitmap, fcb->PUNTERO_INDIRECTO); //libero el bloque del puntero indirecto
+				list_destroy(fcb->bloque_indirecto->punteros); // se elimina lista de bloques indirectos interna del fcb
+				free(bloque_indirecto); // todo: hacer un destroy
 			}
-			list_destroy(fcb->bloque_indirecto->punteros); // se elimina lista de bloques indirectos interna del fcb
 		}
 		bloquesAsignados -= 1;
 	}
