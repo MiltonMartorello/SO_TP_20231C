@@ -338,6 +338,7 @@ int truncar_archivo(const char* nombreArchivo) {
         log_info(logger, "Se aumentó el tamaño del archivo %s a %d bytes.", nombreArchivo, nuevoTamanio);
 
      } else {
+
     	int bloquesALiberar = ceil((fcb->TAMANIO_ARCHIVO - nuevoTamanio) / superbloque->BLOCK_SIZE);
     	int bloquesAsignados = disminuir_tamanio_archivo(bloquesALiberar, fcb);
     	log_info(logger, "Se disminuyó el tamaño del archivo %s a %d bytes.", nombreArchivo, nuevoTamanio);
@@ -438,6 +439,15 @@ t_bloque* crear_bloque(int bloque_index) {
 	return bloque;
 }
 
+t_bloque_indirecto* leer_bloque_indirecto(int bloque_index) {
+	log_info(logger, "Creado Bloque Indirecto...");
+	t_bloque_indirecto* bloque = malloc(sizeof(t_bloque_indirecto));
+	bloque->punteros = list_create();
+	bloque->bloque_propio = leer_en_bloques(bloque, bloque_index, superbloque->BLOCK_SIZE);
+
+	return bloque;
+}
+
 t_bloque_indirecto* crear_bloque_indirecto(int bloque_index) {
 	log_info(logger, "Creado Bloque Indirecto...");
 	t_bloque_indirecto* bloque = malloc(sizeof(t_bloque_indirecto));
@@ -475,48 +485,87 @@ void escribir_archivo(const char* nombreArchivo) {
 }
 
 int aumentar_tamanio_archivo(int bloquesNecesarios, t_fcb *fcb) {
-	int bloquesAsignados = 0;
+	bool syncronizar_indirecto = false;
 	// Buscar bloques disponibles en el bitmap y asignarlos al archivo
-	for (int i = 0; i < bloquesNecesarios; i++) {
-		if (fcb->TAMANIO_ARCHIVO == 0) {
-			//si no tiene asignado un puntero directo
-			fcb->PUNTERO_DIRECTO = obtener_bloque_libre();
-			t_bloque *bloque = crear_bloque(fcb->PUNTERO_DIRECTO);
-			escribir_en_bloque(fcb->PUNTERO_DIRECTO, bloque->datos);
-			fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO + superbloque->BLOCK_SIZE;
-			bloquesAsignados++;
-		} else {
-			if (bloquesAsignados < 2) {
-				//si no tiene asignado un puntero indirecto
-				log_info(logger, "Creando Bloque Indirecto...");
-				fcb->PUNTERO_INDIRECTO = obtener_bloque_libre();
-				fcb->bloque_indirecto = crear_bloque_indirecto(fcb->PUNTERO_INDIRECTO);
-				escribir_en_bloque(fcb->PUNTERO_INDIRECTO, fcb->bloque_indirecto->bloque_propio->datos);
-				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
-				bloquesAsignados++;
-				// todo crear bloque de datos.
-			} else {
-				// los bloques dentro del puntero indirecto
+	int bloques_asignados = fcb->TAMANIO_ARCHIVO / superbloque->BLOCK_SIZE;
+	log_info(logger, "El fcb tiene %d bloques preexistentes", bloques_asignados); // 0
+	log_info(logger, "El fcb necesita %d bloques más", bloquesNecesarios); // 4
+	// 3 + 2
+	int bloques_procesados = bloques_asignados + bloquesNecesarios;
+	while (bloques_asignados < bloques_procesados) {
+		switch (bloques_asignados) {
+			case 0:
+				// Si no tiene asignado un puntero directo
+				log_info(logger, "Creando Bloque Directo...");
+				fcb->PUNTERO_DIRECTO = obtener_bloque_libre();
+				t_bloque *bloque = crear_bloque(fcb->PUNTERO_DIRECTO);
+				escribir_en_bloque(fcb->PUNTERO_DIRECTO, bloque->datos);
+				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO + superbloque->BLOCK_SIZE;
+				bloques_asignados++;
+				break;
+			default:
+				// A partir del bloque 2, se revisa si existe el puntero indirecto. Si no, se crea.
+				if(fcb->PUNTERO_INDIRECTO == NULL) {
+					log_info(logger, "Creando Bloque Indirecto...");
+					fcb->PUNTERO_INDIRECTO = obtener_bloque_libre();
+					fcb->bloque_indirecto = crear_bloque_indirecto(fcb->PUNTERO_INDIRECTO);
+					escribir_en_bloque(fcb->PUNTERO_INDIRECTO, fcb->bloque_indirecto->bloque_propio->datos);
+					//fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
+				}
 				log_info(logger, "Creado Bloque de datos (IS)...");
 				uint32_t indice_bloque = obtener_bloque_libre();
 				t_bloque* bloque_adicional = crear_bloque(indice_bloque);
 				escribir_en_bloque(indice_bloque, bloque_adicional->datos);
 				list_add(fcb->bloque_indirecto->punteros, indice_bloque);
 				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
-				bloquesAsignados++;
-			}
+				bloques_asignados++;
+				syncronizar_indirecto = true;
+				break;
 		}
 	}
-	// asigna todos los punteros de la lista (fcb->bloque_indirecto->punteros) al fcb->bloque_indirecto->bloque_propio
-	if (bloquesAsignados >= 2) {
+	if (syncronizar_indirecto){
 		sincronizar_punteros_bloque_indirecto(fcb);
 	}
-	return bloquesAsignados;
+	return bloques_asignados;
+//	for (int i = 0; i < bloquesNecesarios; i++) {
+//		if (fcb->TAMANIO_ARCHIVO == 0) {
+//			//si no tiene asignado un puntero directo
+//			fcb->PUNTERO_DIRECTO = obtener_bloque_libre();
+//			t_bloque *bloque = crear_bloque(fcb->PUNTERO_DIRECTO);
+//			escribir_en_bloque(fcb->PUNTERO_DIRECTO, bloque->datos);
+//			fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO + superbloque->BLOCK_SIZE;
+//			bloquesAsignados++;
+//		} else {
+//			if (bloquesAsignados < 2) {
+//				//si no tiene asignado un puntero indirecto
+//				log_info(logger, "Creando Bloque Indirecto...");
+//				fcb->PUNTERO_INDIRECTO = obtener_bloque_libre();
+//				fcb->bloque_indirecto = crear_bloque_indirecto(fcb->PUNTERO_INDIRECTO);
+//				escribir_en_bloque(fcb->PUNTERO_INDIRECTO, fcb->bloque_indirecto->bloque_propio->datos);
+//				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
+//				bloquesAsignados++;
+//				// todo crear bloque de datos.
+//			} else {
+//				// los bloques dentro del puntero indirecto
+//				log_info(logger, "Creado Bloque de datos (IS)...");
+//				uint32_t indice_bloque = obtener_bloque_libre();
+//				t_bloque* bloque_adicional = crear_bloque(indice_bloque);
+//				escribir_en_bloque(indice_bloque, bloque_adicional->datos);
+//				list_add(fcb->bloque_indirecto->punteros, indice_bloque);
+//				fcb->TAMANIO_ARCHIVO = fcb->TAMANIO_ARCHIVO	+ superbloque->BLOCK_SIZE;
+//				bloquesAsignados++;
+//			}
+//		}
+//	}
+//	// asigna todos los punteros de la lista (fcb->bloque_indirecto->punteros) al fcb->bloque_indirecto->bloque_propio
+//	if (bloquesAsignados >= 2) {
+//		sincronizar_punteros_bloque_indirecto(fcb);
+//	}
+
 }
 
 void sincronizar_punteros_bloque_indirecto(t_fcb* fcb) {
     log_info(logger, "Sincronizando punteros a bloque %d[Dir: %d]", (fcb->bloque_indirecto->bloque_propio->inicio/ superbloque->BLOCK_SIZE), fcb->bloque_indirecto->bloque_propio->inicio);
-
     void* datos_actualizados = obtener_datos_bloque_indirecto(fcb->bloque_indirecto);
     log_info(logger, "Escribiendo en bloque indirecto con datos de tamaño %zu...", sizeof(datos_actualizados));
     //log_info(logger, "Datos: %s", (char*)datos_actualizados);
@@ -545,17 +594,23 @@ void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto) {
 	return datos;
 }
 
-
 int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
-	int bloquesAsignados = fcb->TAMANIO_ARCHIVO / superbloque->BLOCK_SIZE;
+	// bloquesALiberar = 3
+	int bloquesAsignados = fcb->TAMANIO_ARCHIVO / superbloque->BLOCK_SIZE; // 4
 	for (int i = 0; i < bloquesALiberar; i++) {
+		// 3
 		if (bloquesAsignados == 1) {
 			bitarray_clean_bit(bitmap, fcb->PUNTERO_DIRECTO);
 		} else { //TODO:REVISAR
+			t_bloque_indirecto* bloque_indirecto = leer_bloque_indirecto(fcb->PUNTERO_DIRECTO)
+			//leer_en_bloques(bloque_indirecto->bloque_propio, fcb->PUNTERO_INDIRECTO, superbloque->BLOCK_SIZE);
 			int posicion = fcb->PUNTERO_INDIRECTO * superbloque->BLOCK_SIZE	+ (bloquesAsignados - 2) * sizeof(uint32_t);
-			uint32_t bloque_a_liberar;
-			leer_en_bloques((void*) &bloque_a_liberar, posicion, sizeof(uint32_t));
-			liberar_bloque(bloque_a_liberar);
+			t_bloque* bloque_a_liberar = list_get(bloque_indirecto->punteros, i);
+			bitarray_clean_bit(bitmap, bloque_a_liberar->inicio / superbloque->BLOCK_SIZE);
+			list_remove
+			//uint32_t bloque_a_liberar;
+			//leer_en_bloques((void*) &bloque_a_liberar, posicion, sizeof(uint32_t));
+			//liberar_bloque(bloque_a_liberar);
 			if (bloquesAsignados == 2) {
 				bitarray_clean_bit(bitmap, fcb->PUNTERO_INDIRECTO); //libero el bloque del puntero indirecto
 			}
