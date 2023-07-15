@@ -23,9 +23,10 @@ pthread_t hilo_kernel_fs; // MANEJO DE INTERFAZ CON FILE SYSTEM
 /* -- VARIABLES -- */
 int socket_cpu;
 extern int socket_filesystem;
-int socket_memoria;
+extern int socket_memoria;
 int socket_kernel;
 int socket_consola;
+extern t_list* procesos_en_kernel;
 
 /* -- FUNCIONES -- */
 int conectar_con_cpu();

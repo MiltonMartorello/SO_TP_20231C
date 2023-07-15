@@ -22,9 +22,10 @@ extern t_log* logger;
 int iniciar_servidor(char*);
 int esperar_cliente(int,t_log*);
 void enviar_handshake(int, int);
-void enviar_entero(int, int);
+void enviar_entero(int socket, int valor);
 int recibir_operacion(int);
 int recibir_entero(int socket);
+int recibir_entero_2(int socket);
 void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
 char * recibir_string(int socket_cliente);
@@ -34,7 +35,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes);
  * CLIENTE
  * */
 int crear_conexion(char* ip, char* puerto);
-void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger);
+void enviar_mensaje(char* mensaje, int socket_cliente);
 t_buffer* crear_buffer();
 t_paquete* crear_paquete(int);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
@@ -43,6 +44,9 @@ void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 t_config* iniciar_config(char*);
 
+void agregar_int_a_paquete(t_paquete* paquete, int valor);
+int extraer_int(t_buffer* buffer);
+char* extraer_string(t_buffer* buffer);
 
 /*
  * GENERAL

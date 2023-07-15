@@ -9,6 +9,7 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <shared.h>
 
 typedef enum{
 	NEW,
@@ -59,9 +60,8 @@ typedef struct {
 	t_pcb* pcb;
 	int tiempo_bloqueo;
 	char* algoritmo;
-	char* nombre_recurso;
 	t_log* logger;
-} t_args_hilo_block;
+} t_args_hilo_block_io;
 
 /* -- ESTRUCTURAS -- */
 typedef struct
@@ -81,6 +81,20 @@ typedef struct
     char** INSTANCIAS_RECURSOS;
 
 } t_kernel_config;
+
+typedef struct {
+    int file_id;
+    char* nombre;
+    int puntero;
+    int cant_aperturas;
+    t_squeue* cola_bloqueados;
+    pthread_mutex_t* mutex;
+} t_archivo_abierto;
+
+typedef struct{
+	t_pcb* pcb;
+	int direccion_fisica;
+} proceso_fs;
 
 void iniciar_colas_planificacion(void);
 void destroy_colas_planificacion(void);
@@ -105,6 +119,8 @@ void pasar_a_cola_ready_en_orden(t_pcb* pcb_nuevo, t_log* logger, int(*comparado
 void pasar_a_cola_exec(t_pcb*, t_log*);
 void pasar_a_cola_blocked(t_pcb* pcb, t_log* logger, t_squeue* cola);
 void pasar_a_cola_exit(t_pcb*, t_log*, return_code);
+void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo);
+void cerrar_archivos_asociados(t_pcb* pcb);
 char* concatenar_pids(t_list*);
 void loggear_cola_ready(t_log* logger, char* algoritmo);
 char* estado_string(int);
@@ -120,5 +136,18 @@ void squeue_destroy(t_squeue* queue);
 void* squeue_pop(t_squeue* queue);
 void squeue_push(t_squeue* queue, void* element);
 void* squeue_peek(t_squeue* queue);
+
+void procesar_respuesta_memoria(t_pcb *pcb);
+t_segmento* recibir_segmento(void);
+t_list* recibir_tabla_segmentos(int socket);
+
+
+void sincronizar_tablas_procesos(void);
+
+void loggear_tablas_archivos(void);
+t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);
+t_archivo_abierto* crear_archivo_abierto(char* nombre_archivo);
+void archivo_abierto_destroy(t_archivo_abierto* archivo);
+t_pcb* buscar_pcb_en_lista(int pid, t_list* lista);
 
 #endif /* SRC_PLANIFICADOR_UTILS_H_ */

@@ -37,6 +37,28 @@ typedef enum
 	PROCESO_DESALOJADO_POR_F_READ,
 	PROCESO_DESALOJADO_POR_F_WRITE,
 	PROCESO_DESALOJADO_POR_F_TRUNCATE,
+	PROCESO_DESALOJADO_POR_CREATE_SEGMENT,
+	PROCESO_DESALOJADO_POR_DELETE_SEGMENT,
+	PROCESO_DESALOJADO_POR_SEG_FAULT,
+    
+	//KERNEL - MEMORIA
+	MEMORY_CREATE_TABLE = 60,
+	MEMORY_DELETE_TABLE,
+	MEMORY_CREATE_SEGMENT, //62
+	MEMORY_DELETE_SEGMENT,
+	MEMORY_COMPACT,
+	MEMORY_SEGMENT_CREATED,
+	MEMORY_SEGMENT_DELETED, //66
+	MEMORY_SEGMENT_TABLE_CREATED, //67
+	MEMORY_SEGMENT_TABLE_UPDATED,
+	MEMORY_SEGMENT_TABLE_DELETED, //69
+	MEMORY_SEG_FAULT, // 70
+	MEMORY_ERROR_OUT_OF_MEMORY,
+	MEMORY_ERROR_TABLE_NOT_FOUND,
+	MEMORY_NEEDS_TO_COMPACT,
+	//CPU-FS-MEMORIA
+	MEMORY_READ_ADRESS,
+	MEMORY_WRITE_ADRESS
 } op_code;
 
 typedef enum
@@ -109,7 +131,14 @@ typedef enum {
 	F_TRUNCATE,
 	F_READ,
 	F_WRITE,
-	FILE_NOT_EXISTS
+	F_NOT_EXISTS,
+	F_EXISTS,
+	F_OP_OK,
+	F_OPEN_OK,
+	F_TRUNCATE_OK,
+	F_READ_OK,
+	F_WRITE_OK,
+	F_OP_ERROR
 } t_codigo_operacionfs;
 
 typedef struct {
@@ -144,8 +173,19 @@ typedef struct{
 	int program_counter;
 	t_list* instrucciones;
 	t_registro registros;
-	//t_list* tabla_segmentos;
+	t_list* tabla_segmentos;
 }t_contexto_proceso;
+
+/*
+ * KERNEL - MEMORIA
+ * */
+
+typedef struct {
+	uint32_t descriptor_id;
+	uint32_t segmento_id;
+	uint32_t inicio;
+	uint32_t tam_segmento;
+}t_segmento;
 
 t_instruccion* crear_instruccion(t_codigo_instruccion, bool);
 void buffer_destroy(t_buffer*);
@@ -154,5 +194,11 @@ t_list* deserializar_instrucciones(t_buffer* buffer, t_log* logger);
 void enviar_contexto(int socket,t_contexto_proceso* contexto,int codigo,t_log* logger);
 t_contexto_proceso* recibir_contexto(int socket,t_log* logger);
 int size_of_registros(t_contexto_proceso* contexto);
+
+t_buffer* serializar_tabla_segmentos(t_list* tabla_segmentos);
+t_list* deserializar_tabla_segmentos(void* stream);
+void enviar_tabla_de_segmentos(int socket,t_list* tabla_segmentos);
+t_list* recibir_tabla_de_segmentos(int socket);
+void loggear_segmentos(t_list* lista_segmentos, t_log* logger);
 
 #endif /* SRC_ESTRUCTURAS_H_ */

@@ -1,7 +1,7 @@
 #include "shared.h"
 #include <errno.h>
 
-t_log* logger; //TODO se necesita aca?
+t_log* logger;
 
 /*
  * SERVIDOR
@@ -76,6 +76,11 @@ int recibir_entero(int socket){
 	return recibir_operacion(socket);
 }
 
+int recibir_entero_2(int socket){
+	recibir_entero(socket);
+	return recibir_entero(socket);
+}
+
 void* recibir_buffer(int* size, int socket_cliente)
 {
 	void * buffer;
@@ -108,7 +113,6 @@ char * recibir_string(int socket_cliente)
 	recibir_operacion(socket_cliente); //MENSAJE
 	int size;
 	char* string = (char*) recibir_buffer(&size, socket_cliente);
-
 	return string;
 }
 
@@ -184,7 +188,7 @@ int crear_conexion(char *ip, char* puerto)
 	return socket_cliente;
 }
 
-void enviar_mensaje(char* mensaje, int socket_cliente,  t_log* logger)
+void enviar_mensaje(char* mensaje, int socket_cliente)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 
@@ -226,6 +230,46 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
 
 	paquete->buffer->size += tamanio + sizeof(int);
+}
+
+void agregar_int_a_paquete(t_paquete* paquete, int valor)
+{
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + sizeof(int));
+
+	memcpy(paquete->buffer->stream + paquete->buffer->size, &valor, sizeof(int));
+
+	paquete->buffer->size += sizeof(int);
+}
+//uso el buffer size como offset
+int extraer_int(t_buffer* buffer)
+{
+	int valor;
+	memcpy(&valor, buffer->stream + buffer->size, sizeof(int));
+	buffer->size+=sizeof(int);
+	return valor;
+}
+
+char* extraer_string(t_buffer* buffer)
+{
+	int tamanio = 0;
+	int desplazamiento = 0;
+//	memcpy(&tamanio, buffer->stream + buffer->size, sizeof(int));
+//	buffer->size+=sizeof(int);
+//	printf("tamanio string %d\n", tamanio);
+//	char* valor = malloc(tamanio + 1);
+//	memcpy(valor, buffer->stream + buffer->size, tamanio);
+//	buffer->size+=tamanio;
+
+	memcpy(&tamanio, buffer->stream + desplazamiento, sizeof(int));
+
+	desplazamiento+=sizeof(int);
+//	tamanio+=1;
+	char* valor = malloc(tamanio + 1);
+	memcpy(valor, buffer->stream +desplazamiento, tamanio);
+	desplazamiento+=tamanio;
+	valor[tamanio] = '\0';
+	buffer->size+= desplazamiento;
+	return valor;
 }
 
 void enviar_paquete(t_paquete* paquete, int socket_cliente)
@@ -330,11 +374,13 @@ int validar_conexion(int socket) {
 	    if (optval != 0) {
 	        // hay un error de conexión pendiente
 	        fprintf(stderr, "Error de conexión pendiente: %s\n", strerror(optval));
+	        liberar_conexion(socket);
 	        return -1;
 	    }
 	} else {
 	    // hubo un error al obtener el estado de la conexión
 	    fprintf(stderr, "Error al obtener el estado de la conexión: %s\n", strerror(errno));
+	    liberar_conexion(socket);
 	    return -1;
 	}
 	return 1;
