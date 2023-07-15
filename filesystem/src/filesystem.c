@@ -422,6 +422,7 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
     }
     log_info(logger, "Se escribieron %d bytes en archivo", bytes_escritos);
     fclose(archivo_bloques);
+    sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
 }
 
 void escribir_memo_en_bloque(uint32_t numero_bloque, void* contenido, int desplazamiento) {
@@ -473,10 +474,11 @@ void* leer_en_bloques(int posicion, int cantidad){
 	fseek(archivo_bloques, posicion, SEEK_SET);
 	//fread(datos, 1, cantidad, archivo_bloques);
 	size_t bytes_leidos = fread(datos, sizeof(char), superbloque->BLOCK_SIZE, archivo_bloques);
-	log_info(logger, "Cod fread: %zd", bytes_leidos);
+	//log_info(logger, "Cod fread: %zd", bytes_leidos);
 	int cod = feof(archivo_bloques);
 	//log_info(logger, "Cod fread % d", cod);
 	fclose(archivo_bloques);
+	sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
 	return datos;
 }
 
@@ -613,7 +615,7 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 
 	contenido = recibir_string(socket_memoria);
 
-	printf("supuesto tamanio %d\n", list_size(punteros) * superbloque->BLOCK_SIZE);
+	//printf("supuesto tamanio %d\n", list_size(punteros) * superbloque->BLOCK_SIZE);
 	memcpy(bloques + posicion, contenido, tamanio_bytes);
 	void* bloque64 = malloc(superbloque->BLOCK_SIZE);
 	int offset = 0;
@@ -767,7 +769,7 @@ int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
 }
 
 void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb){
-	printf("cantidad bloques %d\n", cantidad_bloques);
+	//printf("cantidad bloques %d\n", cantidad_bloques);
 
 	int offset = 0;
 	int punteros_size = (list_size(fcb->bloque_indirecto->punteros) > 0) ? list_size(fcb->bloque_indirecto->punteros) : 1;
@@ -777,7 +779,7 @@ void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb){
 	offset = offset + superbloque->BLOCK_SIZE;
 
 	if(punteros_size > 1) {
-		printf("Necesita mas de un bloque \n");
+		//printf("Necesita mas de un bloque \n");
 		for(int i = 0; i < punteros_size; i++) {
             int puntero = list_get(fcb->bloque_indirecto->punteros, i);
             log_info(logger, "leyendo puntero %d", puntero);
