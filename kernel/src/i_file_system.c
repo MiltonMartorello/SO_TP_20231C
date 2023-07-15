@@ -72,6 +72,7 @@ void recibir_respuesta_fs(char *nombre_archivo, t_instruccion *instruccion, t_pc
 		pasar_a_cola_ready(pcb, logger);
 		break;
 	case F_READ_OK:
+		pthread_mutex_unlock(&puede_compactar);
 		archivo = obtener_archivo_abierto(nombre_archivo);
 		if (archivo == NULL) {
 			log_error(logger, "FS_THREAD -> ERROR: archivo is null");
@@ -80,6 +81,7 @@ void recibir_respuesta_fs(char *nombre_archivo, t_instruccion *instruccion, t_pc
 		pasar_a_cola_ready(pcb, logger);
 		break;
 	case F_WRITE_OK:
+		pthread_mutex_unlock(&puede_compactar);
 		archivo = obtener_archivo_abierto(nombre_archivo);
 		if (archivo == NULL) {
 			log_error(logger, "FS_THREAD -> ERROR: archivo is null");
@@ -106,6 +108,7 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 			enviar_mensaje(nombre_archivo, socket_filesystem);
 			break;
 		case ci_F_READ:
+			//pthread_mutex_lock(&puede_compactar);
 			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_READ);
 			enviar_mensaje(nombre_archivo, socket_filesystem);
@@ -114,6 +117,7 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 			enviar_entero(archivo->puntero, socket_filesystem);
 			break;
 		case ci_F_WRITE:
+			//pthread_mutex_lock(&puede_compactar);
 			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_WRITE para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_WRITE);
 			enviar_mensaje(nombre_archivo, socket_filesystem);

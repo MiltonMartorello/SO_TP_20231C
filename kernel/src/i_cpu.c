@@ -100,12 +100,14 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 			break;
 		case PROCESO_DESALOJADO_POR_F_READ:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_READ");
+			pthread_mutex_lock(&puede_compactar);
 			procesar_f_read(pcb);
 			sem_post(&cpu_liberada);
 			return;
 			break;
 		case PROCESO_DESALOJADO_POR_F_WRITE:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_WRITE");
+			pthread_mutex_lock(&puede_compactar);
 			procesar_f_write(pcb);
 			sem_post(&cpu_liberada);
 			return;

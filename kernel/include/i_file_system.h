@@ -22,6 +22,7 @@ extern sem_t f_close_done;
 extern sem_t f_open_done;
 extern t_log* logger;
 extern t_list* archivos_abiertos;
+extern pthread_mutex_t puede_compactar;
 
 //Interface
 t_archivo_abierto* fs_crear_archivo(char* nombre_archivo);

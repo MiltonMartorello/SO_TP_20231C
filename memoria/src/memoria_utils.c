@@ -424,13 +424,19 @@ t_hueco* buscar_hueco_por_best_fit(int tamanio){
 }
 
 t_hueco* buscar_hueco_por_first_fit(int tamanio) {
-	return (t_hueco*) list_get(filtrar_huecos_libres_por_tamanio(tamanio), 0);
+	t_list* huecos_candidatos = filtrar_huecos_libres_por_tamanio(tamanio);
+	if (list_size(huecos_candidatos) <= 0) {
+		return NULL;
+	}
+	return (t_hueco*) list_get(huecos_candidatos, 0);
 }
 
 t_hueco* buscar_hueco_por_worst_fit(int tamanio) {
 
 	t_list* huecos_candidatos = filtrar_huecos_libres_por_tamanio(tamanio);
-
+	if (list_size(huecos_candidatos) <= 0) {
+		return NULL;
+	}
 	void* _fun_aux_2(void* elem1, void* elem2){
 		t_hueco* hueco1 = (t_hueco*) elem1;
 		t_hueco* hueco2 = (t_hueco*) elem2;

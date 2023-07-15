@@ -244,10 +244,8 @@ void execute_exit(void) {
 
 //--------------MMU
 int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proceso, int cant_bytes) {
-	printf("LLEGUE ACA \n");
 	int desplazamiento_segmento = direccion_logica%cpu_config->tam_max_segmento;
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
-	printf("Hice calculos\n");
 	//int desp_total = desplazamiento_segmento + cant_bytes;
 	if (desplazamiento_segmento + cant_bytes > segmento->tam_segmento){ //SEG_FAULT
 		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", proceso->pid, segmento->segmento_id, desplazamiento_segmento, segmento->tam_segmento);
@@ -258,7 +256,7 @@ int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proce
 
 t_segmento* obtener_segmento(int direccion_logica, t_list* tabla_segmentos) {
 	int num_segmento = floor(direccion_logica/cpu_config->tam_max_segmento);
-
+	//log_info(cpu_logger, "Segmento a buscar %d (%d/%d)", num_segmento, direccion_logica, cpu_config->tam_max_segmento);
 	bool encontrar_segmento(void* elem){
 		t_segmento* segmento = (t_segmento*) elem;
 		return segmento->segmento_id == num_segmento;
