@@ -262,7 +262,7 @@ int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proce
 
 t_segmento* obtener_segmento(int direccion_logica, t_list* tabla_segmentos) {
 	int num_segmento = floor(direccion_logica/cpu_config->tam_max_segmento);
-
+	//log_info(cpu_logger, "Segmento a buscar %d (%d/%d)", num_segmento, direccion_logica, cpu_config->tam_max_segmento);
 	bool encontrar_segmento(void* elem){
 		t_segmento* segmento = (t_segmento*) elem;
 		return segmento->segmento_id == num_segmento;

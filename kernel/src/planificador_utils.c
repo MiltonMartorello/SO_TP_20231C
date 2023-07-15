@@ -42,7 +42,7 @@ int file_id = 0;
 // MEMORIA
 pthread_mutex_t mutex_socket_memoria;
 t_list* procesos_en_kernel; //para usar con compactacion
-
+pthread_mutex_t puede_compactar;
 
 t_squeue* squeue_create(void) {
 	t_squeue* squeue = malloc (sizeof(t_squeue));
@@ -122,6 +122,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&f_seek_done, 0, 0);
 	sem_init(&f_close_done, 0, 0);
 	sem_init(&f_open_done, 0, 0);
+	pthread_mutex_init(&puede_compactar, NULL);
 }
 
 void destroy_semaforos(void) {
@@ -144,6 +145,7 @@ void destroy_semaforos(void) {
 	pthread_mutex_destroy(&mutex_cola_ready);
 	pthread_mutex_destroy(&mutex_cola_exec);
 	pthread_mutex_destroy(&mutex_cola_exit);
+	pthread_mutex_destroy(&puede_compactar);
 }
 
 t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
@@ -496,7 +498,7 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 		case MEMORY_SEGMENT_CREATED: // 65
 			pid = recibir_entero(socket_memoria);
 			sincronizar_tabla_segmentos(socket_memoria, pcb);
-//			loggear_tabla(pcb, "P_CORTO");
+			//loggear_tabla(pcb, "P_CORTO");
 			break;
 		case MEMORY_SEGMENT_DELETED: // 66
 			pid = recibir_entero(socket_memoria);
@@ -510,7 +512,7 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			sem_post(&cpu_liberada);
 			break;
 		case MEMORY_NEEDS_TO_COMPACT:
-			//TODO chequear que fs no este usando memoria
+			pthread_mutex_lock(&puede_compactar);
 			enviar_entero(socket_memoria, MEMORY_COMPACT);
 			log_info(logger, "Compactación: <Se solicitó compactación / Esperando Fin de Operaciones de FS>");
 			procesar_respuesta_memoria(pcb);
@@ -519,6 +521,7 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			log_info(logger, "Se finalizó el proceso de compactación");
 			sincronizar_tablas_procesos();
 			reenviar_create_segment(pcb);
+			pthread_mutex_unlock(&puede_compactar);
 			break;
 		default:
 			log_error(logger,"Error: No se pudo crear tabla de segmentos para PID [%d]: Cod %d", pcb->pid, cod_op);

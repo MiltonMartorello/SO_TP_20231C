@@ -10,6 +10,7 @@ extern sem_t cpu_liberada;
 extern sem_t proceso_enviado;
 extern sem_t request_file_system;
 extern pthread_mutex_t mutex_socket_memoria;
+extern pthread_mutex_t puede_compactar;
 extern sem_t f_seek_done;
 extern sem_t f_close_done;
 extern sem_t f_open_done;
