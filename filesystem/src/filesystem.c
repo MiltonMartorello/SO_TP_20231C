@@ -225,7 +225,7 @@ void recibir_request_kernel(int socket_kernel) {
     	int cod_op = recibir_operacion(socket_kernel); // t_codigo_operacionfs
     	log_info(logger, "Recibida operación %d", cod_op);
     	char* nombre_archivo = string_new(); //SE RECIBE TAMBIÉN EL NOMBRE DEL ARCHIVO YA QUE ES EL PRIMER PARAMETRO SIEMPRE
-
+    	int tamanio_stream = 0;
 
     	switch (cod_op) {
 			case F_OPEN:
@@ -253,23 +253,24 @@ void recibir_request_kernel(int socket_kernel) {
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_READ:
-				nombre_archivo = recibir_string(socket_kernel);
-				log_info(logger, "Recibido Archivo %s", nombre_archivo);
 
+				t_buffer* buffer_read = crear_buffer();
+				buffer_read->stream = recibir_buffer(&tamanio_stream, socket_kernel);
+				nombre_archivo = extraer_string(buffer_read);
 				log_info(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
-				resultado = leer_archivo(nombre_archivo);
+				resultado = leer_archivo(nombre_archivo, buffer_read);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_WRITE:
-				int tamanio_stream = 0;
-				t_buffer* buffer = crear_buffer();
-				buffer->stream = recibir_buffer(&tamanio_stream, socket_kernel);
-				log_info(logger, "Recibi %d bytes", tamanio_stream);
 
-				nombre_archivo = extraer_string(buffer);
+				t_buffer* buffer_write = crear_buffer();
+				buffer_write->stream = recibir_buffer(&tamanio_stream, socket_kernel);
+				//log_info(logger, "Recibi %d bytes", tamanio_stream);
+
+				nombre_archivo = extraer_string(buffer_write);
 				log_info(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
 
-				resultado = escribir_archivo(nombre_archivo, buffer);
+				resultado = escribir_archivo(nombre_archivo, buffer_write);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			default:
@@ -422,6 +423,7 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
     }
     log_info(logger, "Se escribieron %d bytes en archivo", bytes_escritos);
     fclose(archivo_bloques);
+    sleep(fs_config->RETARDO_ACCESO_BLOQUE / 1000);
 }
 
 void escribir_memo_en_bloque(uint32_t numero_bloque, void* contenido, int desplazamiento) {
@@ -477,6 +479,7 @@ void* leer_en_bloques(int posicion, int cantidad){
 	int cod = feof(archivo_bloques);
 	//log_info(logger, "Cod fread % d", cod);
 	fclose(archivo_bloques);
+	sleep(fs_config->RETARDO_ACCESO_BLOQUE / 1000);
 	return datos;
 }
 
@@ -549,18 +552,24 @@ void finalizar_fs(int socket_servidor, t_log* logger, t_config* config) {
     config_destroy(config);
 }
 
-int leer_archivo(const char* nombre_archivo) {
+int leer_archivo(const char* nombre_archivo, t_buffer* parametros) {
 
-    int direccion_fisica = recibir_entero(socket_kernel);
-    char* cantidad_de_bytes = recibir_string(socket_kernel);
-    int tamanio_bytes = atoi(cantidad_de_bytes);
-    int pid = recibir_entero(socket_kernel);
-    int posicion = recibir_entero(socket_kernel);
-   char* contenido;
+    int direccion_fisica = extraer_int(parametros);
+    int tamanio_bytes = extraer_int(parametros);
+    int cantidad_bloques = ceil_division(tamanio_bytes, superbloque->BLOCK_SIZE);
+    int pid = extraer_int(parametros);
+    int posicion = extraer_int(parametros);
+    char* contenido;
 
 	log_info(logger, "Leer Archivo: <%s> - Memoria: %d - Tamaño: %d\n", nombre_archivo, direccion_fisica, tamanio_bytes);
     t_fcb* fcb = obtener_fcb(nombre_archivo);
     uint32_t bloque_inicial = fcb->PUNTERO_DIRECTO + posicion / superbloque->BLOCK_SIZE;
+    //int cantidad_bloques = fcb->TAMANIO_ARCHIVO / superbloque->BLOCK_SIZE;
+    fcb->bloque_indirecto = leer_bloque_indirecto(fcb);
+	void* bloques = obtener_n_bloques(cantidad_bloques, fcb);
+	t_list* punteros = obtener_n_punteros(cantidad_bloques, fcb);
+
+	leer_en_bloques(bloque_inicial, contenido);
 
     //Contenido lo tengo que recibir de los registros de memoria
  	enviar_entero(socket_memoria, MEMORY_WRITE_ADRESS);
@@ -568,16 +577,16 @@ int leer_archivo(const char* nombre_archivo) {
  	enviar_entero(socket_memoria, direccion_fisica);
  	enviar_entero(socket_memoria, tamanio_bytes);
 
+ 	void* a_enviar = malloc(tamanio_bytes);
+
+ 	memcpy(a_enviar, bloques, tamanio_bytes);
+ 	enviar_mensaje((char*)a_enviar, socket_memoria);
+ 	free(bloques);
+	free(a_enviar);
+
  	contenido = recibir_string(socket_memoria);
 
-	// Escribir los datos en el bloque correspondiente
- 	leer_en_bloques(bloque_inicial, contenido);
-
 	return F_READ_OK;
-
-
-     //sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
-
 }
 
 int ceil_division(int param1, int param2) {
