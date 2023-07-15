@@ -349,7 +349,8 @@ int truncar_archivo(const char* nombreArchivo) {
 
     if (nuevoTamanio > fcb->TAMANIO_ARCHIVO) {
     	// Aumentar el tamaño del archivo
-		int bloquesNecesarios = ceil_division((nuevoTamanio - fcb->TAMANIO_ARCHIVO), superbloque->BLOCK_SIZE);
+		int bloquesNecesarios = ceil((nuevoTamanio - fcb->TAMANIO_ARCHIVO) / superbloque->BLOCK_SIZE);
+				//ceil_division((nuevoTamanio - fcb->TAMANIO_ARCHIVO), superbloque->BLOCK_SIZE);
 		log_info(logger, "Bloques necesarios: %d", bloquesNecesarios);
 		int bloquesAsignados = aumentar_tamanio_archivo(bloquesNecesarios, fcb);
 		log_info(logger, "Bloques asignados: %d", bloquesAsignados);
@@ -360,8 +361,8 @@ int truncar_archivo(const char* nombreArchivo) {
         log_info(logger, "Se aumentó el tamaño del archivo %s a %d bytes.", nombreArchivo, nuevoTamanio);
 
      } else {
-
-    	int bloquesALiberar = ceil_division((fcb->TAMANIO_ARCHIVO - nuevoTamanio), superbloque->BLOCK_SIZE);
+    	int bloquesALiberar = ceil((fcb->TAMANIO_ARCHIVO - nuevoTamanio) / superbloque->BLOCK_SIZE);
+    	//int bloquesALiberar = ceil_division((fcb->TAMANIO_ARCHIVO - nuevoTamanio), superbloque->BLOCK_SIZE);
     	int bloquesAsignados = disminuir_tamanio_archivo(bloquesALiberar, fcb);
     	log_info(logger, "Se disminuyó el tamaño del archivo %s a %d bytes.", nombreArchivo, nuevoTamanio);
     }
@@ -392,9 +393,9 @@ void actualizar_fcb(t_fcb* fcb) {
 	FILE* f = fopen(path, "wr");
 	fprintf(f, "NOMBRE_ARCHIVO=%s\nTAMANIO_ARCHIVO=%d\nPUNTERO_DIRECTO=%d\n", fcb->NOMBRE_ARCHIVO, fcb->TAMANIO_ARCHIVO, fcb->PUNTERO_DIRECTO);
     if (fcb->PUNTERO_INDIRECTO != NULL) {
-        fprintf(f, "PUNTERO_INDIRECTO=%d\n", fcb->PUNTERO_INDIRECTO);
+        fprintf(f, "PUNTERO_INDIRECTO=%d", fcb->PUNTERO_INDIRECTO);
     } else {
-    	fprintf(f, "PUNTERO_INDIRECTO=\n");
+    	fprintf(f, "PUNTERO_INDIRECTO=");
     }
 	fclose(f);
 	free(path);
@@ -404,8 +405,8 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
 
     uint32_t bloque_size = superbloque->BLOCK_SIZE;
     uint32_t offset = numero_bloque * bloque_size;
-    int cant_a_escribir = strlen((char*) contenido);
-
+    //int cant_a_escribir = strlen((char*) contenido);
+    log_info(logger, "Se va a escribir %d bytes en archivo ", bloque_size);
     FILE* archivo_bloques = fopen(fs_config->PATH_BLOQUES, "rb+");
     if (archivo_bloques == NULL) {
         log_error(logger, "No se pudo abrir el archivo de bloques");
@@ -413,13 +414,13 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
     }
 
     fseek(archivo_bloques, offset, SEEK_SET);
-    size_t bytes_escritos = fwrite(contenido, sizeof(char), cant_a_escribir, archivo_bloques);
-    if (bytes_escritos != cant_a_escribir) {
+    int bytes_escritos = fwrite(contenido, sizeof(char), bloque_size, archivo_bloques);
+    if (bytes_escritos != bloque_size) {
         log_error(logger, "Error al escribir en el bloque");
     } else {
     	log_debug(logger, "Contenido escrito en el bloque %u", numero_bloque);
     }
-
+    log_info(logger, "Se escribieron %d bytes en archivo", bytes_escritos);
     fclose(archivo_bloques);
 }
 
@@ -600,7 +601,7 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 
     // Obtener el FCB correspondiente al archivo
     t_fcb* fcb = obtener_fcb(nombre_archivo);
-
+    fcb->bloque_indirecto = leer_bloque_indirecto(fcb);
     void* bloques = obtener_n_bloques(cantidad_bloques, fcb);
     t_list* punteros = obtener_n_punteros(cantidad_bloques, fcb);
 
@@ -613,22 +614,20 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 	contenido = recibir_string(socket_memoria);
 
 	printf("supuesto tamanio %d\n", list_size(punteros) * superbloque->BLOCK_SIZE);
-	printf("tamanio choclo %d\n",sizeof(bloques));
-
 	memcpy(bloques + posicion, contenido, tamanio_bytes);
 	void* bloque64 = malloc(superbloque->BLOCK_SIZE);
 	int offset = 0;
-
-	for(int i=0; i < cantidad_bloques; i++){
+	int cantidad_total = (list_size(fcb->bloque_indirecto->punteros) > 0) ? list_size(fcb->bloque_indirecto->punteros) + 1 : 1;
+	log_info(logger, "resincronizando %d bloques", cantidad_bloques);
+	for(int i= 0; i < cantidad_total; i++) {
 
 		memcpy(bloque64, bloques + offset, superbloque->BLOCK_SIZE);
 		offset = offset + superbloque->BLOCK_SIZE;
-		i++;
 
 		escribir_en_bloque(list_get(punteros, i), bloque64);
 
 	}
-
+	free(bloque64);
     /*
     // Calcular el número de bloque a partir de la dirección lógica
     uint32_t puntero_bloque = (fcb->PUNTERO_DIRECTO * superbloque->BLOCK_SIZE);
@@ -658,6 +657,7 @@ int aumentar_tamanio_archivo(int bloquesNecesarios, t_fcb *fcb) {
 	log_info(logger, "El fcb tiene %d bloques preexistentes", bloques_asignados); // 0
 	log_info(logger, "El fcb necesita %d bloques más", bloquesNecesarios); // 4
 	if (fcb->PUNTERO_INDIRECTO != NULL) {
+		log_info(logger, "Tiene puntero indirecto, sincronizando.");
 		fcb->bloque_indirecto = leer_bloque_indirecto(fcb);
 	}
 	// 3 + 2
@@ -769,21 +769,22 @@ int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
 void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb){
 	printf("cantidad bloques %d\n", cantidad_bloques);
 
-	t_list* punteros = list_create();
 	int offset = 0;
-	void* bloques = malloc(superbloque->BLOCK_SIZE);
+	int punteros_size = (list_size(fcb->bloque_indirecto->punteros) > 0) ? list_size(fcb->bloque_indirecto->punteros) : 1;
+	void* bloques = malloc(superbloque->BLOCK_SIZE * punteros_size + superbloque->BLOCK_SIZE);
 
-	memcpy(bloques,leer_en_bloques(fcb->PUNTERO_DIRECTO, superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
+	memcpy(bloques, leer_en_bloques(fcb->PUNTERO_DIRECTO, superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
 	offset = offset + superbloque->BLOCK_SIZE;
 
-	if(cantidad_bloques > 1){
+	if(punteros_size > 1) {
 		printf("Necesita mas de un bloque \n");
-		for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
-			memcpy(bloques + offset, leer_en_bloques(list_get(fcb->bloque_indirecto->punteros,i), superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
-			offset = offset + superbloque->BLOCK_SIZE;
-			i++;
+		for(int i = 0; i < punteros_size; i++) {
+            int puntero = list_get(fcb->bloque_indirecto->punteros, i);
+            log_info(logger, "leyendo puntero %d", puntero);
+            void* bloque = leer_en_bloques(puntero * superbloque->BLOCK_SIZE, superbloque->BLOCK_SIZE);
+            memcpy(bloques + offset, bloque, superbloque->BLOCK_SIZE);
+            offset += superbloque->BLOCK_SIZE;
 		}
-
 	}
 
 	return bloques;
@@ -797,7 +798,6 @@ t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb){
 	if(cantidad_bloques > 1){
 		for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
 			list_add(punteros, list_get(fcb->bloque_indirecto->punteros,i));
-			i++;
 		}
 	}
 	return punteros;
