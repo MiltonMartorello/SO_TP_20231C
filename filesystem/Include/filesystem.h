@@ -12,6 +12,7 @@
 #include <commons/config.h>
 #include <commons/txt.h>
 #include "estructuras.h"
+#include <math.h>
 
 /* ESTRUCTURAS */
 typedef struct {
@@ -83,7 +84,7 @@ void iniciar_bloques();
 void correr_servidor();
 void recibir_request_kernel(int socket_kernel);
 int leer_archivo(const char* nombre_archivo);
-int escribir_archivo(const char* nombre_archivo);
+int escribir_archivo(char* nombre_archivo, t_buffer* parametros);
 void levantar_fcb(const char* nombre_archivo);
 void cargar_config_fcb(t_config* config_file);
 void actualizar_fcb(t_fcb* fcb);

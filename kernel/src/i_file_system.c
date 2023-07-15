@@ -115,12 +115,18 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 			break;
 		case ci_F_WRITE:
 			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_WRITE para el archivo %s ", nombre_archivo);
-			enviar_entero(socket_filesystem, F_WRITE);
-			enviar_mensaje(nombre_archivo, socket_filesystem);
-			enviar_entero(p_fs->direccion_fisica, socket_filesystem);
-			enviar_mensaje(list_get(instruccion->parametros,2), socket_filesystem);
-			enviar_entero(socket_filesystem, p_fs->pcb->pid);
-			enviar_entero(archivo->puntero, socket_filesystem);
+
+			t_paquete* paquete = crear_paquete(F_WRITE);
+			paquete->buffer = crear_buffer();
+
+			agregar_a_paquete(paquete, nombre_archivo, string_length(nombre_archivo));
+			agregar_int_a_paquete(paquete,p_fs->direccion_fisica);
+			agregar_int_a_paquete(paquete,atoi((char*) list_get(instruccion->parametros,2)));
+			agregar_int_a_paquete(paquete, p_fs->pcb->pid);
+			agregar_int_a_paquete(paquete, archivo->puntero);
+
+			enviar_paquete(paquete, socket_filesystem);
+
 			break;
 		case ci_F_TRUNCATE:
 			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_TRUNCATE para el archivo %s ", nombre_archivo);
