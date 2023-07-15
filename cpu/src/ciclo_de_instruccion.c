@@ -121,9 +121,13 @@ void execute_mov_in(int direccion_fisica, char* registro,int direccion_logica) {
 
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
 	char* valor = leer_memoria(direccion_fisica, tamanio_registro(registro));
-	log_info(cpu_logger, "PID: <%d> - Acción: <LEER> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%s>", proceso->pid, segmento->segmento_id, direccion_fisica, valor);
+	char* valor_para_log = malloc(tamanio_registro(registro) + 1);
+	strncpy(valor_para_log,valor, tamanio_registro(registro));
+	valor_para_log[tamanio_registro(registro)] = '\0';
+	log_info(cpu_logger, "PID: <%d> - Acción: <LEER> - Segmento: <%d> - Dirección Física: <%d> - Valor: <%s>", proceso->pid, segmento->segmento_id, direccion_fisica, valor_para_log);
 	set_valor_registro(registro, valor);
 	free(valor);
+	free(valor_para_log);
 }
 
 void execute_mov_out(int direccion_fisica, int direccion_logica, char* registro) {
@@ -244,8 +248,10 @@ void execute_exit(void) {
 
 //--------------MMU
 int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proceso, int cant_bytes) {
+
 	int desplazamiento_segmento = direccion_logica%cpu_config->tam_max_segmento;
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
+
 	//int desp_total = desplazamiento_segmento + cant_bytes;
 	if (desplazamiento_segmento + cant_bytes > segmento->tam_segmento){ //SEG_FAULT
 		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", proceso->pid, segmento->segmento_id, desplazamiento_segmento, segmento->tam_segmento);

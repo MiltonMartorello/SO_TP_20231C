@@ -113,7 +113,6 @@ char * recibir_string(int socket_cliente)
 	recibir_operacion(socket_cliente); //MENSAJE
 	int size;
 	char* string = (char*) recibir_buffer(&size, socket_cliente);
-
 	return string;
 }
 
@@ -231,6 +230,46 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
 	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
 
 	paquete->buffer->size += tamanio + sizeof(int);
+}
+
+void agregar_int_a_paquete(t_paquete* paquete, int valor)
+{
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + sizeof(int));
+
+	memcpy(paquete->buffer->stream + paquete->buffer->size, &valor, sizeof(int));
+
+	paquete->buffer->size += sizeof(int);
+}
+//uso el buffer size como offset
+int extraer_int(t_buffer* buffer)
+{
+	int valor;
+	memcpy(&valor, buffer->stream + buffer->size, sizeof(int));
+	buffer->size+=sizeof(int);
+	return valor;
+}
+
+char* extraer_string(t_buffer* buffer)
+{
+	int tamanio = 0;
+	int desplazamiento = 0;
+//	memcpy(&tamanio, buffer->stream + buffer->size, sizeof(int));
+//	buffer->size+=sizeof(int);
+//	printf("tamanio string %d\n", tamanio);
+//	char* valor = malloc(tamanio + 1);
+//	memcpy(valor, buffer->stream + buffer->size, tamanio);
+//	buffer->size+=tamanio;
+
+	memcpy(&tamanio, buffer->stream + desplazamiento, sizeof(int));
+
+	desplazamiento+=sizeof(int);
+//	tamanio+=1;
+	char* valor = malloc(tamanio + 1);
+	memcpy(valor, buffer->stream +desplazamiento, tamanio);
+	desplazamiento+=tamanio;
+	valor[tamanio] = '\0';
+	buffer->size+= desplazamiento;
+	return valor;
 }
 
 void enviar_paquete(t_paquete* paquete, int socket_cliente)

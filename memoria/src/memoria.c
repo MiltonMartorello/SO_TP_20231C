@@ -176,8 +176,11 @@ void procesar_cpu_fs(int socket, char* modulo) {
 			direccion_fisica = recibir_entero(socket);
 			int cant_bytes = recibir_entero(socket);
 			char* valor_leido = leer_direccion(direccion_fisica, cant_bytes);
+			char* valor_para_log = malloc(cant_bytes + 1);
+			strncpy(valor_para_log,valor_leido, cant_bytes);
+			valor_para_log[cant_bytes] = '\0';
 			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
-			//log_info(logger, "Valor leido: _%s_", valor_leido);
+			log_info(logger, "Valor leido: _%s_", valor_para_log);
 			enviar_mensaje(valor_leido, socket);
 			free(valor_leido);
 			break;

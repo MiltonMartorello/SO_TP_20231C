@@ -466,10 +466,12 @@ void loggear_huecos(t_list* huecos) {
 
 char* leer_direccion(int direccion, int tamanio) {
 
-	char* valor = string_new();
-	string_n_append(&valor, espacio_usuario->espacio_usuario + direccion, tamanio);
+	//char* valor = string_new();
+	//string_n_append(&valor, espacio_usuario->espacio_usuario + direccion, tamanio);
+	char* valor = malloc(tamanio);
+	memcpy(valor, espacio_usuario->espacio_usuario + direccion, tamanio);
 	usleep(memoria_config->retardo_memoria * 1000);
-
+	printf("lei %d bytes\n", strlen(valor));
 	return valor;
 }
 

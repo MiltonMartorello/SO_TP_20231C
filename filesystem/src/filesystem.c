@@ -192,6 +192,8 @@ void conectar_con_memoria() {
 	log_info(logger, "Iniciando la conexión con MEMORIA [IP %s] y [PUERTO:%s]", fs_config->IP_MEMORIA, fs_config->PUERTO_MEMORIA);
     socket_memoria = crear_conexion(fs_config->IP_MEMORIA, fs_config->PUERTO_MEMORIA);
     enviar_handshake(socket_memoria, FILESYSTEM);
+    recibir_entero(socket_memoria);
+    recibir_mensaje(socket_memoria, logger);
 }
 
 void correr_servidor(void) {
@@ -222,33 +224,52 @@ void recibir_request_kernel(int socket_kernel) {
 		int resultado;
     	int cod_op = recibir_operacion(socket_kernel); // t_codigo_operacionfs
     	log_info(logger, "Recibida operación %d", cod_op);
-    	char* nombre_archivo = recibir_string(socket_kernel); //SE RECIBE TAMBIÉN EL NOMBRE DEL ARCHIVO YA QUE ES EL PRIMER PARAMETRO SIEMPRE
-    	log_info(logger, "Recibido Archivo %s", nombre_archivo);
+    	char* nombre_archivo = string_new(); //SE RECIBE TAMBIÉN EL NOMBRE DEL ARCHIVO YA QUE ES EL PRIMER PARAMETRO SIEMPRE
+
 
     	switch (cod_op) {
 			case F_OPEN:
+				nombre_archivo = recibir_string(socket_kernel);
+				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+
 				log_info(logger, "Se recibió un F_OPEN para el archivo %s", nombre_archivo);
 				resultado = abrir_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_CREATE:
+				nombre_archivo = recibir_string(socket_kernel);
+				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+
 				log_info(logger, "Se recibió un F_CREATE para el archivo %s", nombre_archivo);
 				resultado = crear_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_TRUNCATE:
+				nombre_archivo = recibir_string(socket_kernel);
+				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+
 				log_info(logger, "Se recibió un F_TRUNCATE para el archivo %s", nombre_archivo);
 				resultado = truncar_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_READ:
+				nombre_archivo = recibir_string(socket_kernel);
+				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+
 				log_info(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
 				resultado = leer_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_WRITE:
+				int tamanio_stream = 0;
+				t_buffer* buffer = crear_buffer();
+				buffer->stream = recibir_buffer(&tamanio_stream, socket_kernel);
+				log_info(logger, "Recibi %d bytes", tamanio_stream);
+
+				nombre_archivo = extraer_string(buffer);
 				log_info(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
-				resultado = escribir_archivo(nombre_archivo);
+
+				resultado = escribir_archivo(nombre_archivo, buffer);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			default:
@@ -328,7 +349,7 @@ int truncar_archivo(const char* nombreArchivo) {
 
     if (nuevoTamanio > fcb->TAMANIO_ARCHIVO) {
     	// Aumentar el tamaño del archivo
-		int bloquesNecesarios = ceil((nuevoTamanio - fcb->TAMANIO_ARCHIVO) / superbloque->BLOCK_SIZE);
+		int bloquesNecesarios = ceil_division((nuevoTamanio - fcb->TAMANIO_ARCHIVO), superbloque->BLOCK_SIZE);
 		log_info(logger, "Bloques necesarios: %d", bloquesNecesarios);
 		int bloquesAsignados = aumentar_tamanio_archivo(bloquesNecesarios, fcb);
 		log_info(logger, "Bloques asignados: %d", bloquesAsignados);
@@ -340,10 +361,11 @@ int truncar_archivo(const char* nombreArchivo) {
 
      } else {
 
-    	int bloquesALiberar = ceil((fcb->TAMANIO_ARCHIVO - nuevoTamanio) / superbloque->BLOCK_SIZE);
+    	int bloquesALiberar = ceil_division((fcb->TAMANIO_ARCHIVO - nuevoTamanio), superbloque->BLOCK_SIZE);
     	int bloquesAsignados = disminuir_tamanio_archivo(bloquesALiberar, fcb);
     	log_info(logger, "Se disminuyó el tamaño del archivo %s a %d bytes.", nombreArchivo, nuevoTamanio);
     }
+
    	actualizar_fcb(fcb);
    	imprimir_bitmap(bitmap);
     return F_TRUNCATE_OK;
@@ -557,12 +579,21 @@ int leer_archivo(const char* nombre_archivo) {
 
 }
 
-int escribir_archivo(const char* nombre_archivo) {
-    int direccion_fisica = recibir_entero(socket_kernel);
-    int tamanio_bytes = atoi(recibir_string(socket_kernel));
-    int cantidad_bloques = ceil(tamanio_bytes / superbloque->BLOCK_SIZE);
-    int pid = recibir_entero(socket_kernel);
-    int posicion = recibir_entero(socket_kernel);
+int ceil_division(int param1, int param2) {
+    int valor = param1 / param2;
+    if (param1 % param2 > 0) {
+        valor++;
+    }
+    return valor;
+}
+
+int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
+
+    int direccion_fisica = extraer_int(parametros);
+    int tamanio_bytes = extraer_int(parametros);
+    int cantidad_bloques = ceil_division(tamanio_bytes, superbloque->BLOCK_SIZE);
+    int pid = extraer_int(parametros);
+    int posicion = extraer_int(parametros);
     char* contenido;
 
     log_info(logger, "Escribir Archivo: %s - Memoria: %d - Tamaño: %d", nombre_archivo, direccion_fisica, tamanio_bytes);
@@ -581,7 +612,10 @@ int escribir_archivo(const char* nombre_archivo) {
 
 	contenido = recibir_string(socket_memoria);
 
-	memcpy(bloques+posicion, contenido, tamanio_bytes);
+	printf("supuesto tamanio %d\n", list_size(punteros) * superbloque->BLOCK_SIZE);
+	printf("tamanio choclo %d\n",sizeof(bloques));
+
+	memcpy(bloques + posicion, contenido, tamanio_bytes);
 	void* bloque64 = malloc(superbloque->BLOCK_SIZE);
 	int offset = 0;
 
@@ -733,22 +767,23 @@ int disminuir_tamanio_archivo(int bloquesALiberar, t_fcb *fcb) {
 }
 
 void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb){
+	printf("cantidad bloques %d\n", cantidad_bloques);
+
 	t_list* punteros = list_create();
 	int offset = 0;
+	void* bloques = malloc(superbloque->BLOCK_SIZE);
 
-	list_add(punteros, fcb->PUNTERO_DIRECTO);
+	memcpy(bloques,leer_en_bloques(fcb->PUNTERO_DIRECTO, superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
+	offset = offset + superbloque->BLOCK_SIZE;
 
-	for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
-		list_add(punteros, list_get(fcb->bloque_indirecto->punteros,i));
-		i++;
-	}
+	if(cantidad_bloques > 1){
+		printf("Necesita mas de un bloque \n");
+		for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
+			memcpy(bloques + offset, leer_en_bloques(list_get(fcb->bloque_indirecto->punteros,i), superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
+			offset = offset + superbloque->BLOCK_SIZE;
+			i++;
+		}
 
-	void* bloques = malloc(list_size(punteros)*superbloque->BLOCK_SIZE);
-
-	for(int i =0; i< list_size(punteros); i++){
-		memcpy(bloques + offset, leer_en_bloques(list_get(punteros,i), superbloque->BLOCK_SIZE), superbloque->BLOCK_SIZE);
-		offset = offset + superbloque->BLOCK_SIZE;
-		i++;
 	}
 
 	return bloques;
@@ -759,11 +794,12 @@ t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb){
 
 	list_add(punteros, fcb->PUNTERO_DIRECTO);
 
-	for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
-		list_add(punteros, list_get(fcb->bloque_indirecto->punteros,i));
-		i++;
+	if(cantidad_bloques > 1){
+		for(int i =0; i< list_size(fcb->bloque_indirecto->punteros); i++){
+			list_add(punteros, list_get(fcb->bloque_indirecto->punteros,i));
+			i++;
+		}
 	}
-
 	return punteros;
 }
 

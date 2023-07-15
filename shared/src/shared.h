@@ -44,6 +44,9 @@ void liberar_conexion(int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
 t_config* iniciar_config(char*);
 
+void agregar_int_a_paquete(t_paquete* paquete, int valor);
+int extraer_int(t_buffer* buffer);
+char* extraer_string(t_buffer* buffer);
 
 /*
  * GENERAL
