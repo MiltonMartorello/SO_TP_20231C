@@ -83,7 +83,7 @@ void iniciar_bitmap();
 void iniciar_bloques();
 void correr_servidor();
 void recibir_request_kernel(int socket_kernel);
-int leer_archivo(const char* nombre_archivo);
+int leer_archivo(char* nombre_archivo, t_buffer* parametros);
 int escribir_archivo(char* nombre_archivo, t_buffer* parametros);
 void levantar_fcb(const char* nombre_archivo);
 void cargar_config_fcb(t_config* config_file);
@@ -120,4 +120,5 @@ void sincronizar_punteros_bloque_indirecto(t_fcb* fcb);
 void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb);
 t_list* leer_punteros_bloque_indirecto(t_bloque* bloque_indirecto, int tamanio_archivo);
+char* leer_datos_archivo(int posicion, int tamanio_bytes);
 #endif /* FILESYSTEM_H_ */

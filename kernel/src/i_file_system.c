@@ -110,11 +110,24 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 		case ci_F_READ:
 			//pthread_mutex_lock(&puede_compactar);
 			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);
-			enviar_entero(socket_filesystem, F_READ);
-			enviar_mensaje(nombre_archivo, socket_filesystem);
-			enviar_entero(p_fs->direccion_fisica, socket_filesystem);
-			enviar_mensaje(list_get(instruccion->parametros,2), socket_filesystem);
-			enviar_entero(archivo->puntero, socket_filesystem);
+
+			t_paquete* paquete_read = crear_paquete(F_READ);
+			paquete_read->buffer = crear_buffer();
+
+			// NOMBRE DE ARCHIVO + SIZE
+			agregar_a_paquete(paquete_read, nombre_archivo, string_length(nombre_archivo));
+			// DIRECCION FISICA
+			agregar_int_a_paquete(paquete_read,p_fs->direccion_fisica);
+			// TAMAÑO EN BYTES A ESCRIBIR
+			agregar_int_a_paquete(paquete_read,atoi((char*) list_get(instruccion->parametros,2)));
+			// PID
+			agregar_int_a_paquete(paquete_read, p_fs->pcb->pid);
+			// PUNTERO F_SEEK
+			agregar_int_a_paquete(paquete_read, archivo->puntero);
+
+			// SEND
+			enviar_paquete(paquete_read, socket_filesystem);
+
 			break;
 		case ci_F_WRITE:
 			//pthread_mutex_lock(&puede_compactar);
@@ -123,10 +136,15 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 			t_paquete* paquete = crear_paquete(F_WRITE);
 			paquete->buffer = crear_buffer();
 
+			// NOMBRE DE ARCHIVO + SIZE
 			agregar_a_paquete(paquete, nombre_archivo, string_length(nombre_archivo));
+			// DIRECCION FISICA
 			agregar_int_a_paquete(paquete,p_fs->direccion_fisica);
+			// TAMAÑO EN BYTES A ESCRIBIR
 			agregar_int_a_paquete(paquete,atoi((char*) list_get(instruccion->parametros,2)));
+			// PID
 			agregar_int_a_paquete(paquete, p_fs->pcb->pid);
+			// PUNTERO F_SEEK
 			agregar_int_a_paquete(paquete, archivo->puntero);
 
 			enviar_paquete(paquete, socket_filesystem);
