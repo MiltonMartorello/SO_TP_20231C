@@ -471,7 +471,7 @@ char* leer_direccion(int direccion, int tamanio) {
 	char* valor = malloc(tamanio);
 	memcpy(valor, espacio_usuario->espacio_usuario + direccion, tamanio);
 	usleep(memoria_config->retardo_memoria * 1000);
-	printf("lei %d bytes\n", strlen(valor));
+	//printf("lei %d bytes\n", strlen(valor));
 	return valor;
 }
 

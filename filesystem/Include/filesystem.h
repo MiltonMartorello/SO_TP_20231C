@@ -115,10 +115,10 @@ t_fcb* obtener_fcb(char* archivo);
 int existe_archivo(char* nombre);
 void* leer_en_bloques(int posicion, int cantidad);
 t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb);
-void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb);
+void* obtener_all_bloques(t_fcb* fcb);
 void sincronizar_punteros_bloque_indirecto(t_fcb* fcb);
 void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb);
 t_list* leer_punteros_bloque_indirecto(t_bloque* bloque_indirecto, int tamanio_archivo);
-char* leer_datos_archivo(int posicion, int tamanio_bytes);
+char* leer_datos_archivo(t_fcb* fcb, int puntero, int tamanio_bytes);
 #endif /* FILESYSTEM_H_ */

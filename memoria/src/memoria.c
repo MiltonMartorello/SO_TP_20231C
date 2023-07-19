@@ -189,10 +189,13 @@ void procesar_cpu_fs(int socket, char* modulo) {
 			direccion_fisica = recibir_entero(socket);
 			int tamanio = recibir_entero(socket);
 			char* valor_a_escribir = recibir_string(socket);
+			char* valor_log = malloc(cant_bytes + 1);
+			strncpy(valor_log, valor_a_escribir, cant_bytes);
+			valor_log[cant_bytes] = '\0';
 			
 			log_info(logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, tamanio, modulo);
-			log_info(logger, "Valor a escribir : _%s_", valor_a_escribir);
-			escribir_en_direccion(direccion_fisica, tamanio, valor_a_escribir, socket);
+			log_info(logger, "Valor a escribir : _%s_", valor_log);
+			escribir_en_direccion(direccion_fisica, tamanio, valor_log, socket);
 			break;
 		default:
 			log_info(logger, "No pude reconocer operacion de %s.", modulo);
