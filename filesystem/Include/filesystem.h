@@ -113,7 +113,7 @@ t_fcb* crear_fcb(char* nombre);
 void imprimir_bitmap(t_bitarray* bitmap);
 t_fcb* obtener_fcb(char* archivo);
 int existe_archivo(char* nombre);
-void* leer_en_bloques(int posicion, int cantidad);
+void* leer_en_bloques(int posicion, t_fcb* fcb, int index_bloque_archivo);
 t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb);
 void* obtener_all_bloques(t_fcb* fcb);
 void sincronizar_punteros_bloque_indirecto(t_fcb* fcb);
