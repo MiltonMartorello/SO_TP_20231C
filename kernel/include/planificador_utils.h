@@ -143,6 +143,7 @@ t_list* recibir_tabla_segmentos(int socket);
 
 
 void sincronizar_tablas_procesos(void);
+void reenviar_create_segment(t_pcb* pcb);
 
 void loggear_tablas_archivos(void);
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);

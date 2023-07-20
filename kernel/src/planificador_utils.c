@@ -512,9 +512,12 @@ void procesar_respuesta_memoria(t_pcb *pcb) {
 			sem_post(&cpu_liberada);
 			break;
 		case MEMORY_NEEDS_TO_COMPACT:
+			if (pthread_mutex_trylock(&puede_compactar) == EBUSY) {
+				log_info(logger, "Compactación: <Esperando Fin de Operaciones de FS>");
+			}
 			pthread_mutex_lock(&puede_compactar);
 			enviar_entero(socket_memoria, MEMORY_COMPACT);
-			log_info(logger, "Compactación: <Se solicitó compactación / Esperando Fin de Operaciones de FS>");
+			log_info(logger, "Compactación: <Se solicitó compactación>");
 			procesar_respuesta_memoria(pcb);
 			break;
 		case MEMORY_COMPACT:
@@ -610,7 +613,7 @@ void reenviar_create_segment(t_pcb* pcb) {
 }
 
 void loggear_tablas_archivos(void) {
-	log_info(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
+	log_debug(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
 }
 
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {

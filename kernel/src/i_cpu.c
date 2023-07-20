@@ -230,7 +230,6 @@ void procesar_f_seek(t_pcb* pcb) {
 	//RECV
 	char* nombre_archivo = recibir_string(socket_cpu);
 	int posicion = recibir_entero(socket_cpu);
-	log_info(kernel_logger,"PID: <%dprocesar_f_truncate> - Actualizar puntero Archivo: <%s> - Puntero <PUNTERO>",pcb->pid,nombre_archivo);
 	ejectuar_f_seek(pcb->pid, nombre_archivo, posicion);
 }
 
@@ -244,7 +243,13 @@ void procesar_f_read(t_pcb* pcb) {
 	proceso->pcb = pcb;
 	proceso->direccion_fisica = direccion_fisica;
 
-	log_info(kernel_logger,"PID: <%d> - Leer Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+	log_info(kernel_logger,"PID: <%d> - Leer Archivo: <%s> - Puntero <%d> - Dirección Memoria <%d> - Tamaño <%d>",
+			pcb->pid,
+			nombre_archivo,
+			archivo->puntero,
+			direccion_fisica,
+			cantidad_de_bytes);
 	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
@@ -275,7 +280,7 @@ void procesar_f_truncate(t_pcb* pcb) {
 	proceso_fs* proceso = malloc(sizeof(proceso_fs));
 	proceso->pcb = pcb;
 
-	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>", pcb->pid, nombre_archivo, tamanio);
+	log_info(kernel_logger,"PID: <%d> - Archivo: <%s> - Tamaño: <%d>", pcb->pid, nombre_archivo, tamanio);
 	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
@@ -360,8 +365,6 @@ void ejecutar_f_open(t_pcb* pcb, char* nombre_archivo) {
 		squeue_push(archivo->cola_bloqueados, pcb->pid);
 		sem_post(&cpu_liberada);
 	}
-
-
 }
 
 void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
@@ -374,6 +377,6 @@ void ejectuar_f_seek(int pid, char* nombre_archivo, int posicion_puntero) {
 	pthread_mutex_lock(archivo->mutex);
 	archivo->puntero = posicion_puntero;
 	pthread_mutex_unlock(archivo->mutex);
-
-	log_info(logger, "FS_THREAD -> Actualizar Puntero Archivo: “PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <%d>", pid, archivo->nombre, archivo->puntero);
+	log_info(kernel_logger,"PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <%d>", pid, nombre_archivo, archivo->puntero);
+	//log_debug(logger, "FS_THREAD -> Actualizar Puntero Archivo: “PID: <%d> - Actualizar puntero Archivo: <%s> - Puntero <%d>", pid, archivo->nombre, archivo->puntero);
 }
