@@ -121,4 +121,5 @@ void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb);
 t_list* leer_punteros_bloque_indirecto(t_bloque* bloque_indirecto, int tamanio_archivo);
 char* leer_datos_archivo(t_fcb* fcb, int puntero, int tamanio_bytes);
+int ceil_division(int param1, int param2);
 #endif /* FILESYSTEM_H_ */

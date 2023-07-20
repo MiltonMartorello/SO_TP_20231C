@@ -151,7 +151,7 @@ void procesar_kernel(int socket_kernel) {
 				log_info(logger, "Solicitud de compactacion"); //LOG DE CATEDRA
 				compactar_memoria();
 				resultado_compactacion();
-				sleep(memoria_config->retardo_compactacion / 1000);
+				//sleep(memoria_config->retardo_compactacion / 1000);
 				enviar_procesos_actualizados(socket_kernel);
 				break;
 			default:
