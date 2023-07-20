@@ -151,7 +151,7 @@ void procesar_kernel(int socket_kernel) {
 				log_info(logger, "Solicitud de compactacion"); //LOG DE CATEDRA
 				compactar_memoria();
 				resultado_compactacion();
-				//sleep(memoria_config->retardo_compactacion / 1000);
+				sleep(memoria_config->retardo_compactacion / 1000);
 				enviar_procesos_actualizados(socket_kernel);
 				break;
 			default:
@@ -177,7 +177,7 @@ void procesar_cpu_fs(int socket, char* modulo) {
 			int cant_bytes = recibir_entero(socket);
 			char* valor_leido = leer_direccion(direccion_fisica, cant_bytes);
 			char* valor_para_log = malloc(cant_bytes + 1);
-			strncpy(valor_para_log,valor_leido, cant_bytes);
+			strncpy(valor_para_log, valor_leido, cant_bytes);
 			valor_para_log[cant_bytes] = '\0';
 			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
 			log_info(logger, "Valor leido: _%s_", valor_para_log);

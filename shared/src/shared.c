@@ -329,7 +329,7 @@ t_log* iniciar_logger(char* path)
 
 	t_log* nuevo_logger;
 	char * nombre_log = string_replace(path, ".log", "");
-	if((nuevo_logger = log_create(path, nombre_log, 1, LOG_LEVEL_DEBUG)) == NULL) {
+	if((nuevo_logger = log_create(path, nombre_log, 1, LOG_LEVEL_INFO)) == NULL) {
 		printf("No pude crear el logger \n");
 		exit(1);
 	}

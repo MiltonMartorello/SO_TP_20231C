@@ -371,7 +371,7 @@ int truncar_archivo(const char* nombreArchivo) {
     }
 
    	actualizar_fcb(fcb);
-   	imprimir_bitmap(bitmap);
+   	//imprimir_bitmap(bitmap);
     return F_TRUNCATE_OK;
 }
 
@@ -425,7 +425,7 @@ void escribir_en_bloque(uint32_t numero_bloque, void* contenido) {
     }
     log_debug(logger, "Se escribieron %d bytes en archivo", bytes_escritos);
     fclose(archivo_bloques);
-    //sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
+    sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
 }
 
 uint32_t obtener_bloque_libre(void) {
@@ -456,7 +456,7 @@ void* leer_en_bloques(int posicion, int cantidad) {
 	int cod = feof(archivo_bloques);
 	log_debug(logger, "Cod error fread: % d", cod);
 	fclose(archivo_bloques);
-	//sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
+	sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
 	return datos;
 }
 
@@ -481,7 +481,6 @@ t_bloque* crear_bloque(int bloque_index) {
 }
 
 t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb) {
-	// todo: agregar sleep
 	log_debug(logger, "Leyendo Bloque Indirecto [Index %d]", fcb->PUNTERO_INDIRECTO);
 	t_bloque_indirecto* bloque = malloc(sizeof(t_bloque_indirecto));
 	bloque->bloque_propio = malloc(sizeof(t_bloque));
@@ -493,6 +492,7 @@ t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb) {
 	bloque->bloque_propio->datos = (char*)leer_en_bloques(fcb->PUNTERO_INDIRECTO* superbloque->BLOCK_SIZE, superbloque->BLOCK_SIZE);
 	bloque->punteros = leer_punteros_bloque_indirecto(bloque->bloque_propio, fcb->TAMANIO_ARCHIVO);
 	// completar la lista de punteros;
+	sleep(fs_config->RETARDO_ACCESO_BLOQUE/1000);
 	return bloque;
 }
 
@@ -602,7 +602,7 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 		bloques = obtener_all_bloques(fcb);
     } else {
     	bloques = leer_en_bloques(fcb->PUNTERO_DIRECTO * superbloque->BLOCK_SIZE, superbloque->BLOCK_SIZE);
-    	log_info(logger, "Leyendo solo bloque directo");
+    	log_debug(logger, "Leyendo solo bloque directo");
     }
     t_list* punteros = obtener_n_punteros(cantidad_bloques, fcb);
 
@@ -613,7 +613,8 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 	enviar_entero(socket_memoria, tamanio_bytes);
 
 	contenido = recibir_string(socket_memoria);
-	log_info(logger, "Leído %s", contenido);
+
+	log_info(logger, "Leído %s", string_substring_until(contenido, tamanio_bytes));
 	//printf("supuesto tamanio %d\n", list_size(punteros) * superbloque->BLOCK_SIZE);
 	memcpy(bloques + puntero, contenido, tamanio_bytes);
 	void* bloque64 = malloc(superbloque->BLOCK_SIZE);
