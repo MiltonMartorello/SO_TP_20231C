@@ -613,7 +613,7 @@ void reenviar_create_segment(t_pcb* pcb) {
 }
 
 void loggear_tablas_archivos(void) {
-	log_info(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
+	log_debug(logger, "Cantidad de Archivos activos: %d", archivos_abiertos->elements_count);
 }
 
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo) {

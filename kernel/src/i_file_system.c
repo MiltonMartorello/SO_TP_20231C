@@ -40,7 +40,7 @@ void recibir_respuesta_fs(char *nombre_archivo, t_instruccion *instruccion, t_pc
 	log_debug(logger, "FS_THREAD -> Recibida respuesta de FILESYSTEM -> %d",	cod_respuesta);
 	switch (cod_respuesta) {
 	case F_NOT_EXISTS: // RE-SEND
-		log_info(logger,"FS_THREAD -> El Archivo que se intentó abrir no existe. Enviando F_CREATE %s",	nombre_archivo);
+		log_debug(logger,"FS_THREAD -> El Archivo que se intentó abrir no existe. Enviando F_CREATE %s",	nombre_archivo);
 		archivo = fs_crear_archivo(nombre_archivo);
 		enviar_request_fs(pid, instruccion, nombre_archivo);
 		log_info(logger, "FS_THREAD -> Se creó el archivo %s", archivo->nombre);
@@ -49,10 +49,10 @@ void recibir_respuesta_fs(char *nombre_archivo, t_instruccion *instruccion, t_pc
 	case F_OPEN_OK:
 		archivo = obtener_archivo_abierto(nombre_archivo);
 		if (archivo == NULL) {
-			log_info(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
+			log_debug(logger, "FS_THREAD -> Archivo no existente, creando entrada en tabla para %s...", nombre_archivo);
 			archivo = crear_archivo_abierto(nombre_archivo);
 			archivo->nombre = nombre_archivo;
-			log_info(logger, "FS_THREAD -> Creado entrada de archivo para %s...", archivo->nombre);
+			log_info(logger, "FS_THREAD -> Creada entrada de archivo para %s...", archivo->nombre);
 			//procesar_request_fs(pid,)
 		}
 		log_info(logger, "FS_THREAD -> Abriendo archivo -> %s", archivo->nombre);

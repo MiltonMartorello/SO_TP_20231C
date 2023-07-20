@@ -280,7 +280,7 @@ void procesar_f_truncate(t_pcb* pcb) {
 	proceso_fs* proceso = malloc(sizeof(proceso_fs));
 	proceso->pcb = pcb;
 
-	log_info(kernel_logger,"“PID: <%d> - Archivo: <%s> - Tamaño: <%d>", pcb->pid, nombre_archivo, tamanio);
+	log_info(kernel_logger,"PID: <%d> - Archivo: <%s> - Tamaño: <%d>", pcb->pid, nombre_archivo, tamanio);
 	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
