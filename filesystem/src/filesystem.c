@@ -257,7 +257,7 @@ void recibir_request_kernel(int socket_kernel) {
 				buffer_read->stream = recibir_buffer(&tamanio_stream, socket_kernel);
 				log_debug(logger, "Recibi %d bytes", tamanio_stream);
 
-				nombre_archivo = extraer_string(buffer_read);
+				nombre_archivo = obtener_string(buffer_read);
 				log_debug(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
 
 				resultado = leer_archivo(nombre_archivo, buffer_read);
@@ -269,7 +269,7 @@ void recibir_request_kernel(int socket_kernel) {
 				buffer->stream = recibir_buffer(&tamanio_stream, socket_kernel);
 				log_debug(logger, "Recibi %d bytes", tamanio_stream);
 
-				nombre_archivo = extraer_string(buffer);
+				nombre_archivo = obtener_string(buffer);
 				log_debug(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
 
 				resultado = escribir_archivo(nombre_archivo, buffer);
@@ -568,15 +568,10 @@ int leer_archivo(char* nombre_archivo, t_buffer* parametros) {
     char* a_enviar = leer_datos_archivo(fcb, puntero, tamanio_bytes);
     log_debug(logger, "a enviar : %s", a_enviar);
     // SEND
- 	enviar_entero(socket_memoria, MEMORY_WRITE_ADRESS);
- 	enviar_entero(socket_memoria, pid);
- 	enviar_entero(socket_memoria, direccion_fisica);
- 	enviar_entero(socket_memoria, tamanio_bytes);
- 	enviar_mensaje(a_enviar, socket_memoria);
-
+ 	escribir_memoria(pid, direccion_fisica, a_enviar, tamanio_bytes);
  	// RECV
  	char* contenido = recibir_string(socket_memoria);
- 	log_debug(logger, "Leído: %s", contenido);
+ 	log_debug(logger, "Respuesta memoria: %s", contenido);
 
  	free(a_enviar);
  	free(contenido);
@@ -613,15 +608,10 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
     t_list* punteros = obtener_n_punteros(cantidad_bloques, fcb);
 
     //Contenido lo tengo que recibir de los registros de memoria
-	enviar_entero(socket_memoria, MEMORY_READ_ADRESS);
-	enviar_entero(socket_memoria, pid);
-	enviar_entero(socket_memoria, direccion_fisica);
-	enviar_entero(socket_memoria, tamanio_bytes);
-
-	contenido = recibir_string(socket_memoria);
+	contenido = leer_memoria(pid, direccion_fisica, tamanio_bytes);
 
 	log_info(logger, "Escribiendo: %s", string_substring_until(contenido, tamanio_bytes));
-	//printf("supuesto tamanio %d\n", list_size(punteros) * superbloque->BLOCK_SIZE);
+
 	memcpy(bloques + puntero, contenido, tamanio_bytes);
 	void* bloque64 = malloc(superbloque->BLOCK_SIZE);
 	int offset = 0;
@@ -801,5 +791,28 @@ int ceil_division(int param1, int param2) {
         valor++;
     }
     return valor;
+}
+
+char* leer_memoria(int pid, int direccion_fisica, int cant_de_bytes) {
+	t_paquete* paquete = crear_paquete(MEMORY_READ_ADRESS);
+	paquete->buffer = crear_buffer();
+	agregar_int_a_paquete(paquete, pid);
+	agregar_int_a_paquete(paquete, direccion_fisica);
+	agregar_int_a_paquete(paquete, cant_de_bytes);
+	enviar_paquete(paquete, socket_memoria);
+	eliminar_paquete(paquete);
+
+	return recibir_string(socket_memoria);
+}
+
+void escribir_memoria(int pid, int direccion_fisica, char* valor_a_escribir, int tamanio) {
+	t_paquete* paquete = crear_paquete(MEMORY_WRITE_ADRESS);
+	paquete->buffer = crear_buffer();
+	agregar_int_a_paquete(paquete, pid);
+	agregar_int_a_paquete(paquete, direccion_fisica);
+	agregar_int_a_paquete(paquete, tamanio);
+	agregar_a_paquete(paquete, valor_a_escribir, tamanio);
+	enviar_paquete(paquete, socket_memoria);
+	eliminar_paquete(paquete);
 }
 

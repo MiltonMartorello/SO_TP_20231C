@@ -122,4 +122,7 @@ t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb);
 t_list* leer_punteros_bloque_indirecto(t_bloque* bloque_indirecto, int tamanio_archivo);
 char* leer_datos_archivo(t_fcb* fcb, int puntero, int tamanio_bytes);
 int ceil_division(int param1, int param2);
+
+char* leer_memoria(int pid, int direccion_fisica, int cant_de_bytes);
+void escribir_memoria(int pid, int direccion_fisica, char* valor_a_escribir, int tamanio);
 #endif /* FILESYSTEM_H_ */

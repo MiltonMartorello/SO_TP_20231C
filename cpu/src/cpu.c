@@ -10,8 +10,6 @@ t_cpu_config* ip_config;
 t_reg registros_cpu;
 t_contexto_proceso* proceso;
 
-char* IP_CPU = "127.0.0.1";
-
 int main(int argc, char **argv) {
 
 	if(argc < 2){
@@ -88,7 +86,7 @@ void correr_servidor(void){
 				int operacion = recibir_operacion(socket_kernel);
 				if(operacion == CONTEXTO_PROCESO){ //TODO
 					proceso = recibir_contexto(socket_kernel, cpu_logger);
-					//loggear_segmentos(proceso->tabla_segmentos, cpu_logger);
+
 					setear_registros_desde_proceso(proceso);
 					ciclo_de_instruccion(proceso,socket_kernel);
 					liberar_proceso(proceso);
