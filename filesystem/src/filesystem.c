@@ -230,25 +230,25 @@ void recibir_request_kernel(int socket_kernel) {
     	switch (cod_op) {
 			case F_OPEN:
 				nombre_archivo = recibir_string(socket_kernel);
-				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+				log_debug(logger, "Recibido Archivo %s", nombre_archivo);
 
-				log_info(logger, "Se recibió un F_OPEN para el archivo %s", nombre_archivo);
+				log_debug(logger, "Se recibió un F_OPEN para el archivo %s", nombre_archivo);
 				resultado = abrir_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_CREATE:
 				nombre_archivo = recibir_string(socket_kernel);
-				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+				log_debug(logger, "Recibido Archivo %s", nombre_archivo);
 
-				log_info(logger, "Se recibió un F_CREATE para el archivo %s", nombre_archivo);
+				log_debug(logger, "Se recibió un F_CREATE para el archivo %s", nombre_archivo);
 				resultado = crear_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
 			case F_TRUNCATE:
 				nombre_archivo = recibir_string(socket_kernel);
-				log_info(logger, "Recibido Archivo %s", nombre_archivo);
+				log_debug(logger, "Recibido Archivo %s", nombre_archivo);
 
-				log_info(logger, "Se recibió un F_TRUNCATE para el archivo %s", nombre_archivo);
+				log_debug(logger, "Se recibió un F_TRUNCATE para el archivo %s", nombre_archivo);
 				resultado = truncar_archivo(nombre_archivo);
 				enviar_entero(socket_kernel, resultado);
 				break;
@@ -258,7 +258,7 @@ void recibir_request_kernel(int socket_kernel) {
 				log_debug(logger, "Recibi %d bytes", tamanio_stream);
 
 				nombre_archivo = extraer_string(buffer_read);
-				log_info(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
+				log_debug(logger, "Se recibió un F_READ para el archivo %s", nombre_archivo);
 
 				resultado = leer_archivo(nombre_archivo, buffer_read);
 				enviar_entero(socket_kernel, resultado);
@@ -270,7 +270,7 @@ void recibir_request_kernel(int socket_kernel) {
 				log_debug(logger, "Recibi %d bytes", tamanio_stream);
 
 				nombre_archivo = extraer_string(buffer);
-				log_info(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
+				log_debug(logger, "Se recibió un F_WRITE para el archivo %s", nombre_archivo);
 
 				resultado = escribir_archivo(nombre_archivo, buffer);
 				enviar_entero(socket_kernel, resultado);
