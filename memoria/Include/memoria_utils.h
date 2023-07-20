@@ -38,7 +38,7 @@ typedef struct {
 
 t_segmento* crear_segmento(int pid, int tam_segmento, int segmento_id);
 void delete_segmento(int pid, int segmento_id);
-
+void destroy_elementos_tabla(t_list* tabla);
 t_tabla_segmento* crear_tabla_segmento(int pid);
 void destroy_tabla_segmento(void* elemento);
 void destroy_segmentos_propios_de_tabla(t_list* tabla);
@@ -78,8 +78,8 @@ void escribir_en_direccion(int direccion,int tamanio, char* valor_a_escribir, in
 
 int memoria_disponible(void);
 void compactar_memoria(void);
-t_hueco* buscar_hueco_por_fin(int posicion);
-t_hueco* buscar_hueco_por_inicio(int posicion);
+t_hueco* buscar_hueco_por_posicion_limite(int posicion);
+t_hueco* buscar_hueco_por_posicion_inicial(int posicion);
 void resultado_compactacion(void);
 
 #endif /* MEMORIA_UTILS_H_ */

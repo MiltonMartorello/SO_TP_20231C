@@ -30,6 +30,7 @@ void* recibir_buffer(int*, int);
 void recibir_mensaje(int,t_log*); // DEPRECADO?
 char * recibir_string(int socket_cliente);
 t_list* recibir_paquete(int, t_log*);
+t_buffer* recibir_datos(int socket);
 void* serializar_paquete(t_paquete* paquete, int bytes);
 /*
  * CLIENTE
@@ -41,12 +42,14 @@ t_paquete* crear_paquete(int);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void liberar_conexion(int socket_cliente);
+void eliminar_buffer(t_buffer* buffer);
 void eliminar_paquete(t_paquete* paquete);
 t_config* iniciar_config(char*);
 
 void agregar_int_a_paquete(t_paquete* paquete, int valor);
 int extraer_int(t_buffer* buffer);
-char* extraer_string(t_buffer* buffer);
+char* extraer_string(t_buffer* buffer, int* tamanio);
+char* obtener_string(t_buffer* buffer);
 
 /*
  * GENERAL

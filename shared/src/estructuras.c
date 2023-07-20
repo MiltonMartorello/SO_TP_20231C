@@ -420,12 +420,12 @@ t_contexto_proceso* recibir_contexto(int socket,t_log* logger){
 }
 
 void loggear_segmentos(t_list* lista_segmentos, t_log* logger){
-	log_info(logger,"----------SEGMENTOS--------");
-	log_info(logger,"D_ID	ID	INICIO	FIN	TAMANIO");
+	log_debug(logger,"----------SEGMENTOS--------");
+	log_debug(logger,"D_ID	ID	INICIO	FIN	TAMANIO");
 	void _log(void* elem){
 		t_segmento* seg  = (t_segmento*) elem;
 
-		log_info(logger,"%d	%d	%d	%d	%d",seg->descriptor_id,seg->segmento_id,seg->inicio,seg->inicio + seg->tam_segmento - 1,seg->tam_segmento);
+		log_debug(logger,"%d	%d	%d	%d	%d",seg->descriptor_id,seg->segmento_id,seg->inicio,seg->inicio + seg->tam_segmento - 1,seg->tam_segmento);
 	}
 
 	list_iterate(lista_segmentos,&_log);

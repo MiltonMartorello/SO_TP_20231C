@@ -90,41 +90,46 @@ void procesar_kernel(int socket_kernel) {
 	while(true) {
 		validar_conexion(socket_kernel);
 		int cod_op = recibir_operacion(socket_kernel);
+		t_buffer* datos_recibidos;
 
 		switch (cod_op) {
 			case MEMORY_CREATE_TABLE:
-				recibir_entero(socket_kernel);//size_paquete
-				pid = recibir_entero_2(socket_kernel);
-				//log_info(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
+				datos_recibidos = recibir_datos(socket_kernel);
+				pid = extraer_int(datos_recibidos);
+				log_debug(logger, "Recibido MEMORY_CREATE_TABLE para PID: %d", pid);
 				t_tabla_segmento* tabla_segmento = crear_tabla_segmento(pid);
 				enviar_tabla_segmento(socket_kernel, tabla_segmento, MEMORY_SEGMENT_TABLE_CREATED);
+
 				log_info(logger, "Creación de Proceso PID: <%d>", pid);
+				eliminar_buffer(datos_recibidos);
 				break;
 			case MEMORY_DELETE_TABLE:
-				recibir_entero(socket_kernel);//size_paquete
-				pid = recibir_entero_2(socket_kernel);
-				//log_info(logger, "Recibido MEMORY_DELETE_TABLE para PID: %d", pid);
-				t_tabla_segmento* tabla = encontrar_tabla_segmento_por_pid(pid);
+				datos_recibidos = recibir_datos(socket_kernel);
+				pid = extraer_int(datos_recibidos);
+				log_debug(logger, "Recibido MEMORY_DELETE_TABLE para PID: %d", pid);
+				t_tabla_segmento* tabla = buscar_tabla_segmentos(pid);
 				if (tabla == NULL) {
 					enviar_entero(socket_kernel, MEMORY_ERROR_TABLE_NOT_FOUND);
 					break;
 				}
-				//log_info(logger, "Encontrada Tabla a eliminar para PID: %d (%d Segmentos)",tabla->pid , tabla->tabla->elements_count);
+
 				destroy_tabla_segmento(tabla);
 				enviar_entero(socket_kernel, MEMORY_SEGMENT_TABLE_DELETED);
+
 				log_info(logger, "Eliminación de Proceso PID: <%d>", pid);
 				loggear_segmentos(espacio_usuario->segmentos_activos, logger);
+				eliminar_buffer(datos_recibidos);
 				break;
 			case MEMORY_CREATE_SEGMENT:
-				recibir_entero(socket_kernel);//size_paquete
-				pid = recibir_entero_2(socket_kernel);
-				int id_crear = recibir_entero_2(socket_kernel);
-				int tamanio = recibir_entero_2(socket_kernel);
+				datos_recibidos = recibir_datos(socket_kernel);
+				pid = extraer_int(datos_recibidos);
+				int id_a_crear = extraer_int(datos_recibidos);
+				int tamanio = extraer_int(datos_recibidos);
 
-				//log_info(logger, "MEMORY_CREATE_SEGMENT PID: %d, SEG_ID: %d [%d bytes]", pid, id_crear, tamanio);
-				if (crear_segmento(pid, tamanio, id_crear) == NULL) {
+				log_debug(logger, "MEMORY_CREATE_SEGMENT PID: %d, SEG_ID: %d [%d bytes]", pid, id_a_crear, tamanio);
+				if (crear_segmento(pid, tamanio, id_a_crear) == NULL) {
 					if(memoria_disponible() >= tamanio){
-						log_info(logger, "No hay espacio contiguo, pero habra espacio despues de una compactacion");
+						log_debug(logger, "No hay espacio contiguo, pero habra espacio despues de una compactacion");
 						enviar_entero(socket_kernel, MEMORY_NEEDS_TO_COMPACT);
 					}
 					else{
@@ -133,25 +138,27 @@ void procesar_kernel(int socket_kernel) {
 					}
 				}
 				else{
-					enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_CREATED);
+					enviar_tabla_actualizada(socket_kernel, pid, MEMORY_SEGMENT_CREATED);
 				}
+				eliminar_buffer(datos_recibidos);
 				break;
 			case MEMORY_DELETE_SEGMENT:
-				recibir_entero(socket_kernel);//size_paquete
-				pid = recibir_entero_2(socket_kernel);
-				int id_eliminar = recibir_entero_2(socket_kernel);
-				//log_info(logger, "MEMORY_DELETE_SEGMENT PID: %d, SEG_ID: %d", pid , id_eliminar);
-				//loggear_segmentos(buscar_tabla_segmentos(pid)->tabla,logger);
+				datos_recibidos = recibir_datos(socket_kernel);
+				pid = extraer_int(datos_recibidos);
+				int id_a_eliminar = extraer_int(datos_recibidos);
+
+				log_debug(logger, "MEMORY_DELETE_SEGMENT PID: %d, SEG_ID: %d", pid , id_a_eliminar);
+
+				delete_segmento(pid, id_a_eliminar);
+				enviar_tabla_actualizada(socket_kernel, pid, MEMORY_SEGMENT_DELETED);
 				loggear_segmentos(espacio_usuario->segmentos_activos, logger);
-				delete_segmento(pid, id_eliminar);
-				enviar_tabla_actualizada(socket_kernel, pid, id_crear, MEMORY_SEGMENT_DELETED);
-				loggear_segmentos(espacio_usuario->segmentos_activos, logger);
+				eliminar_buffer(datos_recibidos);
 				break;
 			case MEMORY_COMPACT:
-				log_info(logger, "Solicitud de compactacion"); //LOG DE CATEDRA
+				log_info(logger, "Solicitud de compactacion");
 				compactar_memoria();
 				resultado_compactacion();
-				sleep(memoria_config->retardo_compactacion / 1000);
+
 				enviar_procesos_actualizados(socket_kernel);
 				break;
 			default:
@@ -160,6 +167,7 @@ void procesar_kernel(int socket_kernel) {
 				return;
 				break;
 		}
+
 	}
 }
 
@@ -168,34 +176,42 @@ void procesar_cpu_fs(int socket, char* modulo) {
 	while(1){
 		validar_conexion(socket);
 		int operacion = recibir_operacion(socket);
-		int pid;
-		int direccion_fisica;
+		t_buffer* datos_recibidos = recibir_datos(socket);
+
+		int pid = extraer_int(datos_recibidos);
+		int direccion_fisica = extraer_int(datos_recibidos);
+
 		switch(operacion) {
 		case MEMORY_READ_ADRESS:
-			pid = recibir_entero(socket);
-			direccion_fisica = recibir_entero(socket);
-			int cant_bytes = recibir_entero(socket);
+
+			int cant_bytes = extraer_int(datos_recibidos);
 			char* valor_leido = leer_direccion(direccion_fisica, cant_bytes);
+
 			char* valor_para_log = malloc(cant_bytes + 1);
 			strncpy(valor_para_log, valor_leido, cant_bytes);
 			valor_para_log[cant_bytes] = '\0';
+
 			log_info(logger, "PID: <%d> - Acción: <LEER> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, cant_bytes, modulo);
 			log_info(logger, "Valor leido: _%s_", valor_para_log);
-			enviar_mensaje(valor_leido, socket);
+			enviar_mensaje(valor_para_log, socket);
 			free(valor_leido);
+			free(valor_para_log);
 			break;
 		case MEMORY_WRITE_ADRESS:
-			pid = recibir_entero(socket);
-			direccion_fisica = recibir_entero(socket);
-			int tamanio = recibir_entero(socket);
-			char* valor_a_escribir = recibir_string(socket);
-			char* valor_log = malloc(cant_bytes + 1);
-			strncpy(valor_log, valor_a_escribir, cant_bytes);
-			valor_log[cant_bytes] = '\0';
+
+			int tamanio = extraer_int(datos_recibidos);
+			int aux;
+			char* valor_a_escribir = extraer_string(datos_recibidos, &aux);
+
+			char* valor_log = malloc(tamanio + 1);
+			strncpy(valor_log, valor_a_escribir, tamanio);
+			valor_log[tamanio] = '\0';
 			
 			log_info(logger, "PID: <%d> - Acción: <ESCRIBIR> - Dirección física: <%d> - Tamaño: <%d> - Origen: <%s>", pid, direccion_fisica, tamanio, modulo);
 			log_info(logger, "Valor a escribir : _%s_", valor_log);
-			escribir_en_direccion(direccion_fisica, tamanio, valor_log, socket);
+
+			escribir_en_direccion(direccion_fisica, tamanio, valor_a_escribir, socket);
+			free(valor_log);
 			break;
 		default:
 			log_info(logger, "No pude reconocer operacion de %s.", modulo);
@@ -203,10 +219,11 @@ void procesar_cpu_fs(int socket, char* modulo) {
 			return;
 			break;
 		}
+		eliminar_buffer(datos_recibidos);
 	}
 }
 
-void enviar_tabla_actualizada(int socket_kernel, int pid, int segmento_id, int cod_op) {
+void enviar_tabla_actualizada(int socket_kernel, int pid, int cod_op) {
 	t_tabla_segmento* tabla_segmento_aux = malloc(sizeof(t_tabla_segmento));
 	tabla_segmento_aux->tabla =  encontrar_tabla_segmentos(pid);
 	tabla_segmento_aux->pid = pid;
@@ -255,7 +272,7 @@ void enviar_procesos_actualizados(int socket) {
 
 	memcpy(buffer->stream, &tablas_segmentos->elements_count, sizeof(int)); //AGREGO CANTIDAD DE PROCESOS
 
-	//por cada proceso agrego: PID + SIZE_SERIALIZACION_TABLA + STREAM_SERIALIZACION_TABLA
+	//Por cada proceso agrego: PID + SIZE_SERIALIZACION_TABLA + STREAM_SERIALIZACION_TABLA
 	void _serializar_tabla_proceso(void* elem) {
 		t_tabla_segmento* proceso = (t_tabla_segmento*) elem;
 

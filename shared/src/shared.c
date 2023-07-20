@@ -139,6 +139,14 @@ t_list* recibir_paquete(int socket_cliente, t_log* logger)
 	return valores;
 }
 
+t_buffer* recibir_datos(int socket)
+{
+
+	int tamanio_buffer;
+	t_buffer* buffer = crear_buffer();
+	buffer->stream = recibir_buffer(&tamanio_buffer, socket);
+	return buffer;
+}
 
 /*
  * CLIENTE
@@ -240,7 +248,9 @@ void agregar_int_a_paquete(t_paquete* paquete, int valor)
 
 	paquete->buffer->size += sizeof(int);
 }
-//uso el buffer size como offset
+
+
+//Tanto para extraer_int como para extraer_string utilizo buffer->size para saber el offset ya leido del buffer->stream
 int extraer_int(t_buffer* buffer)
 {
 	int valor;
@@ -249,26 +259,22 @@ int extraer_int(t_buffer* buffer)
 	return valor;
 }
 
-char* extraer_string(t_buffer* buffer)
+char* extraer_string(t_buffer* buffer, int* tamanio)
 {
-	int tamanio = 0;
-	int desplazamiento = 0;
-//	memcpy(&tamanio, buffer->stream + buffer->size, sizeof(int));
-//	buffer->size+=sizeof(int);
-//	printf("tamanio string %d\n", tamanio);
-//	char* valor = malloc(tamanio + 1);
-//	memcpy(valor, buffer->stream + buffer->size, tamanio);
-//	buffer->size+=tamanio;
+	*tamanio = extraer_int(buffer);
+	char* valor = malloc(*tamanio);
+	memcpy(valor, buffer->stream + buffer->size, *tamanio);
+	buffer->size+= *tamanio;
 
-	memcpy(&tamanio, buffer->stream + desplazamiento, sizeof(int));
+	return valor;
+}
 
-	desplazamiento+=sizeof(int);
-//	tamanio+=1;
-	char* valor = malloc(tamanio + 1);
-	memcpy(valor, buffer->stream +desplazamiento, tamanio);
-	desplazamiento+=tamanio;
+char* obtener_string(t_buffer* buffer)
+{
+	int tamanio;
+	char* valor = extraer_string(buffer, &tamanio);
+	valor = realloc(valor, tamanio + 1);
 	valor[tamanio] = '\0';
-	buffer->size+= desplazamiento;
 	return valor;
 }
 
@@ -298,10 +304,15 @@ void enviar_paquete(t_paquete* paquete, int socket_cliente)
     free(a_enviar);
 }
 
+void eliminar_buffer(t_buffer* buffer)
+{
+	free(buffer->stream);
+	free(buffer);
+}
+
 void eliminar_paquete(t_paquete* paquete)
 {
-	free(paquete->buffer->stream);
-	free(paquete->buffer);
+	eliminar_buffer(paquete->buffer);
 	free(paquete);
 }
 
