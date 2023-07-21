@@ -30,8 +30,8 @@ extern t_list* procesos_en_kernel;
 t_buffer* recibir_buffer_programa(int, t_log*);
 t_programa* deserializar_programa(t_buffer*, t_log*);
 
-void crear_proceso(t_programa*, t_log*,int);
-void respuesta_proceso(t_programa*, t_log*, int);
+t_pcb* crear_proceso(t_programa*, t_log*,int);
+void respuesta_proceso(t_pcb*, t_log*, int);
 void loggear_programa(t_programa*, t_log*);
 void loggear_return_kernel(int , int , t_log* );
 int nuevo_pid(void);

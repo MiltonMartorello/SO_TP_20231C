@@ -23,7 +23,7 @@ t_kernel_config* kernel_config;
 sem_t sem_ready_proceso;
 sem_t sem_exec_proceso;
 sem_t sem_block_proceso;
-sem_t sem_exit_proceso;
+//sem_t sem_exit_proceso;
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_ready;
 pthread_mutex_t mutex_cola_exec;
@@ -110,7 +110,7 @@ void iniciar_semaforos(int grado_multiprogramacion) {
 	sem_init(&sem_ready_proceso, 0, 0);
 	//sem_init(&sem_exec_proceso, 0, 0);
 	sem_init(&sem_block_proceso, 0, 0);
-	sem_init(&sem_exit_proceso, 0, 0);
+	//sem_init(&sem_exit_proceso, 0, 0);
 	sem_init(&cpu_liberada, 0, 1);
 	sem_init(&proceso_enviado, 0, 0);
 	pthread_mutex_init(&mutex_cola_new, NULL);
@@ -132,7 +132,7 @@ void destroy_semaforos(void) {
 	sem_destroy(&sem_ready_proceso);
 	//sem_destroy(&sem_exec_proceso);
 	sem_destroy(&sem_block_proceso);
-	sem_destroy(&sem_exit_proceso);
+	//sem_destroy(&sem_exit_proceso);
 
 	sem_destroy(&cpu_liberada);
 	sem_destroy(&proceso_enviado);
@@ -166,6 +166,7 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	pcb->tiempo_llegada = &temporal; // malloc(sizeof(t_temporal));
 	pcb->tiempo_ejecucion = NULL;
 	pcb->motivo = NOT_DEFINED;
+	sem_init(&pcb->sem_exit_proceso, 0, 0);
 	return pcb;
 }
 
@@ -175,6 +176,7 @@ void destroy_pcb(t_pcb* pcb) {
 	list_destroy(pcb->tabla_segmento);
 	temporal_destroy(pcb->tiempo_llegada);
 	temporal_destroy(pcb->tiempo_ejecucion);
+	sem_destroy(&pcb->sem_exit_proceso);
 	free(pcb);
 }
 
@@ -334,7 +336,7 @@ void pasar_a_cola_exit(t_pcb* pcb, t_log* logger, return_code motivo) {
 	pcb->motivo = motivo;
 	squeue_push(colas_planificacion->cola_exit, pcb);
 	log_info(logger, "P_CORTO -> Cambio de Estado: PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pcb->pid, estado_anterior, estado_string(pcb->estado_actual));
-	sem_post(&sem_exit_proceso);
+	sem_post(&pcb->sem_exit_proceso);
 }
 
 void cerrar_archivos_asociados(t_pcb* pcb) {
@@ -604,9 +606,9 @@ void reenviar_create_segment(t_pcb* pcb) {
 	t_paquete* paquete = crear_paquete(MEMORY_CREATE_SEGMENT);
 	paquete->buffer = crear_buffer();
 
-	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
-	agregar_a_paquete(paquete, &id_segmento, sizeof(int));
-	agregar_a_paquete(paquete, &tamanio, sizeof(int));
+	agregar_int_a_paquete(paquete, pcb->pid);
+	agregar_int_a_paquete(paquete, id_segmento);
+	agregar_int_a_paquete(paquete, tamanio);
 	enviar_paquete(paquete, socket_memoria);
 
 	procesar_respuesta_memoria(pcb);
@@ -667,7 +669,7 @@ void ejecutar_f_close(t_pcb* pcb, char* nombre_archivo) {
 		return;
 	}
 	// SI SOLO ESTE PID TIENE ABIERTO EL ARCHIVO
-	if (queue_size(archivo->cola_bloqueados->cola) <= 1) {
+	if (queue_size(archivo->cola_bloqueados->cola) < 1) {
 		log_info(logger, "FS_THREAD -> Eliminando entrada en archivo %s para PID %d", nombre_archivo, pcb->pid);
 		archivo_abierto_destroy(archivo);
 		list_remove_element(archivos_abiertos, archivo); // TABLA GENERAL DE ARCHIVOS ABIERTOS
