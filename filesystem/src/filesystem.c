@@ -621,8 +621,12 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 
 		memcpy(bloque64, bloques + offset, superbloque->BLOCK_SIZE);
 		offset = offset + superbloque->BLOCK_SIZE;
-
-		escribir_en_bloque(list_get(punteros, i), bloque64);
+		uint32_t puntero_i = list_get(punteros, i);
+	    log_info(logger, "Acceso Bloque - Archivo: <%s> - Bloque Archivo: <%d> - Bloque File System <%u>",
+	    			fcb->NOMBRE_ARCHIVO,
+	    			i,
+					puntero_i);
+		escribir_en_bloque(puntero_i, bloque64);
 
 	}
 	free(bloque64);
@@ -685,6 +689,10 @@ void sincronizar_punteros_bloque_indirecto(t_fcb* fcb) {
     log_debug(logger, "Escribiendo en bloque indirecto con datos de tamaño %zu...", sizeof(datos_actualizados));
     //log_info(logger, "Datos: %s", (char*)datos_actualizados);
     escribir_en_bloque(fcb->PUNTERO_INDIRECTO, datos_actualizados);
+    log_info(logger, "Acceso Bloque - Archivo: <%s> - Bloque Archivo: <%d> - Bloque File System <%d>",
+    			fcb->NOMBRE_ARCHIVO,
+    			1,
+				fcb->PUNTERO_INDIRECTO);
     free(datos_actualizados);
 }
 
