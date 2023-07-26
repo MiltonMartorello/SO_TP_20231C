@@ -103,13 +103,13 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 
 	switch (instruccion->codigo) {
 		case ci_F_OPEN:
-			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_OPEN para el archivo %s ", nombre_archivo);
+			log_debug(logger, "FS_THREAD -> Enviando Request de ci_F_OPEN para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_OPEN); // f_open ARCHIVO
 			enviar_mensaje(nombre_archivo, socket_filesystem);
 			break;
 		case ci_F_READ:
 			//pthread_mutex_lock(&puede_compactar);
-			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);
+			log_debug(logger, "FS_THREAD -> Enviando Request de ci_F_READ para el archivo %s ", nombre_archivo);
 
 			t_paquete* paquete_read = crear_paquete(F_READ);
 			paquete_read->buffer = crear_buffer();
@@ -131,7 +131,7 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 			break;
 		case ci_F_WRITE:
 			//pthread_mutex_lock(&puede_compactar);
-			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_WRITE para el archivo %s ", nombre_archivo);
+			log_debug(logger, "FS_THREAD -> Enviando Request de ci_F_WRITE para el archivo %s ", nombre_archivo);
 
 			t_paquete* paquete = crear_paquete(F_WRITE);
 			paquete->buffer = crear_buffer();
@@ -151,7 +151,7 @@ void enviar_request_fs(proceso_fs* p_fs, t_instruccion* instruccion, char* nombr
 
 			break;
 		case ci_F_TRUNCATE:
-			log_info(logger, "FS_THREAD -> Enviando Request de ci_F_TRUNCATE para el archivo %s ", nombre_archivo);
+			log_debug(logger, "FS_THREAD -> Enviando Request de ci_F_TRUNCATE para el archivo %s ", nombre_archivo);
 			enviar_entero(socket_filesystem, F_TRUNCATE);
 			enviar_mensaje(nombre_archivo, socket_filesystem);
 			enviar_mensaje(list_get(instruccion->parametros,1), socket_filesystem);
