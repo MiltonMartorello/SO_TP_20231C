@@ -83,7 +83,7 @@ void iniciar_bitmap();
 void iniciar_bloques();
 void correr_servidor();
 void recibir_request_kernel(int socket_kernel);
-int leer_archivo(const char* nombre_archivo);
+int leer_archivo(char* nombre_archivo, t_buffer* parametros);
 int escribir_archivo(char* nombre_archivo, t_buffer* parametros);
 void levantar_fcb(const char* nombre_archivo);
 void cargar_config_fcb(t_config* config_file);
@@ -113,11 +113,16 @@ t_fcb* crear_fcb(char* nombre);
 void imprimir_bitmap(t_bitarray* bitmap);
 t_fcb* obtener_fcb(char* archivo);
 int existe_archivo(char* nombre);
-void* leer_en_bloques(int posicion, int cantidad);
+void* leer_en_bloques(int posicion, t_fcb* fcb, int index_bloque_archivo);
 t_list* obtener_n_punteros(int cantidad_bloques, t_fcb* fcb);
-void* obtener_n_bloques(int cantidad_bloques, t_fcb* fcb);
+void* obtener_all_bloques(t_fcb* fcb);
 void sincronizar_punteros_bloque_indirecto(t_fcb* fcb);
 void* obtener_datos_bloque_indirecto(t_bloque_indirecto* bloque_indirecto);
 t_bloque_indirecto* leer_bloque_indirecto(t_fcb* fcb);
 t_list* leer_punteros_bloque_indirecto(t_bloque* bloque_indirecto, int tamanio_archivo);
+char* leer_datos_archivo(t_fcb* fcb, int puntero, int tamanio_bytes);
+int ceil_division(int param1, int param2);
+
+char* leer_memoria(int pid, int direccion_fisica, int cant_de_bytes);
+void escribir_memoria(int pid, int direccion_fisica, char* valor_a_escribir, int tamanio);
 #endif /* FILESYSTEM_H_ */

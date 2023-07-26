@@ -34,6 +34,7 @@ typedef struct {
 	t_list* tabla_archivos_abiertos;
 	t_list* tabla_segmento;
 	return_code motivo;
+	sem_t sem_exit_proceso;
 } t_pcb;
 
 typedef struct {
@@ -143,6 +144,7 @@ t_list* recibir_tabla_segmentos(int socket);
 
 
 void sincronizar_tablas_procesos(void);
+void reenviar_create_segment(t_pcb* pcb);
 
 void loggear_tablas_archivos(void);
 t_archivo_abierto* obtener_archivo_abierto(char* nombre_archivo);

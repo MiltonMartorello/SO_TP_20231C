@@ -26,13 +26,9 @@ void solicitar_nueva_tabla_de_segmento(t_pcb* pcb) {
 	validar_conexion(socket_memoria);
 	log_debug(logger, "P_LARGO -> Solicitando Tabla de Segmentos para PID: %d...", pcb->pid);
 
-	//SEND
-//	enviar_entero(socket_memoria, MEMORY_CREATE_TABLE);
-//	enviar_entero(socket_memoria, pcb->pid);
-
 	t_paquete* paquete = crear_paquete(MEMORY_CREATE_TABLE);
 	paquete->buffer = crear_buffer();
-	agregar_a_paquete(paquete, &pcb->pid, sizeof(int));
+	agregar_int_a_paquete(paquete, pcb->pid);
 	enviar_paquete(paquete, socket_memoria);
 	//RECV
 	procesar_respuesta_memoria(pcb);

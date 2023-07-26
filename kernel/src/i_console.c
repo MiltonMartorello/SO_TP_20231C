@@ -17,9 +17,10 @@ void procesar_consola(void *args_hilo) {
 			t_buffer* buffer = recibir_buffer_programa(socket_consola, logger);
 			t_programa* programa = deserializar_programa(buffer, logger);
 //			loggear_programa(programa,logger);
-			crear_proceso(programa, logger, socket_cpu);
-			respuesta_proceso(programa, logger, socket_consola);
+			t_pcb* proceso = crear_proceso(programa, logger, socket_cpu);
+			respuesta_proceso(proceso, logger, socket_consola);
 			loggear_resultado(logger);
+			destroy_pcb(proceso);
 			break;
 		default:
 			log_error(logger, "CÓDIGO DE OPERACIÓN DESCONOCIDO. %d", cod_op);
@@ -64,22 +65,24 @@ t_programa* deserializar_programa(t_buffer* buffer, t_log* logger){
 }
 
 
-void crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
+t_pcb* crear_proceso(t_programa* programa, t_log* logger,int socket_cpu) {
 	t_pcb* pcb = crear_pcb(programa, nuevo_pid());
 	squeue_push(colas_planificacion->cola_new, pcb);
 	log_info(logger, "Se crea el proceso <%d> en NEW", pcb->pid);
 	list_add(procesos_en_kernel,pcb);
 	sem_post(&sem_nuevo_proceso);
+	return pcb;
 }
 
 
-void respuesta_proceso(t_programa* programa,t_log* logger, int socket_consola) {
-	sem_wait(&sem_exit_proceso);
+void respuesta_proceso(t_pcb* proceso,t_log* logger, int socket_consola) {
+	sem_wait(&proceso->sem_exit_proceso);
 	t_pcb* pcb = squeue_pop(colas_planificacion->cola_exit);
 	list_remove_element(procesos_en_kernel, pcb);
 	loggear_return_kernel(pcb->pid, pcb->motivo, logger);
 	sem_post(&sem_grado_multiprogramacion);
 	enviar_handshake(socket_consola, pcb->motivo);
+
 }
 
 void loggear_programa(t_programa* programa,t_log* logger) {

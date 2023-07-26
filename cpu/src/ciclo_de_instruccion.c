@@ -12,18 +12,19 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 	bool fin_de_ciclo = false;
 	t_instruccion* una_instruccion;
 	t_list* parametros;
+	int direccion_fisica;
+	int direccion_logica;
+
 	while(!fin_de_ciclo){
 
 		una_instruccion = list_get(proceso->instrucciones, proceso->program_counter);
-		//log_info(cpu_logger, "Cód instrucción: %d", una_instruccion->codigo);
 		parametros = una_instruccion->parametros;
 		proceso->program_counter++;
-		int direccion_fisica;
-		int direccion_logica;
 
 		switch (una_instruccion->codigo)
 		{
 		case ci_SET:
+			usleep(cpu_config->retardo_instruccion * 1000);
 			execute_set(list_get(parametros,0),list_get(parametros,1));
 			break;
 		case ci_MOV_IN:
@@ -112,7 +113,6 @@ void ciclo_de_instruccion(t_contexto_proceso* proceso,int socket){
 
 void execute_set(char* registro, char* valor) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <SET> - <%s> - <%s>",proceso->pid, registro, valor);
-	usleep(cpu_config->retardo_instruccion * 1000);
 	set_valor_registro(registro,valor);
 }
 
@@ -146,7 +146,7 @@ void execute_io(int tiempo) {
 	log_info(cpu_logger,"PID: <%d> - Ejecutando: <IO> - <%d>",proceso->pid, tiempo);
 	devolver_proceso(proceso,PROCESO_BLOQUEADO,cpu_logger);
 	enviar_entero(socket_kernel, tiempo);
-	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_BLOQUEADO");
+	log_debug(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_BLOQUEADO");
 }
 
 void execute_f_open(char* nombre_archivo) {
@@ -191,7 +191,6 @@ void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes)
 		enviar_mensaje(nombre_archivo, socket_kernel);
 		enviar_entero(socket_kernel, direccion_fisica);
 		enviar_entero(socket_kernel, cant_bytes);
-
 	}
 	else{
 		devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SEG_FAULT, cpu_logger);
@@ -199,8 +198,8 @@ void execute_f_write(char* nombre_archivo, int direccion_logica, int cant_bytes)
 }
 
 void execute_f_truncate(char* nombre_archivo, int tamanio) {
-	log_info(cpu_logger,"PID: <%d> - Ejecutando: <F_TRUNCATE> - <%s> - <%d>",proceso->pid,nombre_archivo,tamanio);
-	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE,cpu_logger);
+	log_info(cpu_logger, "PID: <%d> - Ejecutando: <F_TRUNCATE> - <%s> - <%d>", proceso->pid,nombre_archivo,tamanio);
+	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_F_TRUNCATE, cpu_logger);
 	enviar_mensaje(nombre_archivo, socket_kernel);
 	enviar_entero(socket_kernel, tamanio);
 }
@@ -210,7 +209,7 @@ void execute_wait(char* recurso) {
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_WAIT, cpu_logger);
 	enviar_mensaje(recurso, socket_kernel);
 
-	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
+	log_debug(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_WAIT");
 }
 
 void execute_signal(char* recurso) {
@@ -218,7 +217,7 @@ void execute_signal(char* recurso) {
 	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_SIGNAL, cpu_logger);
 	enviar_mensaje(recurso, socket_kernel);
 
-	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
+	log_debug(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_SIGNAL");
 }
 
 void execute_create_segment(int id_segmento, int tamanio) {
@@ -235,15 +234,15 @@ void execute_delete_segment(int id_segmento) {
 }
 
 void execute_yield(void) {
-	log_info(cpu_logger,"PID: <%d> - Ejecutando: <YIELD>",proceso->pid);
-	devolver_proceso(proceso,PROCESO_DESALOJADO_POR_YIELD,cpu_logger);
-	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_YIELD");
+	log_info(cpu_logger, "PID: <%d> - Ejecutando: <YIELD>", proceso->pid);
+	devolver_proceso(proceso, PROCESO_DESALOJADO_POR_YIELD, cpu_logger);
+	log_debug(cpu_logger, "Se devolvió el proceso a KERNEL con el codigo PROCESO_DESALOJADO_POR_YIELD");
 }
 
 void execute_exit(void) {
-	log_info(cpu_logger,"PID: <%d> - Ejecutando: <EXIT>",proceso->pid);
-	devolver_proceso(proceso,PROCESO_FINALIZADO,cpu_logger);
-	log_info(cpu_logger,"Se devolvió el proceso a KERNEL con el codigo PROCESO_FINALIZADO");
+	log_info(cpu_logger, "PID: <%d> - Ejecutando: <EXIT>", proceso->pid);
+	devolver_proceso(proceso, PROCESO_FINALIZADO, cpu_logger);
+	log_debug(cpu_logger, "Se devolvió el proceso a KERNEL con el codigo PROCESO_FINALIZADO");
 }
 
 //--------------MMU
@@ -252,8 +251,7 @@ int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proce
 	int desplazamiento_segmento = direccion_logica%cpu_config->tam_max_segmento;
 	t_segmento* segmento = obtener_segmento(direccion_logica, proceso->tabla_segmentos);
 
-	//int desp_total = desplazamiento_segmento + cant_bytes;
-	if (desplazamiento_segmento + cant_bytes > segmento->tam_segmento){ //SEG_FAULT
+	if (desplazamiento_segmento + cant_bytes > segmento->tam_segmento){
 		log_info(cpu_logger,"PID: <%d> - Error SEG_FAULT- Segmento: <%d> - Offset: <%d> - Tamaño: <%d>", proceso->pid, segmento->segmento_id, desplazamiento_segmento, segmento->tam_segmento);
 		return -1;
 	}
@@ -262,7 +260,7 @@ int traducir_a_direccion_fisica(int direccion_logica , t_contexto_proceso* proce
 
 t_segmento* obtener_segmento(int direccion_logica, t_list* tabla_segmentos) {
 	int num_segmento = floor(direccion_logica/cpu_config->tam_max_segmento);
-	//log_info(cpu_logger, "Segmento a buscar %d (%d/%d)", num_segmento, direccion_logica, cpu_config->tam_max_segmento);
+
 	bool encontrar_segmento(void* elem){
 		t_segmento* segmento = (t_segmento*) elem;
 		return segmento->segmento_id == num_segmento;
@@ -272,23 +270,26 @@ t_segmento* obtener_segmento(int direccion_logica, t_list* tabla_segmentos) {
 
 //--------------LLAMADAS A MEMORIA
 char* leer_memoria(int direccion_fisica, int cant_de_bytes) {
-	enviar_entero(socket_memoria, MEMORY_READ_ADRESS);
-	enviar_entero(socket_memoria, proceso->pid);
-	enviar_entero(socket_memoria, direccion_fisica);
-	enviar_entero(socket_memoria, cant_de_bytes);
-//	char* respuesta = malloc(cant_de_bytes + 1);
-//	strcpy(respuesta, recibir_string(socket_memoria));
-//	char* respuesta = new_string();
-//	string_n_append(&respuesta, recibir_string)
+	t_paquete* paquete = crear_paquete(MEMORY_READ_ADRESS);
+	paquete->buffer = crear_buffer();
+	agregar_int_a_paquete(paquete, proceso->pid);
+	agregar_int_a_paquete(paquete, direccion_fisica);
+	agregar_int_a_paquete(paquete, cant_de_bytes);
+	enviar_paquete(paquete, socket_memoria);
+	eliminar_paquete(paquete);
+
 	return recibir_string(socket_memoria);
 }
 
 void escribir_memoria(int direccion_fisica, char* valor_a_escribir, int tamanio) {
-	enviar_entero(socket_memoria, MEMORY_WRITE_ADRESS);
-	enviar_entero(socket_memoria, proceso->pid);
-	enviar_entero(socket_memoria, direccion_fisica);
-	enviar_entero(socket_memoria, tamanio);
-	enviar_mensaje(valor_a_escribir, socket_memoria);
+	t_paquete* paquete = crear_paquete(MEMORY_WRITE_ADRESS);
+	paquete->buffer = crear_buffer();
+	agregar_int_a_paquete(paquete, proceso->pid);
+	agregar_int_a_paquete(paquete, direccion_fisica);
+	agregar_int_a_paquete(paquete, tamanio);
+	agregar_a_paquete(paquete, valor_a_escribir, tamanio);
+	enviar_paquete(paquete, socket_memoria);
+	eliminar_paquete(paquete);
 }
 
 //-------------MANEJO DE REGISTROS
@@ -300,17 +301,17 @@ void set_valor_registro(char* nombre_registro, char* valor) {
 	switch (tipo_registro)
 	{
 	case 'R':
-		strncpy(registros_cpu.registros_16[posicion],valor,16);
+		strncpy(registros_cpu.registros_16[posicion], valor, 16);
 //		log_info(cpu_logger, "Actualizando registro R: %s", valor);
 		break;
 
 	case 'E':
-		strncpy(registros_cpu.registros_8[posicion],valor,8);
+		strncpy(registros_cpu.registros_8[posicion], valor, 8);
 //		log_info(cpu_logger, "Actualizando registro E: %s", valor);
 		break;
 
 	default:
-		strncpy(registros_cpu.registros_4[posicion],valor,4);
+		strncpy(registros_cpu.registros_4[posicion], valor, 4);
 //		log_info(cpu_logger, "Actualizando registro X: %s", valor);
 		break;
 	}
