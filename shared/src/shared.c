@@ -25,6 +25,9 @@ int iniciar_servidor(char* puerto)
 			servinfo->ai_socktype,
 			servinfo-> ai_protocol);
 
+	if (setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+	    error("setsockopt(SO_REUSEADDR) failed");
+
 	// Asociamos el socket a un puerto
 	bind(socket_servidor,servinfo->ai_addr,servinfo->ai_addrlen);
 
@@ -185,6 +188,9 @@ int crear_conexion(char *ip, char* puerto)
 			server_info->ai_family,
 			server_info->ai_socktype,
 			server_info-> ai_protocol);
+
+	if (setsockopt(socket_cliente, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+	    error("setsockopt(SO_REUSEADDR) failed");
 
 	if (connect(socket_cliente,
 				server_info->ai_addr,
