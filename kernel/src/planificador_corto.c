@@ -27,6 +27,7 @@ t_pcb* planificar(char* algoritmo, t_log* logger) {
 		pasar_a_cola_exec(pcb, logger);
 		return pcb;
 	} else if (string_equals_ignore_case(algoritmo, "FIFO")){
+		loggear_cola_ready(logger, kernel_config->ALGORITMO_PLANIFICACION);
 		t_pcb* pcb = (t_pcb*)squeue_peek(colas_planificacion->cola_ready);
 		pasar_a_cola_exec(pcb, logger);
 		//log_info(logger,"PID:%d ",pcb->pid);
