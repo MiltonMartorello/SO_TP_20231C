@@ -622,9 +622,10 @@ int escribir_archivo(char* nombre_archivo, t_buffer* parametros) {
 		memcpy(bloque64, bloques + offset, superbloque->BLOCK_SIZE);
 		offset = offset + superbloque->BLOCK_SIZE;
 		uint32_t puntero_i = list_get(punteros, i);
+		int index_log = i < 1 ? i : i + 1;
 	    log_info(logger, "Acceso Bloque - Archivo: <%s> - Bloque Archivo: <%d> - Bloque File System <%u>",
 	    			fcb->NOMBRE_ARCHIVO,
-	    			i,
+					index_log,
 					puntero_i);
 		escribir_en_bloque(puntero_i, bloque64);
 
