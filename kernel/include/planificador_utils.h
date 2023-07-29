@@ -35,6 +35,7 @@ typedef struct {
 	t_list* tabla_segmento;
 	return_code motivo;
 	sem_t sem_exit_proceso;
+	t_list* recursos;
 } t_pcb;
 
 typedef struct {

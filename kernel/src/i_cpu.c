@@ -173,6 +173,7 @@ void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger
 			sem_post(&cpu_liberada);
 		}
 		else{
+			list_add(pcb->recursos, recurso);
 			ejecutar_proceso(socket_cpu, pcb, logger);
 		}
 	}
@@ -193,13 +194,9 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	if(pos != -1){
 
 		t_recurso* recurso = (t_recurso*)list_get(lista_recursos,pos);
-		recurso->instancias++;
+		signal_recurso(recurso);
+		list_remove(pcb->recursos, recurso);
 		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",pcb->pid,nombre,recurso->instancias);
-
-		if(recurso->instancias <= 0){
-			pasar_a_ready_segun_algoritmo(algoritmo, squeue_pop(recurso->cola_bloqueados),logger);
-			//TODO REFACTORIZAR A pasar_a_cola_ready
-		}
 		ejecutar_proceso(socket_cpu, pcb, logger);
 	}
 	else{
@@ -210,6 +207,29 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 	}
 
 	free(nombre);
+}
+
+void signal_recurso(t_recurso* recurso){
+	recurso->instancias++;
+
+	if(recurso->instancias <= 0){
+		t_pcb* pcb_desbloqueada = (t_pcb*) squeue_pop(recurso->cola_bloqueados);
+		list_add(pcb_desbloqueada->recursos, recurso);
+		pasar_a_ready_segun_algoritmo(algoritmo, pcb_desbloqueada ,logger);
+		//TODO REFACTORIZAR A pasar_a_cola_ready
+	}
+}
+
+void liberar_recursos_proceso(t_pcb* proceso){
+
+	void _liberar_recurso(void* elem){
+		t_recurso* recurso = (t_recurso*) elem;
+
+		signal_recurso(recurso);
+
+	}
+
+	list_iterate(proceso->recursos, _liberar_recurso);
 }
 
 void procesar_f_open(t_pcb* pcb) {
