@@ -314,7 +314,13 @@ void procesar_f_write(t_pcb* pcb) {
 	proceso->pcb = pcb;
 	proceso->direccion_fisica = direccion_fisica;
 
-	log_info(kernel_logger,"PID: <%d> - Escrbir Archivo: <%s> - Puntero <PUNTERO> - Dirección Memoria <DIRECCIÓN MEMORIA> - Tamaño <TAMAÑO>",pcb->pid,nombre_archivo);
+	t_archivo_abierto* archivo = obtener_archivo_abierto(nombre_archivo);
+	log_info(kernel_logger,"PID: <%d> - Escribir Archivo: <%s> - Puntero <%d> - Dirección Memoria <%d> - Tamaño <%d>",
+				pcb->pid,
+				nombre_archivo,
+				archivo->puntero,
+				direccion_fisica,
+				cantidad_de_bytes);
 	squeue_push(colas_planificacion->cola_archivos, proceso);
 	sem_post(&request_file_system);
 	pasar_a_cola_blocked(pcb, logger, colas_planificacion->cola_block);
