@@ -167,6 +167,7 @@ t_pcb* crear_pcb(t_programa*  programa, int pid_asignado) {
 	pcb->tiempo_ejecucion = NULL;
 	pcb->motivo = NOT_DEFINED;
 	sem_init(&pcb->sem_exit_proceso, 0, 0);
+	pcb->recursos = list_create();
 	return pcb;
 }
 
@@ -177,6 +178,7 @@ void destroy_pcb(t_pcb* pcb) {
 	temporal_destroy(pcb->tiempo_llegada);
 	temporal_destroy(pcb->tiempo_ejecucion);
 	sem_destroy(&pcb->sem_exit_proceso);
+	list_destroy(pcb->recursos);
 	free(pcb);
 }
 

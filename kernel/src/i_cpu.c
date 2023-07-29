@@ -1,13 +1,14 @@
 #include "../include/i_cpu.h"
 
 t_log* kernel_logger;
+char* algoritmo;
 
 void manejar_respuesta_cpu(void* args_hilo){
 
 	t_args_hilo_planificador* args = (t_args_hilo_planificador*) args_hilo;
 	kernel_logger = args->log;
 	t_config* config = args->config;
-	char* algoritmo = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
+	algoritmo = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 	op_code cod_op;
 	t_contexto_proceso* contexto;
 
@@ -27,7 +28,7 @@ void actualizar_pcb(t_pcb* pcb, t_contexto_proceso* contexto) {
 	pcb->program_counter = contexto->program_counter;
 }
 
-void pasar_a_ready_segun_algoritmo(char* algoritmo,t_pcb* proceso,t_log* logger){
+void pasar_a_ready_segun_algoritmo(t_pcb* proceso,t_log* logger){
 	if(string_equals_ignore_case(algoritmo, "HRRN")) {
 		pasar_a_cola_ready_en_orden(proceso, logger, comparador_hrrn);
 	} else {
@@ -46,6 +47,7 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_FINALIZADO:
 			log_info(logger, "P_CORTO -> Proceso desalojado por EXIT");
 			solicitar_eliminar_tabla_de_segmento(pcb);
+			liberar_recursos_proceso(pcb);
 			pasar_a_cola_exit(pcb, logger, SUCCESS);
 			sem_post(&cpu_liberada);
 			break;
@@ -74,12 +76,12 @@ void procesar_contexto(t_pcb* pcb, op_code cod_op, char* algoritmo, t_log* logge
 		case PROCESO_DESALOJADO_POR_WAIT:
 			nombre = recibir_string(socket_cpu);
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar WAIT de %s ", nombre); //TODO modificar log
-			procesar_wait_recurso(nombre, pcb, algoritmo, logger);
+			procesar_wait_recurso(nombre, pcb, logger);
 			break;
 		case PROCESO_DESALOJADO_POR_SIGNAL:
 			nombre = recibir_string(socket_cpu);
 			log_info(logger, "P_CORTO -> Proceso desalojado para ejecutar SIGNAL de %s ", nombre);
-			procesar_signal_recurso(nombre, pcb, algoritmo, logger);
+			procesar_signal_recurso(nombre, pcb, logger);
 			break;
 		case PROCESO_DESALOJADO_POR_F_OPEN:
 			log_info(logger, "P_CORTO -> Proceso desalojado por F_OPEN");
@@ -155,11 +157,11 @@ void bloqueo_io(void* vArgs){
 
 	log_info(logger,"PID: <%d> - Ejecuta IO: <%d>", pcb->pid, tiempo);
 	sleep(tiempo);
-	pasar_a_ready_segun_algoritmo(algoritmo, pcb, logger);
+	pasar_a_ready_segun_algoritmo(pcb, logger);
 	//TODO REFACTORIZAR A pasar_a_cola_ready
 }
 
-void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger) {
+void procesar_wait_recurso(char* nombre,t_pcb* pcb, t_log* logger) {
 
 	int pos = buscar_recurso(nombre);
 
@@ -183,11 +185,11 @@ void procesar_wait_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger
 		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND);
 		sem_post(&cpu_liberada);
 	}
-
+	//print_recursos(pcb);
 	free(nombre);
 }
 
-void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logger){
+void procesar_signal_recurso(char* nombre,t_pcb* pcb, t_log* logger){
 
 	int pos = buscar_recurso(nombre);
 
@@ -195,7 +197,11 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 
 		t_recurso* recurso = (t_recurso*)list_get(lista_recursos,pos);
 		signal_recurso(recurso);
-		list_remove(pcb->recursos, recurso);
+
+		if(!list_remove_element(pcb->recursos, recurso)){
+			//printf("no encontre recurso %s para pcb %d\n", recurso->nombre, pcb->pid);
+		}
+
 		log_info(logger,"PID: <%d> - Signal: <%s> - Instancias: <%d>",pcb->pid,nombre,recurso->instancias);
 		ejecutar_proceso(socket_cpu, pcb, logger);
 	}
@@ -205,7 +211,7 @@ void procesar_signal_recurso(char* nombre,t_pcb* pcb,char* algoritmo,t_log* logg
 		pasar_a_cola_exit(pcb, logger, RESOURCE_NOT_FOUND);
 		sem_post(&cpu_liberada);
 	}
-
+	//print_recursos(pcb);
 	free(nombre);
 }
 
@@ -215,21 +221,44 @@ void signal_recurso(t_recurso* recurso){
 	if(recurso->instancias <= 0){
 		t_pcb* pcb_desbloqueada = (t_pcb*) squeue_pop(recurso->cola_bloqueados);
 		list_add(pcb_desbloqueada->recursos, recurso);
-		pasar_a_ready_segun_algoritmo(algoritmo, pcb_desbloqueada ,logger);
+		pasar_a_ready_segun_algoritmo(pcb_desbloqueada ,logger);
 		//TODO REFACTORIZAR A pasar_a_cola_ready
 	}
 }
 
 void liberar_recursos_proceso(t_pcb* proceso){
+	//printf("LIBERANDO RECURSOS \n");
+	//print_recursos(proceso);
 
-	void _liberar_recurso(void* elem){
-		t_recurso* recurso = (t_recurso*) elem;
+	if(!list_is_empty(proceso->recursos)){
+		void _liberar_recurso(void* elem){
+			t_recurso* recurso = (t_recurso*) elem;
 
-		signal_recurso(recurso);
+			signal_recurso(recurso);
+		}
+
+		list_iterate(proceso->recursos, &_liberar_recurso);
+		list_clean(proceso->recursos);
+
+//		void _print_recurso(void* elem){
+//			t_recurso* recurso = (t_recurso*) elem;
+//			printf("RECURSO : %s - INSTANCIAS : %d \n",recurso->nombre,recurso->instancias);
+//		}
+//
+//		list_iterate(lista_recursos,&_print_recurso);
 
 	}
+}
 
-	list_iterate(proceso->recursos, _liberar_recurso);
+void print_recursos(t_pcb* pcb){
+	if(!list_is_empty(pcb->recursos)){
+		void _print_recurso(void* elem){
+			t_recurso* recurso = (t_recurso*) elem;
+			printf("pcb : %d -> RECURSO : %s - INSTANCIAS : %d \n",pcb->pid, recurso->nombre,recurso->instancias);
+		}
+
+		list_iterate(pcb->recursos,&_print_recurso);
+	}
 }
 
 void procesar_f_open(t_pcb* pcb) {
